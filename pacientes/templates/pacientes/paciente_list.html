@@ -1,0 +1,23 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pacientes</title>
+</head>
+<body>
+    <h1>Lista de Pacientes</h1>
+    <a href="{% url 'paciente_create' %}">Novo Paciente</a>
+    <ul>
+        {% for paciente in pacientes %}
+            <li>
+                {{ paciente.nome }} - {{ paciente.cpf }}
+                [<a href="{% url 'paciente_update' paciente.pk %}">Editar</a>]
+                [<a href="{% url 'paciente_delete' paciente.pk %}">Excluir</a>]
+            </li>
+        {% empty %}
+            <li>Nenhum paciente cadastrado.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

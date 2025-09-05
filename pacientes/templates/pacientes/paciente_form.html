@@ -1,0 +1,17 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Paciente</title>
+</head>
+<body>
+    <h1>{{ form.instance.pk|yesno:"Editar Paciente,Novo Paciente" }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Salvar</button>
+        <a href="{% url 'paciente_list' %}">Cancelar</a>
+    </form>
+</body>
+</html>

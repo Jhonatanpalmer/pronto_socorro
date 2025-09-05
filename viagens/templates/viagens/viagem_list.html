@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Viagens{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">🧭 Viagens Cadastradas</h2>
+        <p class="text-muted">Acompanhe todas as viagens registradas no sistema</p>
+    </div>
+
+    {% if viagens %}
+        <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-primary text-center">
+                    <tr>
+                        <th scope="col">👤 Paciente</th>
+                        <th scope="col">📍 Destino</th>
+                        <th scope="col">📅 Data</th>
+                        <th scope="col">⏰ Hora de Saída</th>
+                        <th scope="col">📌 Status</th>
+                        <th scope="col">⚙️ Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="table-group-divider text-center">
+                    {% for viagem in viagens %}
+                        <tr>
+                            <td>{{ viagem.paciente }}</td>
+                            <td>{{ viagem.destino }}</td>
+                            <td>{{ viagem.data_viagem|date:"d/m/Y" }}</td>
+                            <td>{{ viagem.hora_saida|time:"H:i" }}</td>
+                            <td>
+                                <span class="badge bg-gradient bg-info text-dark px-3 py-2 rounded-pill">
+                                    {{ viagem.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'viagem-edit' viagem.pk %}" class="btn btn-sm btn-outline-primary">
+                                    ✏️ Editar
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-warning text-center mt-4 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> Nenhuma viagem cadastrada no momento.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
