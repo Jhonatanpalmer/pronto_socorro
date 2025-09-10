@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Sistema de Viagens{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+    <meta charset="UTF-8" />
+    <title>{% block title %}Saúde{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Estilos personalizados opcionais -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
     <style>
         body {
             padding-top: 70px;
@@ -26,17 +28,32 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'viagem-list' %}">Sistema de Viagens</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <a class="navbar-brand" href="{% url 'viagem-list' %}">
+                <i class="bi bi-truck-front-fill"></i> Sistema Secretaria Municipal de Saúde
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'viagem-list' %}">Home</a>
+                        <a class="nav-link" href="{% url 'viagem-list' %}">
+                            <i class="bi bi-house-door"></i> Home
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'viagem-create' %}">Nova Viagem</a>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-clipboard-data"></i> Gerenciar
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navDropdown">
+                            <li><a class="dropdown-item" href="{% url 'viagem-list' %}"><i class="bi bi-truck"></i> Viagens</a></li>
+                            <li><a class="dropdown-item" href="{% url 'viagem-create' %}"><i class="bi bi-plus-circle"></i> Nova Viagem</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'paciente_list' %}"><i class="bi bi-people"></i> Pacientes</a></li>
+                            <li><a class="dropdown-item" href="{% url 'paciente_create' %}"><i class="bi bi-person-plus"></i> Novo Paciente</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>
@@ -51,11 +68,18 @@
     <!-- Rodapé -->
     <footer>
         <div class="container">
-            <p class="mb-0">&copy; {{ year }} - Sistema de Transporte de Pacientes</p>
+            <div class="row text-muted">
+                <div class="col-md-6 text-md-start mb-2 mb-md-0">
+                    &copy; {{ year|default:"2025" }} - Sistema de Transporte de Pacientes
+                </div>
+                <div class="col-md-6 text-md-end">
+                    Desenvolvido por <a href="https://www.instagram.com/jhonatan.babu/" target="_blank" class="text-decoration-none">Jhonatan Palmer</a>
+                </div>
+            </div>
         </div>
     </footer>
 
-    <!-- Bootstrap 5 JS (opcional para navbar responsiva) -->
+    <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

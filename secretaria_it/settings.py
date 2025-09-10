@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'pacientes',
     'veiculos',
     'viagens',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
