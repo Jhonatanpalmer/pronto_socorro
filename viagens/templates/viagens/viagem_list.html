@@ -9,6 +9,26 @@
         <p class="text-muted">Acompanhe todas as viagens registradas no sistema</p>
     </div>
 
+    <!-- formulário de filtro: mostra hoje por padrão e permite selecionar outra data -->
+    <form method="get" class="row g-2 mb-4 align-items-end">
+        <div class="col-auto">
+            <label class="form-label">Data</label>
+            <input class="form-control" type="date" name="data" value="{{ filter_data }}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label">De</label>
+            <input class="form-control" type="date" name="start" value="{{ filter_start }}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label">Até</label>
+            <input class="form-control" type="date" name="end" value="{{ filter_end }}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Pesquisar</button>
+            <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary ms-2">Limpar</a>
+        </div>
+    </form>
+
     {% if viagens %}
         <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
             <table class="table table-hover align-middle mb-0">
