@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}TFD - Lista{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>TFD - Registros</h2>
+        <a href="{% url 'tfd-create' %}" class="btn btn-primary">Novo registro</a>
+    </div>
+
+    {% if tfds %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Período</th>
+                    <th>Origem</th>
+                    <th>Destino</th>
+                    <th>Diárias</th>
+                    <th>Valor diária</th>
+                    <th>Valor total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tfds %}
+                <tr>
+                    <td>{{ t.paciente_nome }}</td>
+                    <td>
+                        {% if t.data_inicio %}{{ t.data_inicio|date:"d/m/Y" }}{% endif %}
+                        {% if t.data_fim and t.data_fim != t.data_inicio %} - {{ t.data_fim|date:"d/m/Y" }}{% endif %}
+                    </td>
+                    <td>{{ t.cidade_origem }}</td>
+                    <td>{{ t.cidade_destino }}</td>
+                    <td>{{ t.numero_diarias }}</td>
+                    <td>{{ t.valor_diaria }}</td>
+                    <td>{{ t.valor_total }}</td>
+                    <td>
+                        <a href="{% url 'tfd-detail' t.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a>
+                        <a href="{% url 'tfd-edit' t.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">Nenhum registro encontrado.</div>
+    {% endif %}
+</div>
+{% endblock %}

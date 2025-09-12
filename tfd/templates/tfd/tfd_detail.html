@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}TFD - Detalhe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2>TFD - {{ tfd.paciente_nome }}</h2>
+
+    <dl class="row">
+        <dt class="col-sm-3">Paciente</dt>
+        <dd class="col-sm-9">{{ tfd.paciente_nome }} (CPF: {{ tfd.paciente_cpf }})</dd>
+
+        <dt class="col-sm-3">Período</dt>
+        <dd class="col-sm-9">
+            {% if tfd.data_inicio %}{{ tfd.data_inicio|date:"d/m/Y" }}{% else %}—{% endif %}
+            {% if tfd.data_fim and tfd.data_fim != tfd.data_inicio %} - {{ tfd.data_fim|date:"d/m/Y" }}{% endif %}
+        </dd>
+
+    <dt class="col-sm-3">Origem</dt>
+    <dd class="col-sm-9">{{ tfd.cidade_origem }}</dd>
+
+    <dt class="col-sm-3">Destino</dt>
+    <dd class="col-sm-9">{{ tfd.cidade_destino }}</dd>
+
+        <dt class="col-sm-3">Diárias</dt>
+        <dd class="col-sm-9">{{ tfd.numero_diarias }}</dd>
+
+        <dt class="col-sm-3">Valor diária</dt>
+        <dd class="col-sm-9">{{ tfd.valor_diaria }}</dd>
+
+        <dt class="col-sm-3">Valor total</dt>
+        <dd class="col-sm-9">{{ tfd.valor_total }}</dd>
+
+        <dt class="col-sm-3">Observações</dt>
+        <dd class="col-sm-9">{{ tfd.observacoes|linebreaks }}</dd>
+    </dl>
+
+    <a href="{% url 'tfd-edit' tfd.pk %}" class="btn btn-outline-primary">Editar</a>
+    <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary ms-2">Voltar</a>
+</div>
+{% endblock %}

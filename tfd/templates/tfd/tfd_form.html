@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% load widget_tweaks %}
+
+{% block title %}TFD - Formulário{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{% if form.instance.pk %}Editar{% else %}Novo{% endif %} registro de TFD</h5>
+                <small class="text-light">Preencha os dados do paciente e da viagem</small>
+            </div>
+        </div>
+        <div class="card-body">
+            <style>
+                /* endereço mais compacto */
+                .tf-address textarea.form-control { min-height: 56px; max-height: 120px; resize: vertical; }
+            </style>
+
+            <script>
+                // calcula total e escuta mudanças — defensivo (checa existência antes de usar)
+                function calcularTotal() {
+                    const diariasEl = document.getElementById('id_numero_diarias');
+                    const valorEl = document.getElementById('id_valor_diaria');
+                    const totalEl = document.getElementById('id_valor_total');
+                    const diarias = diariasEl ? parseFloat(diariasEl.value) || 0 : 0;
+                    const valor = valorEl ? parseFloat(valorEl.value) || 0 : 0;
+                    const total = (diarias * valor).toFixed(2);
+                    if (totalEl) totalEl.value = total;
+                }
+
+                function calcularDiariasPorPeriodo() {
+                    const inicioEl = document.getElementById('id_data_inicio');
+                    const fimEl = document.getElementById('id_data_fim');
+                    if (!inicioEl) return;
+                    const inicioVal = inicioEl.value;
+                    const fimVal = fimEl ? fimEl.value : null;
+                    if (inicioVal && fimVal) {
+                        const inicio = new Date(inicioVal);
+                        const fim = new Date(fimVal);
+                        const diffMs = fim - inicio;
+                        const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                        const diasValid = dias > 0 ? dias : 1;
+                        const numEl = document.getElementById('id_numero_diarias');
+                        if (numEl) numEl.value = diasValid;
+                        calcularTotal();
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    const inicioEl = document.getElementById('id_data_inicio');
+                    const fimEl = document.getElementById('id_data_fim');
+                    const numEl = document.getElementById('id_numero_diarias');
+                    const valEl = document.getElementById('id_valor_diaria');
+
+                    if (inicioEl) inicioEl.addEventListener('change', calcularDiariasPorPeriodo);
+                    if (fimEl) fimEl.addEventListener('change', calcularDiariasPorPeriodo);
+                    if (numEl) numEl.addEventListener('input', calcularTotal);
+                    if (valEl) valEl.addEventListener('input', calcularTotal);
+
+                    // set default data para hoje no inicio se estiver vazio
+                    if (inicioEl && !inicioEl.value) {
+                        const hoje = new Date().toISOString().slice(0, 10);
+                        inicioEl.value = hoje;
+                    }
+                });
+            </script>
+
+            <form id="tfd-form" method="post" class="row g-3 needs-validation" novalidate>
+                {% csrf_token %}
+
+                    <div class="col-md-6">
+                        <label class="form-label">Paciente (vinculado)</label>
+                        {{ form.paciente|add_class:"form-select" }}
+                        <div class="form-text">Selecione um paciente para preencher automaticamente os dados do paciente.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Acompanhante (se houver)</label>
+                        {{ form.paciente_nome|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">CPF</label>
+                        {{ form.paciente_cpf|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">CNS</label>
+                        {{ form.paciente_cns|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-8 tf-address">
+                        <label class="form-label">Endereço</label>
+                        {{ form.paciente_endereco|add_class:"form-control" }}
+                        <div class="form-text">Formato curto: rua, nº, bairro. Máx. 300 caracteres.</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Telefone</label>
+                        {{ form.paciente_telefone|add_class:"form-control" }}
+                    </div>
+
+
+
+                    <div class="col-md-6">
+                        <label class="form-label">Cidade de destino</label>
+                        {{ form.cidade_destino|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Data início</label>
+                        {{ form.data_inicio|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Data fim</label>
+                        {{ form.data_fim|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Número de diárias</label>
+                        {{ form.numero_diarias|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Valor da diária (R$)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            {{ form.valor_diaria|add_class:"form-control text-end" }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Valor total (R$)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            {{ form.valor_total|add_class:"form-control text-end" }}
+                        </div>
+                        <div class="form-text">Calculado automaticamente como <code>valor_diaria × número_diarias</code> se não informado.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Observações</label>
+                        {{ form.observacoes|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Assinatura do paciente (texto)</label>
+                        {{ form.paciente_assinatura|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            {{ form.secretario_autorizado|add_class:"form-check-input" }}
+                            <label class="form-check-label">Autorizado pelo Secretário de Saúde</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Nome do secretário</label>
+                        {{ form.secretario_nome|add_class:"form-control" }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Assinatura do secretário (texto)</label>
+                        {{ form.secretario_assinatura|add_class:"form-control" }}
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end">
+                    <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-success">Salvar registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Auto-calcula valor_total quando usuario altera diária ou número de diárias
+    const diariaInput = document.querySelector('[name="valor_diaria"]');
+    const numeroInput = document.querySelector('[name="numero_diarias"]');
+    const totalInput = document.querySelector('[name="valor_total"]');
+
+    function parseNumber(v){
+        if (v === null || v === undefined) return 0;
+        v = String(v).trim();
+        if (v === '') return 0;
+        // Se contém vírgula, assumir formato brasileiro: remover pontos de milhares e trocar vírgula por ponto
+        if (v.indexOf(',') !== -1){
+            v = v.replace(/\./g, '');
+            v = v.replace(/,/g, '.');
+        } else {
+            // caso não tenha vírgula, remover vírgulas acidentais e espaços
+            v = v.replace(/,/g, '');
+        }
+        v = v.replace(/\s+/g, '');
+        const n = parseFloat(v);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function recalc(){
+        const diaria = parseNumber(diariaInput ? diariaInput.value : 0);
+        // número de diárias padrão = 1 quando vazio
+        const numRaw = numeroInput ? numeroInput.value : '';
+        const num = parseInt(numRaw) || 1;
+        const total = diaria * num;
+        if (!totalInput) return;
+        // atualizar sempre para refletir os campos atuais
+        totalInput.value = total.toFixed(2);
+    }
+
+    [diariaInput, numeroInput].forEach(el => {
+        if (!el) return;
+        el.addEventListener('input', recalc);
+        el.addEventListener('change', recalc);
+    });
+
+    // referência a campo obsoleto `data_viagem` removida
+
+    // bootstrap validation
+    const form = document.getElementById('tfd-form');
+    form.addEventListener('submit', function(event){
+        if (!form.checkValidity()){
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    }, false);
+});
+</script>
+
+{% endblock %}

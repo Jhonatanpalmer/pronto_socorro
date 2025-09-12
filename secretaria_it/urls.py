@@ -50,4 +50,7 @@ urlpatterns = [
 
     # URLs do app Pacientes
     path('pacientes/', include('pacientes.urls')),
+    
+    # URLs do app TFD
+    path('tfd/', include('tfd.urls')),
 ]
