@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load currency_filters %}
 
 {% block title %}TFD - Lista{% endblock %}
 
@@ -8,6 +9,21 @@
         <h2>TFD - Registros</h2>
         <a href="{% url 'tfd-create' %}" class="btn btn-primary">Novo registro</a>
     </div>
+
+    <form method="get" class="row g-2 mb-3 align-items-end">
+        <div class="col-auto">
+            <label class="form-label small">Início</label>
+            <input type="date" name="start_date" value="{{ filter_start }}" class="form-control">
+        </div>
+        <div class="col-auto">
+            <label class="form-label small">Fim</label>
+            <input type="date" name="end_date" value="{{ filter_end }}" class="form-control">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary">Filtrar</button>
+            <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary ms-2">Limpar</a>
+        </div>
+    </form>
 
     {% if tfds %}
     <div class="table-responsive">
@@ -20,14 +36,15 @@
                     <th>Destino</th>
                     <th>Diárias</th>
                     <th>Valor diária</th>
-                    <th>Valor total</th>
+                    <th>Valor Beneficio</th>
+                    <th>Valor Total </th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for t in tfds %}
                 <tr>
-                    <td>{{ t.paciente_nome }}</td>
+                    <td>{% if t.paciente %}{{ t.paciente.nome }}{% else %}{{ t.paciente_nome }}{% endif %}</td>
                     <td>
                         {% if t.data_inicio %}{{ t.data_inicio|date:"d/m/Y" }}{% endif %}
                         {% if t.data_fim and t.data_fim != t.data_inicio %} - {{ t.data_fim|date:"d/m/Y" }}{% endif %}
@@ -35,8 +52,9 @@
                     <td>{{ t.cidade_origem }}</td>
                     <td>{{ t.cidade_destino }}</td>
                     <td>{{ t.numero_diarias }}</td>
-                    <td>{{ t.valor_diaria }}</td>
-                    <td>{{ t.valor_total }}</td>
+                    <td>{{ t.valor_diaria|br_currency }}</td>
+                    <td>{{ t.valor_beneficio|br_currency }}</td>
+                    <td>{{ t.valor_total|br_currency }}</td>
                     <td>
                         <a href="{% url 'tfd-detail' t.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a>
                         <a href="{% url 'tfd-edit' t.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>

@@ -1,14 +1,15 @@
 {% extends 'base.html' %}
+{% load currency_filters %}
 
 {% block title %}TFD - Detalhe{% endblock %}
 
 {% block content %}
 <div class="container py-5">
-    <h2>TFD - {{ tfd.paciente_nome }}</h2>
+    <h2>TFD - {% if tfd.paciente %}{{ tfd.paciente.nome }}{% else %}{{ tfd.paciente_nome }}{% endif %}</h2>
 
     <dl class="row">
         <dt class="col-sm-3">Paciente</dt>
-        <dd class="col-sm-9">{{ tfd.paciente_nome }} (CPF: {{ tfd.paciente_cpf }})</dd>
+    <dd class="col-sm-9">{% if tfd.paciente %}{{ tfd.paciente.nome }} (CPF: {{ tfd.paciente.cpf }}){% else %}{{ tfd.paciente_nome }} (CPF: {{ tfd.paciente_cpf }}){% endif %}</dd>
 
         <dt class="col-sm-3">Período</dt>
         <dd class="col-sm-9">
@@ -28,8 +29,12 @@
         <dt class="col-sm-3">Valor diária</dt>
         <dd class="col-sm-9">{{ tfd.valor_diaria }}</dd>
 
+        <dt class="col-sm-3">Valor do benefício</dt>
+
+    <dd class="col-sm-9">{{ tfd.valor_beneficio|br_currency }}</dd>
+
         <dt class="col-sm-3">Valor total</dt>
-        <dd class="col-sm-9">{{ tfd.valor_total }}</dd>
+    <dd class="col-sm-9">{{ tfd.valor_total|br_currency }}</dd>
 
         <dt class="col-sm-3">Observações</dt>
         <dd class="col-sm-9">{{ tfd.observacoes|linebreaks }}</dd>
@@ -37,5 +42,6 @@
 
     <a href="{% url 'tfd-edit' tfd.pk %}" class="btn btn-outline-primary">Editar</a>
     <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary ms-2">Voltar</a>
+    <a href="{% url 'tfd-print' tfd.pk %}" target="_blank" class="btn btn-outline-success ms-2">Imprimir</a>
 </div>
 {% endblock %}

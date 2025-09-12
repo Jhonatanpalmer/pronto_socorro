@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-import datetime
+from decimal import Decimal
 
 
 class TFD(models.Model):
@@ -30,6 +30,8 @@ class TFD(models.Model):
 	data_fim = models.DateField('Data fim', null=True, blank=True)
 	numero_diarias = models.PositiveIntegerField('Número de diárias', default=1)
 	valor_diaria = models.DecimalField('Valor da diária', max_digits=10, decimal_places=2)
+	# novo campo: valor do benefício
+	valor_beneficio = models.DecimalField('Valor do benefício', max_digits=12, decimal_places=2, default=0)
 	valor_total = models.DecimalField('Valor total', max_digits=12, decimal_places=2)
 
 	observacoes = models.TextField('Observações', blank=True)
@@ -86,10 +88,13 @@ class TFD(models.Model):
 		except Exception:
 			pass
 
-		# calcular valor_total se estiver zerado ou nulo
+		# recalcular sempre o valor_total como valor_beneficio + (valor_diaria * numero_diarias)
 		try:
-			if self.valor_diaria is not None and (self.valor_total is None or self.valor_total == 0):
-				self.valor_total = (self.valor_diaria * self.numero_diarias)
+			if self.valor_diaria is not None:
+				beneficio = self.valor_beneficio or Decimal('0')
+				# garantir que numero_diarias seja Decimal para multiplicação correta
+				num = Decimal(self.numero_diarias)
+				self.valor_total = (self.valor_diaria * num) + beneficio
 		except Exception:
 			# em caso de erro de multiplicação (tipo), deixar como está e deixar o DB reportar
 			pass

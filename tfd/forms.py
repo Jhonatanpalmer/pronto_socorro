@@ -18,6 +18,7 @@ class TFDForm(forms.ModelForm):
             'data_fim',
             'numero_diarias',
             'valor_diaria',
+            'valor_beneficio',
             'valor_total',
             'paciente_assinatura',
             'secretario_autorizado',
@@ -31,6 +32,7 @@ class TFDForm(forms.ModelForm):
             'paciente_nome': forms.TextInput(attrs={'placeholder': 'Acompanhante (se houver)'}),
             'numero_diarias': forms.NumberInput(attrs={'min': '1'}),
             'valor_diaria': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+            'valor_beneficio': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
             'valor_total': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
             'cidade_destino': forms.TextInput(attrs={'placeholder': 'Cidade de destino'}),
             'paciente_assinatura': forms.TextInput(attrs={'placeholder': 'Assinatura (texto)'}),
@@ -47,15 +49,16 @@ class TFDForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        numero = cleaned.get('numero_diarias') or 0
-        diaria = cleaned.get('valor_diaria') or 0
-        total = cleaned.get('valor_total')
+        from decimal import Decimal
 
-        # calcular total automaticamente se não informado
-        if not total:
-            try:
-                cleaned['valor_total'] = diaria * numero
-            except Exception:
-                pass
+        numero = Decimal(cleaned.get('numero_diarias') or 0)
+        diaria = Decimal(cleaned.get('valor_diaria') or 0)
+        beneficio = Decimal(cleaned.get('valor_beneficio') or 0)
+
+        # recalcular sempre o valor_total para manter consistência
+        try:
+            cleaned['valor_total'] = (diaria * numero) + beneficio
+        except Exception:
+            pass
 
         return cleaned

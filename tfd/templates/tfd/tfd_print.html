@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}TFD - Imprimir{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>TFD - Dados da Viagem</h3>
+        <div>
+            <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+        </div>
+    </div>
+
+    <div class="card p-3">
+        <h5 class="mb-3">Paciente</h5>
+        <div class="row">
+            <div class="col-md-6"><strong>Nome:</strong> {% if tfd.paciente %}{{ tfd.paciente.nome }}{% else %}{{ tfd.paciente_nome }}{% endif %}</div>
+            <div class="col-md-3"><strong>CPF:</strong> {{ tfd.paciente_cpf }}</div>
+            <div class="col-md-3"><strong>CNS:</strong> {{ tfd.paciente_cns }}</div>
+        </div>
+
+        <hr>
+
+        <h5 class="mb-3">Viagem</h5>
+        <div class="row mb-2">
+            <div class="col-md-4"><strong>Origem:</strong> {{ tfd.cidade_origem }}</div>
+            <div class="col-md-4"><strong>Destino:</strong> {{ tfd.cidade_destino }}</div>
+            <div class="col-md-4"><strong>Nº diárias:</strong> {{ tfd.numero_diarias }}</div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-4"><strong>Data início:</strong> {% if tfd.data_inicio %}{{ tfd.data_inicio|date:"d/m/Y" }}{% endif %}</div>
+            <div class="col-md-4"><strong>Data fim:</strong> {% if tfd.data_fim %}{{ tfd.data_fim|date:"d/m/Y" }}{% endif %}</div>
+            <div class="col-md-4"><strong>Valor diária:</strong> {{ tfd.valor_diaria|br_currency }}</div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-4"><strong>Valor do benefício:</strong> {{ tfd.valor_beneficio|br_currency }}</div>
+            <div class="col-md-4"><strong>Valor total:</strong> {{ tfd.valor_total|br_currency }}</div>
+        </div>
+
+        <hr>
+
+        <h5 class="mb-3">Assinaturas</h5>
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div style="height:80px;border-bottom:1px solid #000"></div>
+                <div class="text-muted">Assinatura do paciente</div>
+            </div>
+            <div class="col-md-6">
+                <div style="height:80px;border-bottom:1px solid #000"></div>
+                <div class="text-muted">Assinatura do secretário</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -133,13 +133,21 @@
                         </div>
                     </div>
 
+                    <div class="col-md-4">
+                        <label class="form-label">Valor do benefício (R$)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            {{ form.valor_beneficio|add_class:"form-control text-end" }}
+                        </div>
+                    </div>
+
                     <div class="col-md-6">
                         <label class="form-label">Valor total (R$)</label>
                         <div class="input-group">
                             <span class="input-group-text">R$</span>
                             {{ form.valor_total|add_class:"form-control text-end" }}
                         </div>
-                        <div class="form-text">Calculado automaticamente como <code>valor_diaria × número_diarias</code> se não informado.</div>
+                        <div class="form-text">Calculado automaticamente como <code>valor_beneficio + (valor_diaria × número_diarias)</code> se não informado.</div>
                     </div>
 
                     <div class="col-md-6">
@@ -185,6 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const diariaInput = document.querySelector('[name="valor_diaria"]');
     const numeroInput = document.querySelector('[name="numero_diarias"]');
     const totalInput = document.querySelector('[name="valor_total"]');
+    const beneficioInput = document.querySelector('[name="valor_beneficio"]');
 
     function parseNumber(v){
         if (v === null || v === undefined) return 0;
@@ -208,13 +217,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // número de diárias padrão = 1 quando vazio
         const numRaw = numeroInput ? numeroInput.value : '';
         const num = parseInt(numRaw) || 1;
-        const total = diaria * num;
+        const beneficio = parseNumber(beneficioInput ? beneficioInput.value : 0);
+        const total = (diaria * num) + beneficio;
         if (!totalInput) return;
         // atualizar sempre para refletir os campos atuais
         totalInput.value = total.toFixed(2);
     }
 
-    [diariaInput, numeroInput].forEach(el => {
+    [diariaInput, numeroInput, beneficioInput].forEach(el => {
         if (!el) return;
         el.addEventListener('input', recalc);
         el.addEventListener('change', recalc);
