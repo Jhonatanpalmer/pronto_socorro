@@ -6,44 +6,47 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0 text-center">
-                        {% if form.instance.pk %}Editar Viagem{% else %}Nova Viagem{% endif %}
-                    </h4>
-                </div>
+<div class="container py-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-transparent p-0 mb-3">
+            <li class="breadcrumb-item"><a href="{% url 'viagem-list' %}">Viagens</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Viagem</li>
+        </ol>
+    </nav>
 
-                <div class="card-body bg-light">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">{% if form.instance.pk %}Editar Viagem{% else %}Nova Viagem{% endif %}</h4>
+                        <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+                    </div>
+
                     <form method="post" novalidate>
                         {% csrf_token %}
 
-                        {% for field in form %}
-                            <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                                {{ field|add_class:"form-control" }}
-
-                                {% if field.help_text %}
-                                    <div class="form-text text-muted">{{ field.help_text }}</div>
-                                {% endif %}
-
-                                {% if field.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ field.errors|striptags }}
+                        <div class="row g-3">
+                            {% comment %} Layout fields into logical groups for readability {% endcomment %}
+                            {% for field in form %}
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ field.id_for_label }}" class="form-label small text-uppercase text-muted">{{ field.label }}</label>
+                                        {{ field|add_class:"form-control form-control-sm" }}
+                                        {% if field.help_text %}
+                                            <div class="form-text">{{ field.help_text }}</div>
+                                        {% endif %}
+                                        {% if field.errors %}
+                                            <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
 
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Salvar
-                            </button>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="reset" class="btn btn-outline-secondary">Limpar</button>
+                            <button type="submit" class="btn btn-primary">Salvar</button>
                         </div>
                     </form>
                 </div>

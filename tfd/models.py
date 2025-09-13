@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils import timezone
 from decimal import Decimal
 
 
@@ -36,12 +35,7 @@ class TFD(models.Model):
 
 	observacoes = models.TextField('Observações', blank=True)
 
-	# assinaturas / autorização (texto)
-	paciente_assinatura = models.CharField('Assinatura do paciente (texto)', max_length=200, blank=True, null=True)
-	secretario_autorizado = models.BooleanField('Autorizado pelo Secretário de Saúde', default=False)
-	secretario_nome = models.CharField('Nome do secretário', max_length=150, blank=True)
-	secretario_assinatura = models.CharField('Assinatura do secretário (texto)', max_length=200, blank=True, null=True)
-	autorizado_em = models.DateTimeField('Data de autorização', blank=True, null=True)
+	# NOTE: assinatura/autoriza fields removed (stored signatures/authorization no longer kept)
 
 	criado_em = models.DateTimeField(auto_now_add=True)
 	atualizado_em = models.DateTimeField(auto_now=True)
@@ -99,8 +93,6 @@ class TFD(models.Model):
 			# em caso de erro de multiplicação (tipo), deixar como está e deixar o DB reportar
 			pass
 
-		# marcar data de autorização quando autorizado
-		if self.secretario_autorizado and not self.autorizado_em:
-			self.autorizado_em = timezone.now()
+		# authorization/signature fields removed; no-op
 
 		super().save(*args, **kwargs)

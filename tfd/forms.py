@@ -20,10 +20,6 @@ class TFDForm(forms.ModelForm):
             'valor_diaria',
             'valor_beneficio',
             'valor_total',
-            'paciente_assinatura',
-            'secretario_autorizado',
-            'secretario_nome',
-            'secretario_assinatura',
             'observacoes',
         ]
         widgets = {
@@ -35,10 +31,6 @@ class TFDForm(forms.ModelForm):
             'valor_beneficio': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
             'valor_total': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
             'cidade_destino': forms.TextInput(attrs={'placeholder': 'Cidade de destino'}),
-            'paciente_assinatura': forms.TextInput(attrs={'placeholder': 'Assinatura (texto)'}),
-            'secretario_autorizado': forms.CheckboxInput(),
-            'secretario_nome': forms.TextInput(),
-            'secretario_assinatura': forms.TextInput(attrs={'placeholder': 'Assinatura (texto)'}),
             'paciente_endereco': forms.Textarea(attrs={'rows': 2, 'class': 'form-control', 'placeholder': 'Rua, nº, bairro, cidade', 'maxlength': '300'}),
         }
 

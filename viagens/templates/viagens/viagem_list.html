@@ -4,60 +4,75 @@
 
 {% block content %}
 <div class="container py-5">
-    <div class="text-center mb-5">
-        <h2 class="fw-bold">🧭 Viagens Cadastradas</h2>
-        <p class="text-muted">Acompanhe todas as viagens registradas no sistema</p>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold mb-0">Viagens</h2>
+            <p class="text-muted mb-0">Acompanhe as viagens registradas</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'viagem-create' %}" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Nova Viagem
+            </a>
+            <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary">Atualizar</a>
+        </div>
     </div>
 
-    <!-- formulário de filtro: mostra hoje por padrão e permite selecionar outra data -->
-    <form method="get" class="row g-2 mb-4 align-items-end">
-        <div class="col-auto">
-            <label class="form-label">Data</label>
-            <input class="form-control" type="date" name="data" value="{{ filter_data }}">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-sm-4 col-md-3">
+                    <label class="form-label small">Data (única)</label>
+                    <input class="form-control form-control-sm" type="date" name="data" value="{{ filter_data }}">
+                </div>
+                <div class="col-sm-4 col-md-3">
+                    <label class="form-label small">De</label>
+                    <input class="form-control form-control-sm" type="date" name="start" value="{{ filter_start }}">
+                </div>
+                <div class="col-sm-4 col-md-3">
+                    <label class="form-label small">Até</label>
+                    <input class="form-control form-control-sm" type="date" name="end" value="{{ filter_end }}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">Pesquisar</button>
+                    <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary btn-sm ms-2">Limpar</a>
+                </div>
+            </form>
         </div>
-        <div class="col-auto">
-            <label class="form-label">De</label>
-            <input class="form-control" type="date" name="start" value="{{ filter_start }}">
-        </div>
-        <div class="col-auto">
-            <label class="form-label">Até</label>
-            <input class="form-control" type="date" name="end" value="{{ filter_end }}">
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Pesquisar</button>
-            <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary ms-2">Limpar</a>
-        </div>
-    </form>
+    </div>
 
     {% if viagens %}
         <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th scope="col">👤 Paciente</th>
-                        <th scope="col">📍 Destino</th>
-                        <th scope="col">📅 Data</th>
-                        <th scope="col">⏰ Hora de Saída</th>
-                        <th scope="col">📌 Status</th>
-                        <th scope="col">⚙️ Ações</th>
+                <thead class="table-light">
+                    <tr class="text-center small text-uppercase">
+                        <th>Paciente</th>
+                        <th>Destino</th>
+                        <th>Data</th>
+                        <th>Saída</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
                     </tr>
                 </thead>
-                <tbody class="table-group-divider text-center">
+                <tbody>
                     {% for viagem in viagens %}
                         <tr>
                             <td>{{ viagem.paciente }}</td>
                             <td>{{ viagem.destino }}</td>
-                            <td>{{ viagem.data_viagem|date:"d/m/Y" }}</td>
-                            <td>{{ viagem.hora_saida|time:"H:i" }}</td>
-                            <td>
-                                <span class="badge bg-gradient bg-info text-dark px-3 py-2 rounded-pill">
-                                    {{ viagem.get_status_display }}
-                                </span>
+                            <td class="text-center">{{ viagem.data_viagem|date:"d/m/Y" }}</td>
+                            <td class="text-center">{{ viagem.hora_saida|time:"H:i" }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-info text-dark rounded-pill px-3">{{ viagem.get_status_display }}</span>
                             </td>
-                            <td>
-                                <a href="{% url 'viagem-edit' viagem.pk %}" class="btn btn-sm btn-outline-primary">
-                                    ✏️ Editar
-                                </a>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <a href="{% url 'viagem-edit' viagem.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-outline-danger" title="Remover" onclick="return confirm('Remover viagem?');">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -66,7 +81,7 @@
         </div>
     {% else %}
         <div class="alert alert-warning text-center mt-4 shadow-sm" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> Nenhuma viagem cadastrada no momento.
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> Nenhuma viagem encontrada.
         </div>
     {% endif %}
 </div>

@@ -6,10 +6,10 @@ from .templatetags.currency_filters import br_currency
 
 @admin.register(TFD)
 class TFDAdmin(admin.ModelAdmin):
-	list_display = ('paciente_nome', 'data_inicio', 'cidade_destino', 'numero_diarias', 'valor_diaria_display', 'valor_beneficio_display', 'valor_total_display', 'secretario_autorizado')
+	list_display = ('paciente_nome', 'data_inicio', 'cidade_destino', 'numero_diarias', 'valor_diaria_display', 'valor_beneficio_display', 'valor_total_display')
 	search_fields = ('paciente_nome', 'paciente_cpf', 'paciente_cns')
-	list_filter = ('data_inicio', 'secretario_autorizado')
-	readonly_fields = ('valor_total', 'criado_em', 'atualizado_em', 'autorizado_em')
+	list_filter = ('data_inicio',)
+	readonly_fields = ('valor_total', 'criado_em', 'atualizado_em')
 
 	def valor_diaria_display(self, obj):
 		return br_currency(obj.valor_diaria)
