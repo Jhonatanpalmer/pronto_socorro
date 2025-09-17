@@ -40,7 +40,7 @@
         <dd class="col-sm-9">{{ tfd.observacoes|linebreaks }}</dd>
     </dl>
 
-    <a href="{% url 'tfd-edit' tfd.pk %}" class="btn btn-outline-primary">Editar</a>
+    <a href="{% url 'tfd-update' tfd.pk %}" class="btn btn-outline-primary">Editar</a>
     <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary ms-2">Voltar</a>
     <a href="{% url 'tfd-print' tfd.pk %}" target="_blank" class="btn btn-outline-success ms-2">Imprimir</a>
 </div>

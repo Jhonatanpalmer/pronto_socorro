@@ -40,3 +40,8 @@ class TFDDeleteView(LoginRequiredMixin, DeleteView):
     model = TFD
     template_name = 'tfd/tfd_confirm_delete.html'
     success_url = reverse_lazy('tfd-list')
+
+class TFDPrintView(DetailView):
+    model = TFD
+    template_name = 'tfd/tfd_print.html'  # Você precisa criar esse template
+    context_object_name = 'tfd'
