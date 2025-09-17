@@ -28,36 +28,64 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'viagem-list' %}">
-                <i class="bi bi-truck-front-fill"></i> Sistema Secretaria Municipal de Saúde
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="bi bi-truck-front-fill"></i>Secretaria Municipal de Saúde
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+
+                    <!-- Sempre visível -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'viagem-list' %}">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
                             <i class="bi bi-house-door"></i> Home
                         </a>
                     </li>
-                    
+
+                    {% if user.is_authenticated %}
+                    <!-- Menu Gerenciar somente para usuários logados -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-clipboard-data"></i> Gerenciar
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navDropdown">
+                            <!-- Viagens -->
                             <li><a class="dropdown-item" href="{% url 'viagem-list' %}"><i class="bi bi-truck"></i> Viagens</a></li>
                             <li><a class="dropdown-item" href="{% url 'viagem-create' %}"><i class="bi bi-plus-circle"></i> Nova Viagem</a></li>
                             <li><hr class="dropdown-divider"></li>
+
+                            <!-- Pacientes -->
                             <li><a class="dropdown-item" href="{% url 'paciente_list' %}"><i class="bi bi-people"></i> Pacientes</a></li>
                             <li><a class="dropdown-item" href="{% url 'paciente_create' %}"><i class="bi bi-person-plus"></i> Novo Paciente</a></li>
                             <li><hr class="dropdown-divider"></li>
+
+                            <!-- TFD -->
                             <li><a class="dropdown-item" href="{% url 'tfd-list' %}"><i class="bi bi-file-earmark-text"></i> TFD</a></li>
                             <li><a class="dropdown-item" href="{% url 'tfd-create' %}"><i class="bi bi-plus-circle"></i> Novo TFD</a></li>
                         </ul>
                     </li>
+
+                    <!-- Saudação e logout alinhados com flexbox -->
+                    <li class="nav-item d-flex align-items-center ms-3">
+                        <span class="nav-link mb-0">Olá, {{ user.get_full_name|default:user.username }}</span>
+                        <form method="post" action="{% url 'logout' %}" class="d-inline ms-2 mb-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm">
+                                <i class="bi bi-box-arrow-right"></i> Sair
+                            </button>
+                        </form>
+                    </li>
+
+                    {% else %}
+                    <!-- Login para não autenticados -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -73,7 +101,7 @@
         <div class="container">
             <div class="row text-muted">
                 <div class="col-md-6 text-md-start mb-2 mb-md-0">
-                    &copy; {{ year|default:"2025" }} - Sistema de Transporte de Pacientes
+                    &copy; {{ year|default:"2025" }} - Sistema de Gerenciamento Secretaria Municipal de Iturama - MG
                 </div>
                 <div class="col-md-6 text-md-end">
                     Desenvolvido por <a href="https://www.instagram.com/jhonatan.babu/" target="_blank" class="text-decoration-none">Jhonatan Palmer</a>

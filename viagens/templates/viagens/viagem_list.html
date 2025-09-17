@@ -3,8 +3,53 @@
 {% block title %}Lista de Viagens{% endblock %}
 
 {% block content %}
+<style>
+/* Estilos específicos para impressão */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .print-area, .print-area * {
+        visibility: visible;
+    }
+    .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    /* Deixar a tabela mais limpa para impressão */
+    table {
+        border-collapse: collapse !important;
+        width: 100%;
+        font-size: 12px;
+    }
+    th, td {
+        border: 1px solid #000 !important;
+        padding: 4px;
+        text-align: center;
+    }
+    th {
+        background: #f2f2f2 !important;
+    }
+    /* Cabeçalho do relatório */
+    .report-header {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    .report-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+    .report-header small {
+        font-size: 12px;
+        color: #555;
+    }
+}
+</style>
+
 <div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 no-print">
         <div>
             <h2 class="fw-bold mb-0">Viagens</h2>
             <p class="text-muted mb-0">Acompanhe as viagens registradas</p>
@@ -18,7 +63,7 @@
         </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm mb-4 no-print">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-sm-4 col-md-3">
@@ -33,51 +78,62 @@
                     <label class="form-label small">Até</label>
                     <input class="form-control form-control-sm" type="date" name="end" value="{{ filter_end }}">
                 </div>
+                <div class="col-sm-4 col-md-3">
+                    <label class="form-label small">Cidade</label>
+                    <select class="form-select form-select-sm" name="cidade">
+                        <option value="">Todas</option>
+                        {% for cidade in cidades %}
+                            <option value="{{ cidade }}" {% if cidade == filter_cidade %}selected{% endif %}>
+                                {{ cidade }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary btn-sm">Pesquisar</button>
                     <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary btn-sm ms-2">Limpar</a>
+                    <a href="javascript:window.print()" class="btn btn-outline-dark btn-sm ms-2">
+                        <i class="bi bi-printer-fill"></i> Imprimir
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 
     {% if viagens %}
-        <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr class="text-center small text-uppercase">
-                        <th>Paciente</th>
-                        <th>Destino</th>
-                        <th>Data</th>
-                        <th>Saída</th>
-                        <th>Status</th>
-                        <th class="text-end">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for viagem in viagens %}
-                        <tr>
-                            <td>{{ viagem.paciente }}</td>
-                            <td>{{ viagem.destino }}</td>
-                            <td class="text-center">{{ viagem.data_viagem|date:"d/m/Y" }}</td>
-                            <td class="text-center">{{ viagem.hora_saida|time:"H:i" }}</td>
-                            <td class="text-center">
-                                <span class="badge bg-info text-dark rounded-pill px-3">{{ viagem.get_status_display }}</span>
-                            </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <a href="{% url 'viagem-edit' viagem.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                        <i class="bi bi-pencil-fill"></i>
-                                    </a>
-                                    <a href="#" class="btn btn-sm btn-outline-danger" title="Remover" onclick="return confirm('Remover viagem?');">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </a>
-                                </div>
-                            </td>
+        <div class="print-area">
+            <!-- Cabeçalho visível só na impressão -->
+            <div class="report-header">
+                <h2>Relatório de Viagens</h2>
+                <small>Emitido em: {{ today|date:"d/m/Y" }}</small>
+            </div>
+
+            <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="text-center small text-uppercase">
+                            <th>Paciente</th>
+                            <th>CPF</th>
+                            <th>Destino</th>
+                            <th>Data</th>
+                            <th>Saída</th>
+                            <th>Status</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for viagem in viagens %}
+                            <tr>
+                                <td>{{ viagem.paciente }}</td>
+                                <td class="text-center">{{ viagem.paciente.cpf }}</td>
+                                <td>{{ viagem.destino }}</td>
+                                <td class="text-center">{{ viagem.data_viagem|date:"d/m/Y" }}</td>
+                                <td class="text-center">{{ viagem.hora_saida|time:"H:i" }}</td>
+                                <td class="text-center">{{ viagem.get_status_display }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     {% else %}
         <div class="alert alert-warning text-center mt-4 shadow-sm" role="alert">

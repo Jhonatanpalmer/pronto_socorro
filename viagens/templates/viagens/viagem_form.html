@@ -7,46 +7,71 @@
 
 {% block content %}
 <div class="container py-5">
+    <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
-        <ol class="breadcrumb bg-transparent p-0 mb-3">
-            <li class="breadcrumb-item"><a href="{% url 'viagem-list' %}">Viagens</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Viagem</li>
+        <ol class="breadcrumb bg-transparent p-0 mb-4">
+            <li class="breadcrumb-item">
+                <a href="{% url 'viagem-list' %}" class="text-decoration-none">
+                    <i class="bi bi-list-ul me-1"></i> Viagens
+                </a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold" aria-current="page">
+                {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Viagem
+            </li>
         </ol>
     </nav>
 
     <div class="row justify-content-center">
         <div class="col-12 col-lg-9">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="mb-0">{% if form.instance.pk %}Editar Viagem{% else %}Nova Viagem{% endif %}</h4>
-                        <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+            <div class="card shadow-lg border-0 rounded-3">
+                <!-- Cabeçalho do Card -->
+                <div class="card-header bg-gradient bg-primary text-white rounded-top">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi {% if form.instance.pk %}bi-pencil-square{% else %}bi-plus-circle{% endif %} me-2"></i>
+                            {% if form.instance.pk %}Editar Viagem{% else %}Nova Viagem{% endif %}
+                        </h5>
+                        <a href="{% url 'viagem-list' %}" class="btn btn-sm btn-light">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar
+                        </a>
                     </div>
+                </div>
 
+                <div class="card-body p-4">
+                    <!-- Formulário -->
                     <form method="post" novalidate>
                         {% csrf_token %}
 
-                        <div class="row g-3">
-                            {% comment %} Layout fields into logical groups for readability {% endcomment %}
+                        <div class="row g-4">
                             {% for field in form %}
                                 <div class="col-12 col-md-6">
-                                    <div class="mb-3">
-                                        <label for="{{ field.id_for_label }}" class="form-label small text-uppercase text-muted">{{ field.label }}</label>
+                                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold small text-muted">
+                                        {{ field.label }}
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-input-cursor-text"></i>
+                                        </span>
                                         {{ field|add_class:"form-control form-control-sm" }}
-                                        {% if field.help_text %}
-                                            <div class="form-text">{{ field.help_text }}</div>
-                                        {% endif %}
-                                        {% if field.errors %}
-                                            <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
-                                        {% endif %}
                                     </div>
+                                    {% if field.help_text %}
+                                        <small class="text-muted">{{ field.help_text }}</small>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+                                    {% endif %}
                                 </div>
                             {% endfor %}
                         </div>
 
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <button type="reset" class="btn btn-outline-secondary">Limpar</button>
-                            <button type="submit" class="btn btn-primary">Salvar</button>
+                        <!-- Botões -->
+                        <div class="d-flex justify-content-end gap-2 mt-5">
+                            <button type="reset" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Salvar
+                            </button>
                         </div>
                     </form>
                 </div>

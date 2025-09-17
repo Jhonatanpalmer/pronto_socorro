@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Boas-vindas -->
+    <div class="text-center mb-5">
+        <h1 class="fw-bold">Bem-vindo, {{ user.get_full_name|default:user.username }}!</h1>
+        <p class="text-muted">Selecione o aplicativo que deseja acessar:</p>
+    </div>
+
+    <!-- Grid de apps -->
+    <div class="row g-4 justify-content-center">
+        {% for app in apps %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 h-100 hover-scale">
+                <div class="card-body text-center">
+                    <!-- Ícone -->
+                    <i class="bi {{ app.icone }} display-4 text-{{ app.cor }} mb-3"></i>
+
+                    <!-- Nome do app -->
+                    <h5 class="card-title fw-bold">{{ app.nome }}</h5>
+
+                    <!-- Descrição -->
+                    <p class="card-text text-muted">{{ app.descricao }}</p>
+
+                    <!-- Botão de acesso -->
+                    <a href="{% url app.url %}" class="btn btn-{{ app.cor }} mt-2">
+                        Acessar <i class="bi bi-arrow-right-circle ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center text-muted">Você não possui aplicativos disponíveis.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Estilo hover para os cards -->
+<style>
+.hover-scale:hover {
+    transform: translateY(-5px);
+    transition: all 0.3s ease-in-out;
+}
+</style>
+{% endblock %}
