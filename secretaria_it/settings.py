@@ -134,3 +134,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
+# Configurações de sessão para logout automático
+SESSION_COOKIE_AGE = 1800  # 30 minutos em segundos
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Sessão expira ao fechar o browser
+SESSION_SAVE_EVERY_REQUEST = True  # Atualiza a expiração a cada request
+
