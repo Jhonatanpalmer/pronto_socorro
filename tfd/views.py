@@ -2,8 +2,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from .models import TFD
 from .forms import TFDForm
 
@@ -41,6 +42,29 @@ class TFDListView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx['filter_start'] = self.request.GET.get('start_date', '')
         ctx['filter_end'] = self.request.GET.get('end_date', '')
+        
+        # Calcular valor total dos TFDs filtrados
+        queryset = self.get_queryset()
+        valor_total_geral = queryset.aggregate(total=Sum('valor_total'))['total'] or 0
+        ctx['valor_total_geral'] = valor_total_geral
+        
+        # Informações sobre o filtro para exibição
+        start_date = self.request.GET.get('start_date', '')
+        end_date = self.request.GET.get('end_date', '')
+        
+        if start_date or end_date:
+            if start_date and end_date:
+                ctx['periodo_filtro'] = f"Período: {parse_date(start_date).strftime('%d/%m/%Y')} a {parse_date(end_date).strftime('%d/%m/%Y')}"
+            elif start_date:
+                ctx['periodo_filtro'] = f"A partir de: {parse_date(start_date).strftime('%d/%m/%Y')}"
+            elif end_date:
+                ctx['periodo_filtro'] = f"Até: {parse_date(end_date).strftime('%d/%m/%Y')}"
+        else:
+            ctx['periodo_filtro'] = "Todos os registros"
+            
+        # Adicionar data atual para relatórios
+        ctx['today'] = timezone.now()
+            
         return ctx
 
 # Detalhe de um TFD

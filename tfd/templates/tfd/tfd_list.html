@@ -4,9 +4,55 @@
 {% block title %}TFD - Lista{% endblock %}
 
 {% block content %}
+<style>
+/* Estilos específicos para impressão */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .print-area, .print-area * {
+        visibility: visible;
+    }
+    .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    .no-print {
+        display: none !important;
+    }
+    table {
+        border-collapse: collapse !important;
+        width: 100%;
+        font-size: 12px;
+    }
+    th, td {
+        border: 1px solid #000 !important;
+        padding: 4px;
+        text-align: center;
+    }
+    th {
+        background: #f2f2f2 !important;
+    }
+    .report-header {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    .report-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+    .report-summary {
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+}
+</style>
+
 <div class="container py-5">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
         <h2 class="fw-bold">TFD - Registros</h2>
         {% if user.is_authenticated %}
             <a href="{% url 'tfd-create' %}" class="btn btn-success">
@@ -16,24 +62,72 @@
     </div>
 
     <!-- Filtro por datas -->
-    <form method="get" class="row g-2 mb-4 align-items-end">
-        <div class="col-auto">
-            <label class="form-label small">Início</label>
-            <input type="date" name="start_date" value="{{ filter_start }}" class="form-control form-control-sm">
+    <div class="card mb-4 no-print">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros e Resumo</h5>
         </div>
-        <div class="col-auto">
-            <label class="form-label small">Fim</label>
-            <input type="date" name="end_date" value="{{ filter_end }}" class="form-control form-control-sm">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Data Início</label>
+                    <input type="date" name="start_date" value="{{ filter_start }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Data Fim</label>
+                    <input type="date" name="end_date" value="{{ filter_end }}" class="form-control">
+                </div>
+                <div class="col-md-6 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise"></i> Limpar
+                    </a>
+                    <a href="javascript:window.print()" class="btn btn-outline-dark ms-auto">
+                        <i class="bi bi-printer-fill"></i> Imprimir
+                    </a>
+                </div>
+            </form>
         </div>
-        <div class="col-auto d-flex align-items-end">
-            <button type="submit" class="btn btn-outline-primary btn-sm me-2">
-                <i class="bi bi-funnel"></i> Filtrar
-            </button>
-            <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary btn-sm">Limpar</a>
-        </div>
-    </form>
+    </div>
 
     {% if tfds %}
+    <div class="print-area">
+        <!-- Cabeçalho visível só na impressão -->
+        <div class="report-header">
+            <h2>Relatório de TFD - Tratamento Fora do Domicílio</h2>
+            <div class="report-summary">
+                {{ periodo_filtro }} | Total: {{ valor_total_geral|br_currency }} | Registros: {{ tfds|length }}
+            </div>
+            <small>Emitido em: {{ today|date:"d/m/Y H:i" }}</small>
+        </div>
+        
+        <!-- Card com informações do total -->
+    <div class="row mb-4 no-print">
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success mb-1">
+                        <i class="bi bi-cash-stack"></i> Valor Total Gasto
+                    </h5>
+                    <h3 class="text-success mb-1">{{ valor_total_geral|br_currency }}</h3>
+                    <small class="text-muted">{{ periodo_filtro }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info mb-1">
+                        <i class="bi bi-list-ol"></i> Total de Registros
+                    </h5>
+                    <h3 class="text-info mb-1">{{ tfds|length }}</h3>
+                    <small class="text-muted">TFDs encontrados</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
         <table class="table table-hover align-middle">
             <thead class="table-light">
@@ -46,7 +140,7 @@
                     <th>Valor diária</th>
                     <th>Valor Benefício</th>
                     <th>Valor Total</th>
-                    <th class="text-end">Ações</th>
+                    <th class="no-print text-end">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -63,7 +157,7 @@
                     <td>{{ t.valor_diaria|br_currency }}</td>
                     <td>{{ t.valor_beneficio|br_currency }}</td>
                     <td>{{ t.valor_total|br_currency }}</td>
-                    <td class="text-end">
+                    <td class="no-print text-end">
                         {% if user.is_authenticated %}
                             <a href="{% url 'tfd-detail' t.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="Ver detalhes">
                                 <i class="bi bi-eye"></i>
@@ -78,8 +172,16 @@
                 </tr>
                 {% endfor %}
             </tbody>
+            <tfoot class="table-light">
+                <tr class="fw-bold text-center border-top-2">
+                    <td colspan="7" class="text-end">TOTAL GERAL:</td>
+                    <td class="text-success">{{ valor_total_geral|br_currency }}</td>
+                    <td class="no-print"></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
+    </div> <!-- Fim da print-area -->
     {% else %}
     <div class="alert alert-info shadow-sm">Nenhum registro encontrado.</div>
     {% endif %}
