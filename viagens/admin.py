@@ -1,16 +1,17 @@
 from django.contrib import admin
+from .models import Viagem
 
-
-from .models import Viagem, HistoricoPaciente
-
-@admin.register(Viagem)
 class ViagemAdmin(admin.ModelAdmin):
-    list_display = ("paciente", "destino", "data_viagem", "tipo_transporte", "status")
-    search_fields = ("paciente__nome", "destino")
-    list_filter = ("status", "tipo_transporte", "data_viagem")
+    list_display = (
+        'paciente', 'endereco_paciente', 'destino', 'data_viagem', 'hora_saida',
+        'veiculo', 'motorista', 'hospital', 'tipo_atendimento', 'acompanhante', 'status'
+    )
+    list_filter = ('status', 'hospital')
+    search_fields = ('paciente__nome', 'destino', 'hospital', 'acompanhante')
+    fields = (
+        'paciente', 'endereco_paciente', 'destino', 'data_viagem', 'hora_saida',
+        'veiculo', 'motorista', 'hospital', 'tipo_atendimento', 'acompanhante',
+        'observacoes', 'status'
+    )
 
-@admin.register(HistoricoPaciente)
-class HistoricoPacienteAdmin(admin.ModelAdmin):
-    list_display = ("paciente", "viagem", "data_registro")
-    search_fields = ("paciente__nome", "viagem__destino")
-    list_filter = ("data_registro",)
+admin.site.register(Viagem, ViagemAdmin)

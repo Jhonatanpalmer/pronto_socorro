@@ -112,23 +112,43 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr class="text-center small text-uppercase">
-                            <th>Paciente</th>
-                            <th>CPF</th>
-                            <th>Destino</th>
                             <th>Data</th>
-                            <th>Saída</th>
-                            <th>Status</th>
+                            <th>Veículo</th>
+                            <th>Motorista</th>
+                            <th>Horário</th>
+                            <th>Nome do Paciente</th>
+                            <th>Endereço</th>
+                            <th>Destino</th>
+                            <th>Acompanhante</th>
+                            <th>CPF</th>
+                            <th>Telefone</th>
+                            <th>Tipo de Atendimento</th>
+                            <th>Hospital</th>
+                            <th class="no-print">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for viagem in viagens %}
                             <tr>
-                                <td>{{ viagem.paciente }}</td>
-                                <td class="text-center">{{ viagem.paciente.cpf }}</td>
-                                <td>{{ viagem.destino }}</td>
                                 <td class="text-center">{{ viagem.data_viagem|date:"d/m/Y" }}</td>
+                                <td class="text-center">{{ viagem.veiculo }}</td>
+                                <td class="text-center">{{ viagem.motorista }}</td>
                                 <td class="text-center">{{ viagem.hora_saida|time:"H:i" }}</td>
-                                <td class="text-center">{{ viagem.get_status_display }}</td>
+                                <td>{{ viagem.paciente.nome }}</td>
+                                <td class="text-start">{{ viagem.endereco_paciente }}</td>
+                                <td class="text-start">{{ viagem.destino }}</td>
+                                <td>{{ viagem.acompanhante }}</td>
+                                <td class="text-center">{{ viagem.paciente.cpf }}</td>
+                                <td class="text-center">{{ viagem.paciente.telefone }}</td>
+                                <td>{{ viagem.tipo_atendimento }}</td>
+                                <td>{{ viagem.hospital }}</td>
+                                <td class="no-print text-center">
+                                    <a href="{% url 'viagem-edit' viagem.pk %}" class="btn btn-sm btn-primary">Editar</a>
+                                    <form method="post" action="{% url 'viagem-delete' viagem.pk %}" style="display:inline" onsubmit="return confirm('Tem certeza que deseja excluir a viagem de {{ viagem.paciente.nome|escapejs }} para {{ viagem.destino|escapejs }} em {{ viagem.data_viagem|date:"d/m/Y" }}?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                                    </form>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>

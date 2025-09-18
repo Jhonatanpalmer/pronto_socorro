@@ -22,6 +22,10 @@
             margin-top: 3rem;
             border-top: 1px solid #dee2e6;
         }
+        /* Esconder elementos marcados como no-print ao imprimir */
+        @media print {
+            .no-print { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -93,6 +97,17 @@
 
     <!-- Conteúdo principal -->
     <main class="container mt-4">
+        {% if messages %}
+        <div class="container mt-2">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {% block content %}{% endblock %}
     </main>
 

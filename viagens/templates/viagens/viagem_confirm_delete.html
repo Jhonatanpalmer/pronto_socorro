@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir Viagem{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Confirmar Exclusão de Viagem</h4>
+            <p>Tem certeza que deseja excluir a viagem de <strong>{{ object.paciente.nome }}</strong> para <strong>{{ object.destino }}</strong> em <strong>{{ object.data_viagem|date:"d/m/Y" }}</strong>?</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Sim, excluir</button>
+                <a href="{% url 'viagem-list' %}" class="btn btn-secondary ms-2">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

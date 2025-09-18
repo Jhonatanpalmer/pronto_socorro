@@ -1,39 +1,37 @@
 from django.db import models
 from pacientes.models import Paciente
 from veiculos.models import Veiculo
-from datetime import time
+from datetime import time, timedelta, datetime
+
+
+def gerar_horarios():
+    """Gera opções de horários de 30 em 30 minutos (00:00 até 23:30)."""
+    horarios = []
+    hora = datetime.strptime("00:00", "%H:%M")
+    fim = datetime.strptime("23:30", "%H:%M")
+    while hora <= fim:
+        horarios.append((hora.time(), hora.strftime("%H:%M")))
+        hora += timedelta(minutes=30)
+    return horarios
+
 
 class Viagem(models.Model):
-    TIPOS_TRANSPORTE = [
-        ("oficial", "Veículo Oficial"),
-        ("onibus", "Ônibus"),
-        ("carro_proprio", "Carro Próprio"),
-    ]
-
     STATUS = [
         ("pendente", "Pendente"),
         ("aprovado", "Aprovado"),
         ("cancelado", "Cancelado"),
     ]
-    
-    horario_saida = [
-    (time(2, 0), '02:00'),
-    (time(3, 0), '03:00'),
-]
-    
-    cidade_destino = [
-        ('Uberaba', 'Uberaba'),
-        ('Fernandopolis', 'Fernandopolis'),
-        ('Sao Jose do Rio Preto', 'Sao Jose do Rio Preto'),
-        ('Barretos', 'Barretos'),
-    ]
 
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
-    destino = models.CharField(max_length=200, choices=cidade_destino)
+    endereco_paciente = models.CharField(max_length=300, default="Não informado")
+    destino = models.CharField(max_length=200)
     data_viagem = models.DateField()
-    hora_saida = models.TimeField(choices=horario_saida, null=True, blank=True)
+    hora_saida = models.TimeField(choices=gerar_horarios(), null=True, blank=True)
     veiculo = models.ForeignKey(Veiculo, on_delete=models.SET_NULL, null=True, blank=True)
-    tipo_transporte = models.CharField(max_length=30, choices=TIPOS_TRANSPORTE)
+    motorista = models.CharField(max_length=150, default="Não informado")
+    hospital = models.CharField(max_length=200, default="Não informado")
+    tipo_atendimento = models.CharField(max_length=100, default="Não informado")
+    acompanhante = models.CharField(max_length=150, blank=True, default="")  # agora é nome
     status = models.CharField(max_length=20, choices=STATUS, default="pendente")
     observacoes = models.TextField(blank=True)
 

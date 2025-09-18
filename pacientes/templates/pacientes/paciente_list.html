@@ -24,9 +24,16 @@
                     <tr>
                         <td>{{ paciente.nome }}</td>
                         <td>{{ paciente.cpf }}</td>
-                        <td>
-                            <a href="{% url 'paciente_update' paciente.pk %}" class="btn btn-sm btn-primary">Editar</a>
-                            <a href="{% url 'paciente_delete' paciente.pk %}" class="btn btn-sm btn-danger">Excluir</a>
+                        <td class="no-print">
+                            <a href="{% url 'paciente_update' paciente.pk %}" class="btn btn-sm btn-primary no-print">Editar</a>
+                            <a href="{% url 'viagem-list' %}?paciente={{ paciente.pk }}" class="btn btn-sm btn-info text-white no-print">Ver Viagens</a>
+                            <!-- Botão que abre modal de confirmação -->
+                            <button type="button" class="btn btn-sm btn-danger no-print" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-action-url="{% url 'paciente_delete' paciente.pk %}" data-paciente-nome="{{ paciente.nome|escapejs }}">
+                                Excluir
+                            </button>
+                            <noscript>
+                                <a href="{% url 'paciente_delete' paciente.pk %}" class="btn btn-sm btn-danger">Excluir (sem JS)</a>
+                            </noscript>
                         </td>
                     </tr>
                     {% endfor %}
@@ -40,3 +47,62 @@
     {% endif %}
 </div>
 {% endblock %}
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteLabel">Confirmar exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmDeleteText">Tem certeza que deseja excluir este paciente? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="modalDeleteForm" method="post" style="display:inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+        var confirmModal = document.getElementById('confirmDeleteModal');
+        if (confirmModal) {
+            // Prefer show.bs.modal event (Bootstrap)
+            try {
+                confirmModal.addEventListener('show.bs.modal', function (event) {
+                    var button = event.relatedTarget; // Button that triggered the modal
+                    var actionUrl = button.getAttribute('data-action-url');
+                    var pacienteNome = button.getAttribute('data-paciente-nome');
+                    var modalText = confirmModal.querySelector('#confirmDeleteText');
+                    var modalForm = document.getElementById('modalDeleteForm');
+                    modalText.textContent = 'Tem certeza que deseja excluir "' + pacienteNome + '"? Esta ação não pode ser desfeita.';
+                    modalForm.setAttribute('action', actionUrl);
+                });
+            } catch (e) {
+                // Fallback: delegate click on delete buttons
+                document.querySelectorAll('button[data-bs-target="#confirmDeleteModal"]').forEach(function(btn){
+                    btn.addEventListener('click', function(){
+                        var actionUrl = btn.getAttribute('data-action-url');
+                        var pacienteNome = btn.getAttribute('data-paciente-nome');
+                        var modalText = confirmModal.querySelector('#confirmDeleteText');
+                        var modalForm = document.getElementById('modalDeleteForm');
+                        modalText.textContent = 'Tem certeza que deseja excluir "' + pacienteNome + '"? Esta ação não pode ser desfeita.';
+                        modalForm.setAttribute('action', actionUrl);
+                        // try to show bootstrap modal programmatically if available
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            var m = new bootstrap.Modal(confirmModal);
+                            m.show();
+                        }
+                    });
+                });
+            }
+        }
+});
+</script>
