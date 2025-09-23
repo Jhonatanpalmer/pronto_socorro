@@ -17,6 +17,7 @@ urlpatterns = [
     path('viagens/', include('viagens.urls')),
     path('pacientes/', include('pacientes.urls')),
     path('tfd/', include('tfd.urls')),
+    path('regulacao/', include('regulacao.urls')),
 
     # Auth
     path('accounts/login/', auth_views.LoginView.as_view(template_name='secretaria_it/login.html'), name='login'),

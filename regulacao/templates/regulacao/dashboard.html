@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+
+{% block title %}Regulação de Exames - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex align-items-center mb-4">
+        <h2 class="fw-bold">
+            <i class="bi bi-clipboard-check-fill text-warning"></i>
+            Regulação de Exames
+        </h2>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-warning text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">
+                        <i class="bi bi-clock-fill"></i> Pendentes
+                    </h5>
+                    <h2 class="text-warning">{{ total_pendentes }}</h2>
+                    <small class="text-muted">Aguardando regulação</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">
+                        <i class="bi bi-check-circle-fill"></i> Exames autorizados
+                    </h5>
+                    <h2 class="text-success">{{ total_autorizados }}</h2>
+                    <small class="text-muted">Total de exames com status autorizado</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">
+                        <i class="bi bi-x-circle-fill"></i> Negados
+                    </h5>
+                    <h2 class="text-danger">{{ total_negados }}</h2>
+                    <small class="text-muted">Exames negados</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">
+                        <i class="bi bi-hospital-fill"></i> UBS Ativas
+                    </h5>
+                    <h2 class="text-info">{{ total_ubs }}</h2>
+                    <small class="text-muted">Unidades cadastradas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards adicionais: Consultas Autorizadas e Pacientes na Fila (separados) -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success">
+                        <i class="bi bi-person-check-fill"></i> Consultas Autorizadas
+                    </h5>
+                    <h2 class="text-success">{{ total_consultas_autorizadas }}</h2>
+                    <small class="text-muted">Total de consultas com status autorizado</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'regulacao-fila' %}?only=ex#fila-exames" class="text-decoration-none">
+            <div class="card border-primary h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-primary">
+                        <i class="bi bi-people-fill"></i> Pacientes na Fila (Exames)
+                    </h5>
+                    <h2 class="text-primary">{{ pacientes_fila_exames_count }}</h2>
+                    <small class="text-muted">Pacientes com exames na fila</small>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'regulacao-fila' %}?only=co#fila-consultas" class="text-decoration-none">
+            <div class="card border-warning h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning">
+                        <i class="bi bi-people-fill"></i> Pacientes na Fila (Consultas)
+                    </h5>
+                    <h2 class="text-warning">{{ pacientes_fila_consultas_count }}</h2>
+                    <small class="text-muted">Pacientes com consultas na fila</small>
+                </div>
+            </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Menu de Navegação -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-list-check fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Solicitações</h5>
+                    <p class="card-text">Visualizar e gerenciar todas as solicitações de exames</p>
+                    <a href="{% url 'regulacao-list' %}" class="btn btn-primary">Acessar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-building fs-1 text-info mb-3"></i>
+                    <h5 class="card-title">UBS</h5>
+                    <p class="card-text">Cadastrar e gerenciar Unidades Básicas de Saúde</p>
+                    <a href="{% url 'ubs-list' %}" class="btn btn-info">Acessar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-badge fs-1 text-success mb-3"></i>
+                    <h5 class="card-title">Médicos</h5>
+                    <p class="card-text">Cadastrar e gerenciar médicos solicitantes</p>
+                    <a href="{% url 'medico-list' %}" class="btn btn-success">Acessar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-hourglass-split fs-1 text-info mb-3"></i>
+                    <h5 class="card-title">Fila de Espera</h5>
+                    <p class="card-text">Itens aguardando regulação ou agendamento</p>
+                    <a href="{% url 'regulacao-fila' %}" class="btn btn-outline-info">Abrir Fila</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar2-week fs-1 text-success mb-3"></i>
+                    <h5 class="card-title">Agenda</h5>
+                    <p class="card-text">Exames e consultas autorizados e agendados</p>
+                    <a href="{% url 'regulacao-agenda' %}" class="btn btn-outline-success">Ver Agenda</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-journal-medical fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Consultas</h5>
+                    <p class="card-text">Solicitações de consulta por especialidade</p>
+                    <a href="{% url 'consulta-list' %}" class="btn btn-outline-primary">Gerenciar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-bookmark-star fs-1 text-warning mb-3"></i>
+                    <h5 class="card-title">Especialidades</h5>
+                    <p class="card-text">Cadastro de especialidades para consultas</p>
+                    <a href="{% url 'especialidade-list' %}" class="btn btn-outline-warning">Acessar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exames Autorizados Recentes -->
+    {% if regulacoes_recentes %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-check2-circle"></i> Exames Autorizados Recentes
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-center mb-3">
+                <div class="col-auto">
+                    <label for="period_ex" class="col-form-label col-form-label-sm">Período:</label>
+                </div>
+                <div class="col-auto">
+                    <select id="period_ex" name="period_ex" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="hoje" {% if period_ex == 'hoje' %}selected{% endif %}>Hoje</option>
+                        <option value="7" {% if period_ex == '7' %}selected{% endif %}>Últimos 7 dias</option>
+                        <option value="30" {% if period_ex == '30' %}selected{% endif %}>Últimos 30 dias</option>
+                        <option value="90" {% if period_ex == '90' %}selected{% endif %}>Últimos 90 dias</option>
+                        <option value="todos" {% if period_ex == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                    <input type="hidden" name="period_co" value="{{ period_co }}" />
+                </div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Protocolo</th>
+                            <th>Paciente</th>
+                            <th>Exame</th>
+                            <th>UBS</th>
+                            <th>Data Regulação</th>
+                            <th>Status</th>
+                            <th>Agendamento</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for regulacao in regulacoes_recentes %}
+                        <tr>
+                            <td><code>{{ regulacao.numero_protocolo }}</code></td>
+                            <td>{{ regulacao.paciente.nome }}</td>
+                            <td>{{ regulacao.tipo_exame.nome }}</td>
+                            <td>{{ regulacao.ubs_solicitante.nome }}</td>
+                            <td>
+                              {% if regulacao.data_regulacao %}
+                                {{ regulacao.data_regulacao|date:"d/m/Y H:i" }}
+                              {% else %}
+                                <span class="text-muted">—</span>
+                              {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {{ regulacao.get_status_badge_class }}">
+                                    {{ regulacao.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if regulacao.data_agendada %}
+                                    {{ regulacao.data_agendada|date:"d/m/Y" }}{% if regulacao.hora_agendada %} {{ regulacao.hora_agendada }}{% endif %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'regulacao-detail' regulacao.pk %}" class="btn btn-sm btn-outline-primary" title="Visualizar">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'comprovante-exame' regulacao.pk %}" class="btn btn-sm btn-outline-success ms-1" title="Imprimir comprovante">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                                {# Ação de regular removida: usar a tela do pedido por paciente #}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center mt-3">
+                <a href="{% url 'regulacao-list' %}?status=autorizado" class="btn btn-outline-primary">Ver todos os exames autorizados</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Consultas Autorizadas Recentes -->
+    {% if consultas_autorizadas_recentes %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-check2-circle"></i> Consultas Autorizadas Recentes
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-center mb-3">
+                <div class="col-auto">
+                    <label for="period_co" class="col-form-label col-form-label-sm">Período:</label>
+                </div>
+                <div class="col-auto">
+                    <select id="period_co" name="period_co" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="hoje" {% if period_co == 'hoje' %}selected{% endif %}>Hoje</option>
+                        <option value="7" {% if period_co == '7' %}selected{% endif %}>Últimos 7 dias</option>
+                        <option value="30" {% if period_co == '30' %}selected{% endif %}>Últimos 30 dias</option>
+                        <option value="90" {% if period_co == '90' %}selected{% endif %}>Últimos 90 dias</option>
+                        <option value="todos" {% if period_co == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                    <input type="hidden" name="period_ex" value="{{ period_ex }}" />
+                </div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Protocolo</th>
+                            <th>Paciente</th>
+                            <th>Especialidade</th>
+                            <th>UBS</th>
+                            <th>Data Regulação</th>
+                            <th>Status</th>
+                            <th>Agendamento</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in consultas_autorizadas_recentes %}
+                        <tr>
+                            <td><code>{{ c.numero_protocolo }}</code></td>
+                            <td>{{ c.paciente.nome }}</td>
+                            <td>{{ c.especialidade.nome }}</td>
+                            <td>{{ c.ubs_solicitante.nome }}</td>
+                            <td>{{ c.data_regulacao|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge {{ c.get_status_badge_class }}">{{ c.get_status_display }}</span>
+                            </td>
+                            <td>
+                                {% if c.data_agendada %}
+                                    {{ c.data_agendada|date:"d/m/Y" }}{% if c.hora_agendada %} {{ c.hora_agendada }}{% endif %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'consulta-detail' c.pk %}" class="btn btn-sm btn-outline-primary" title="Visualizar">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'comprovante-consulta' c.pk %}" class="btn btn-sm btn-outline-success ms-1" title="Imprimir comprovante">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center mt-3">
+                <a href="{% url 'regulacao-agenda' %}" class="btn btn-outline-success">Ver Agenda</a>
+                <a href="{% url 'consulta-list' %}?status=autorizado" class="btn btn-outline-primary ms-2">Ver Todas</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Consultas - Regulação{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Solicitações de Consultas</h4>
+    <a class="btn btn-primary" href="{% url 'consulta-create' %}">Nova Solicitação</a>
+  </div>
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Protocolo</th>
+            <th>Paciente</th>
+            <th>Especialidade</th>
+            <th>UBS</th>
+            <th>Status</th>
+            <th>Solicitado em</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in solicitacoes %}
+          <tr>
+            <td>{{ r.numero_protocolo }}</td>
+            <td>{{ r.paciente.nome }}</td>
+            <td>{{ r.especialidade.nome }}</td>
+            <td>{{ r.ubs_solicitante.nome }}</td>
+            <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
+            <td>{{ r.data_solicitacao|date:'d/m/Y H:i' }}</td>
+            <td class="text-end">
+              {% if r.status == 'fila' or r.status == 'pendente' %}
+                <a class="btn btn-sm btn-warning" href="{% url 'regular-consulta' r.pk %}">Regular</a>
+              {% endif %}
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'consulta-update' r.pk %}">Editar</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'consulta-delete' r.pk %}">Excluir</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center py-3">Nenhuma solicitação encontrada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

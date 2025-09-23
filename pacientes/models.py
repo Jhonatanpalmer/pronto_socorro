@@ -19,9 +19,9 @@ def validate_cpf(value):
         raise ValidationError("CPF inválido.")
 
 class Paciente(models.Model):
-    nome = models.CharField(max_length=150)
+    nome = models.CharField(max_length=150, db_index=True)
     cpf = models.CharField(max_length=11, blank=True, null=True, unique=True, validators=[validate_cpf])
-    cns = models.CharField(max_length=15, blank=True, null=True)
+    cns = models.CharField(max_length=15, blank=True, null=True, db_index=True)
     data_nascimento = models.DateField()
     endereco = models.TextField(max_length=30)
     telefone = models.CharField(max_length=20, blank=True)

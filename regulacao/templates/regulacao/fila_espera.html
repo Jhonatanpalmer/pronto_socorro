@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}Fila de Espera{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h4 class="mb-3">Fila de Espera</h4>
+  <div class="row g-4">
+    {% if not only or only == 'ex' %}
+    <div class="{% if only == 'ex' %}col-md-12{% else %}col-md-6{% endif %}" id="fila-exames">
+      <div class="card h-100">
+        <div class="card-header bg-info text-dark">
+          <strong>Exames</strong>
+        </div>
+        <div class="card-body">
+          <form method="get" class="row g-2 align-items-center mb-2">
+            <div class="col-9">
+              <input type="text" name="q_ex" value="{{ q_ex }}" class="form-control form-control-sm" placeholder="Buscar por paciente, exame ou UBS..." />
+              {% if q_co %}<input type="hidden" name="q_co" value="{{ q_co }}">{% endif %}
+            </div>
+            <div class="col-3 text-end">
+              <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}"><i class="bi bi-x"></i></a>
+            </div>
+          </form>
+          <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <colgroup>
+              <col style="width: 45%">
+              <col style="width: 35%">
+              <col style="width: 20%">
+            </colgroup>
+            <thead>
+              <tr class="table-light">
+                <th>Paciente</th>
+                <th>Exames na fila</th>
+                <th class="text-nowrap text-end">Desde</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in exames %}
+              <tr>
+                <td>
+                  <div class="fw-semibold text-truncate" style="max-width: 360px;" title="{{ g.paciente.nome }}">{{ g.paciente.nome }}</div>
+                  <a href="{% url 'paciente-pedido' g.paciente_id %}" class="btn btn-outline-secondary btn-sm mt-1">
+                    <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                  </a>
+                </td>
+                <td>
+                  <span class="badge bg-info-subtle text-dark border">{{ g.total }} no total</span>
+                  {% if g.nomes %}
+                    <div class="small text-muted text-truncate" style="max-width: 360px;" title="{{ g.nomes|join:', ' }}">
+                      {{ g.nomes|join:', ' }}
+                    </div>
+                  {% endif %}
+                </td>
+                <td class="text-nowrap text-end">{{ g.desde|date:'d/m/Y H:i' }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center py-3 text-muted">Nenhum exame em fila.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+          {% if exames.has_other_pages %}
+          <nav class="mt-2" aria-label="Paginação Exames">
+            <ul class="pagination pagination-sm justify-content-end mb-0">
+              {% if exames.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page_ex={{ exames.previous_page_number }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&laquo;</a>
+              </li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+              {% endif %}
+              {% for num in exames.paginator.page_range %}
+              <li class="page-item {% if num == exames.number %}active{% endif %}">
+                <a class="page-link" href="?page_ex={{ num }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">{{ num }}</a>
+              </li>
+              {% endfor %}
+              {% if exames.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page_ex={{ exames.next_page_number }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&raquo;</a>
+              </li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+  </div>
+  {% endif %}
+  {% if not only or only == 'co' %}
+  <div class="{% if only == 'co' %}col-md-12{% else %}col-md-6{% endif %}" id="fila-consultas">
+      <div class="card h-100">
+        <div class="card-header bg-info text-dark">
+          <strong>Consultas</strong>
+        </div>
+        <div class="card-body">
+          <form method="get" class="row g-2 align-items-center mb-2">
+            <div class="col-9">
+              <input type="text" name="q_co" value="{{ q_co }}" class="form-control form-control-sm" placeholder="Buscar por paciente, especialidade ou UBS..." />
+              {% if q_ex %}<input type="hidden" name="q_ex" value="{{ q_ex }}">{% endif %}
+            </div>
+            <div class="col-3 text-end">
+              <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}"><i class="bi bi-x"></i></a>
+            </div>
+          </form>
+          <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <colgroup>
+              <col style="width: 45%">
+              <col style="width: 35%">
+              <col style="width: 20%">
+            </colgroup>
+            <thead>
+              <tr class="table-light">
+                <th>Paciente</th>
+                <th>Consultas na fila</th>
+                <th class="text-nowrap text-end">Desde</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in consultas %}
+              <tr>
+                <td>
+                  <div class="fw-semibold text-truncate" style="max-width: 360px;" title="{{ g.paciente.nome }}">{{ g.paciente.nome }}</div>
+                  <a href="{% url 'paciente-pedido' g.paciente_id %}" class="btn btn-outline-secondary btn-sm mt-1">
+                    <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                  </a>
+                </td>
+                <td>
+                  <span class="badge bg-info-subtle text-dark border">{{ g.total }} no total</span>
+                  {% if g.nomes %}
+                    <div class="small text-muted text-truncate" style="max-width: 360px;" title="{{ g.nomes|join:', ' }}">
+                      {{ g.nomes|join:', ' }}
+                    </div>
+                  {% endif %}
+                </td>
+                <td class="text-nowrap text-end">{{ g.desde|date:'d/m/Y H:i' }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center py-3 text-muted">Nenhuma consulta em fila.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+          {% if consultas.has_other_pages %}
+          <nav class="mt-2" aria-label="Paginação Consultas">
+            <ul class="pagination pagination-sm justify-content-end mb-0">
+              {% if consultas.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page_co={{ consultas.previous_page_number }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&laquo;</a>
+              </li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+              {% endif %}
+              {% for num in consultas.paginator.page_range %}
+              <li class="page-item {% if num == consultas.number %}active{% endif %}">
+                <a class="page-link" href="?page_co={{ num }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">{{ num }}</a>
+              </li>
+              {% endfor %}
+              {% if consultas.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page_co={{ consultas.next_page_number }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&raquo;</a>
+              </li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

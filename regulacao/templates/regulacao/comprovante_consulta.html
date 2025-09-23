@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Comprovante de Agendamento - Consulta{% endblock %}
+{% block content %}
+<div class="container py-3">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h5 class="mb-1">Comprovante de Agendamento — Consulta</h5>
+          <div class="text-muted small">Protocolo: <strong>{{ reg.numero_protocolo }}</strong></div>
+        </div>
+        <div class="text-end d-print-none">
+          <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+        </div>
+      </div>
+      <hr class="my-3"/>
+      <div class="row g-3">
+        <div class="col-md-8">
+          <div class="mb-2"><strong>Paciente:</strong> {{ reg.paciente.nome }}</div>
+          {% if reg.paciente.cpf %}<div class="mb-2"><strong>CPF:</strong> {{ reg.paciente.cpf }}</div>{% endif %}
+          {% if reg.paciente.cns %}<div class="mb-2"><strong>CNS:</strong> {{ reg.paciente.cns }}</div>{% endif %}
+          <div class="mb-2"><strong>Especialidade:</strong> {{ reg.especialidade.nome }}</div>
+          <div class="mb-2"><strong>Local:</strong> {{ reg.local_atendimento|default:'—' }}</div>
+          <div class="mb-2"><strong>Data/Hora:</strong> {{ reg.data_agendada|date:'d/m/Y' }} {% if reg.hora_agendada %}{{ reg.hora_agendada|time:'H:i' }}{% endif %}</div>
+          <div class="mb-2"><strong>Médico Atendente:</strong> {% if reg.medico_atendente %}{{ reg.medico_atendente.nome }} (CRM {{ reg.medico_atendente.crm }}){% else %}—{% endif %}</div>
+        </div>
+        <div class="col-md-4 text-center">
+          {% if qr_base64 %}
+            <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code" class="img-fluid" style="max-width: 160px;"/>
+            <div class="small text-muted">Apresente este QR Code no atendimento</div>
+          {% else %}
+            <div class="small text-muted">QR Code indisponível</div>
+          {% endif %}
+        </div>
+      </div>
+      <hr/>
+      <div class="small text-muted">Emitido em {{ now|default:reg.atualizado_em|date:'d/m/Y H:i' }}</div>
+      <div class="d-print-none mt-3">
+        <a href="{% url 'regulacao-agenda' %}" class="btn btn-outline-success">Voltar à Agenda</a>
+        <a href="{% url 'consulta-detail' reg.pk %}" class="btn btn-outline-secondary">Detalhes</a>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+@media print {
+  .d-print-none { display: none !important; }
+  .container { max-width: 100% !important; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmar Exclusão - UBS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Confirmar Exclusão
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Atenção:</strong> Esta ação não pode ser desfeita.
+                    </div>
+                    
+                    <p class="mb-3">Tem certeza que deseja excluir a UBS:</p>
+                    
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ object.nome }}</h5>
+                            {% if object.endereco %}
+                            <p class="card-text">
+                                <i class="bi bi-geo-alt-fill text-muted"></i>
+                                {{ object.endereco }}
+                            </p>
+                            {% endif %}
+                            {% if object.responsavel %}
+                            <p class="card-text mb-1">
+                                <strong>Responsável:</strong> {{ object.responsavel }}
+                            </p>
+                            {% endif %}
+                            <p class="mb-0">
+                                <span class="badge {% if object.ativa %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if object.ativa %}Ativa{% else %}Inativa{% endif %}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <form method="post" class="mt-3">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'ubs-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash-fill"></i> Confirmar Exclusão
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

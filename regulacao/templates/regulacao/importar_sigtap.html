@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Importar SIGTAP{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold"><i class="bi bi-upload"></i> Importar SIGTAP (Tipos de Exame)</h2>
+      <p class="text-muted mb-0">Envie o pacote do SIGTAP (.rar ou .zip) para preencher/atualizar a tabela de tipos de exame.</p>
+    </div>
+    <div>
+      <a href="{% url 'tipo-exame-list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <div class="d-flex"> 
+      <div class="me-3"><i class="bi bi-info-circle-fill fs-4"></i></div>
+      <div>
+        <strong>Dicas:</strong>
+        <ul class="mb-0">
+          <li>Você pode enviar .rar (precisa de suporte a extração no servidor) ou .zip.</li>
+          <li>São necessários arquivos <code>tb_procedimento</code> (CSV/TXT com ;). Opcional: <code>tb_procedimento_valor</code> para importar preços.</li>
+          <li>Use os filtros para limitar por grupos (CO_GRUPO) e/ou por termos no nome (NO_PROCEDIMENTO).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="card shadow-sm">
+    <div class="card-body">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">{{ form.arquivo.label }} *</label>
+          {{ form.arquivo }}
+          <div class="form-text">{{ form.arquivo.help_text }}</div>
+          {% if form.arquivo.errors %}
+          <div class="text-danger small">{{ form.arquivo.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.only_groups.label }}</label>
+          {{ form.only_groups|add_class:"form-control" }}
+          <div class="form-text">{{ form.only_groups.help_text }}</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.name_contains.label }}</label>
+          {{ form.name_contains|add_class:"form-control" }}
+          <div class="form-text">{{ form.name_contains.help_text }}</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label d-block">{{ form.set_valor.label }}</label>
+          <div class="form-check">
+            {{ form.set_valor|add_class:"form-check-input" }}
+            <label class="form-check-label">Importar</label>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ form.encoding.label }}</label>
+          {{ form.encoding|add_class:"form-control" }}
+          <div class="form-text">{{ form.encoding.help_text }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-end gap-2">
+      <a href="{% url 'tipo-exame-list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</a>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Importar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

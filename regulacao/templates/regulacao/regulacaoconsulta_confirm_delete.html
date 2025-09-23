@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Excluir Solicitação de Consulta{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card">
+    <div class="card-body">
+      <p>Tem certeza que deseja excluir a solicitação {{ object.numero_protocolo }}?</p>
+      <form method="post">{% csrf_token %}
+        <a class="btn btn-secondary" href="{% url 'consulta-list' %}">Cancelar</a>
+        <button class="btn btn-danger" type="submit">Excluir</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

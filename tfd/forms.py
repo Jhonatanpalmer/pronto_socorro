@@ -1,5 +1,5 @@
 from django import forms
-
+from pacientes.models import Paciente
 from .models import TFD
 
 
@@ -38,6 +38,17 @@ class TFDForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # tornar paciente obrigatório no formulário de entrada
         self.fields['paciente'].required = True
+        # evitar carregar todos; incluir o selecionado (POST/instance) para evitar 'Escolha inválida'
+        ids = set()
+        try:
+            posted = self.data.get(self.add_prefix('paciente')) if hasattr(self, 'data') else None
+            if posted:
+                ids.add(int(posted))
+        except (ValueError, TypeError):
+            pass
+        if getattr(self.instance, 'paciente_id', None):
+            ids.add(int(self.instance.paciente_id))
+        self.fields['paciente'].queryset = Paciente.objects.filter(pk__in=ids) if ids else Paciente.objects.none()
 
     def clean(self):
         cleaned = super().clean()

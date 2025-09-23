@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Médicos Solicitantes{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">
+                <i class="bi bi-person-badge text-primary"></i>
+                Médicos Solicitantes
+            </h2>
+            <p class="text-muted mb-0">Gerencie os médicos que podem solicitar exames</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'medico-create' %}" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Novo Médico
+            </a>
+            <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    {% if medico_list %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome</th>
+                            <th>CRM</th>
+                            <th>Especialidade</th>
+                            <th>UBS</th>
+                            <th>Contato</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for medico in medico_list %}
+                        <tr>
+                            <td>
+                                <strong>{{ medico.nome }}</strong>
+                            </td>
+                            <td>{{ medico.crm }}</td>
+                            <td>{{ medico.especialidade|default:"-" }}</td>
+                            <td>
+                                {% if medico.ubs_padrao %}
+                                <span class="badge bg-info">{{ medico.ubs_padrao.nome }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if medico.telefone %}
+                                <div>
+                                    <i class="bi bi-telephone-fill text-muted"></i>
+                                    {{ medico.telefone }}
+                                </div>
+                                {% endif %}
+                                {% if medico.email %}
+                                <div>
+                                    <i class="bi bi-envelope-fill text-muted"></i>
+                                    {{ medico.email|truncatechars:25 }}
+                                </div>
+                                {% endif %}
+                                {% if not medico.telefone and not medico.email %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if medico.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'medico-update' medico.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <a href="{% url 'medico-delete' medico.pk %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                    <i class="bi bi-trash-fill"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info shadow-sm text-center">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Nenhum médico cadastrado. 
+        <a href="{% url 'medico-create' %}" class="alert-link">Clique aqui para cadastrar o primeiro</a>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

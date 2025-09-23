@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if object %}Editar Solicitação{% else %}Nova Solicitação de Regulação{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="card-title mb-0">
+                        <i class="bi bi-clipboard-check"></i>
+                        {% if object %}Editar Solicitação de Regulação{% else %}Nova Solicitação de Regulação{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Informações do Paciente -->
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="{{ form.paciente.id_for_label }}" class="form-label">
+                                        <strong>Paciente <span class="text-danger">*</span></strong>
+                                    </label>
+                                    <!-- Busca rápida com autocomplete para Paciente (não carrega todos no select) -->
+                                    <div class="position-relative mb-2">
+                                        <input type="text" id="busca-paciente-regexame" class="form-control form-control-sm" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
+                                        <div id="resultado-paciente-regexame" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
+                                        <div class="form-text">Digite ao menos 2 letras e selecione o paciente para preencher o campo abaixo.</div>
+                                    </div>
+                                    {{ form.paciente }}
+                                    {% if form.paciente.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.paciente.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.prioridade.id_for_label }}" class="form-label">
+                                        <strong>Prioridade</strong>
+                                    </label>
+                                    {{ form.prioridade }}
+                                    {% if form.prioridade.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.prioridade.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informações do(s) Exame(s) -->
+                        {% if form.tipos_exame %}
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Tipos de Exame <span class="text-danger">*</span></strong></label>
+                            <!-- Mantém o select original (para submissão), mas escondido -->
+                            <div class="d-none">
+                                {{ form.tipos_exame }}
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-5">
+                                    <input type="text" id="search-exames" class="form-control form-control-sm" placeholder="Buscar exames..." autocomplete="off">
+                                    <small class="text-muted">Duplo clique para adicionar</small>
+                                    <ul id="lista-disponiveis" class="list-group mt-2" style="max-height: 260px; overflow:auto;"></ul>
+                                </div>
+                                <div class="col-md-2 d-flex flex-column align-items-center justify-content-center gap-2">
+                                    <button type="button" id="btn-add" class="btn btn-outline-primary btn-sm">&gt;&gt;</button>
+                                    <button type="button" id="btn-remove" class="btn btn-outline-secondary btn-sm">&lt;&lt;</button>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small text-muted">Selecionados</label>
+                                    <small class="text-muted d-block">Duplo clique para remover</small>
+                                    <ul id="lista-selecionados" class="list-group" style="max-height: 300px; overflow:auto;"></ul>
+                                </div>
+                            </div>
+                            <div class="form-text">Você pode adicionar quantos quiser.</div>
+                            {% if form.tipos_exame.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.tipos_exame.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <script>
+                        (function() {
+                            const hiddenSelect = document.getElementById('id_tipos_exame');
+                            if (!hiddenSelect) return;
+                            // Helper to create item
+                            function liFor(option) {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item list-group-item-action py-1 px-2';
+                                li.textContent = option.text;
+                                li.dataset.value = option.value;
+                                return li;
+                            }
+                            const listaDisp = document.getElementById('lista-disponiveis');
+                            const listaSel = document.getElementById('lista-selecionados');
+                            const search = document.getElementById('search-exames');
+
+                            // Build available list from all options not selected
+                            const all = Array.from(hiddenSelect.options);
+                            function render() {
+                                listaDisp.innerHTML = '';
+                                listaSel.innerHTML = '';
+                                const term = (search.value || '').toLowerCase().trim();
+                                all.forEach(opt => {
+                                    const inSelected = opt.selected;
+                                    if (inSelected) {
+                                        listaSel.appendChild(liFor(opt));
+                                    } else {
+                                        if (!term || opt.text.toLowerCase().includes(term)) {
+                                            listaDisp.appendChild(liFor(opt));
+                                        }
+                                    }
+                                });
+                            }
+                            render();
+
+                            // Double click handlers
+                            listaDisp.addEventListener('dblclick', (e) => {
+                                const li = e.target.closest('li');
+                                if (!li) return;
+                                const val = li.dataset.value;
+                                const opt = all.find(o => o.value === val);
+                                if (opt) { opt.selected = true; }
+                                render();
+                            });
+                            listaSel.addEventListener('dblclick', (e) => {
+                                const li = e.target.closest('li');
+                                if (!li) return;
+                                const val = li.dataset.value;
+                                const opt = all.find(o => o.value === val);
+                                if (opt) { opt.selected = false; }
+                                render();
+                            });
+
+                            // Buttons
+                            document.getElementById('btn-add').addEventListener('click', () => {
+                                // Move todos visíveis do lado esquerdo para selecionados
+                                Array.from(listaDisp.children).forEach(li => {
+                                    const opt = all.find(o => o.value === li.dataset.value);
+                                    if (opt) opt.selected = true;
+                                });
+                                render();
+                            });
+                            document.getElementById('btn-remove').addEventListener('click', () => {
+                                Array.from(listaSel.children).forEach(li => {
+                                    const opt = all.find(o => o.value === li.dataset.value);
+                                    if (opt) opt.selected = false;
+                                });
+                                render();
+                            });
+
+                            // Search filter
+                            search.addEventListener('input', render);
+                        })();
+                        </script>
+                        {% else %}
+                        <div class="mb-3">
+                            <label for="{{ form.tipo_exame.id_for_label }}" class="form-label">
+                                <strong>Tipo de Exame <span class="text-danger">*</span></strong>
+                            </label>
+                            {{ form.tipo_exame }}
+                            {% if form.tipo_exame.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.tipo_exame.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Justificativa Clínica -->
+                        <div class="mb-3">
+                            <label for="{{ form.justificativa.id_for_label }}" class="form-label">
+                                <strong>Justificativa Clínica <span class="text-danger">*</span></strong>
+                            </label>
+                            {{ form.justificativa }}
+                            {% if form.justificativa.help_text %}
+                            <div class="form-text">{{ form.justificativa.help_text }}</div>
+                            {% endif %}
+                            {% if form.justificativa.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.justificativa.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Informações da Solicitação -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.ubs_solicitante.id_for_label }}" class="form-label">
+                                        <strong>UBS Solicitante <span class="text-danger">*</span></strong>
+                                    </label>
+                                    {{ form.ubs_solicitante }}
+                                    {% if form.ubs_solicitante.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.ubs_solicitante.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.medico_solicitante.id_for_label }}" class="form-label">
+                                        <strong>Médico Solicitante <span class="text-danger">*</span></strong>
+                                    </label>
+                                    {{ form.medico_solicitante }}
+                                    {% if form.medico_solicitante.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.medico_solicitante.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="mb-3">
+                            <label for="{{ form.observacoes_solicitacao.id_for_label }}" class="form-label">
+                                <strong>Observações da Solicitação</strong>
+                            </label>
+                            {{ form.observacoes_solicitacao }}
+                            {% if form.observacoes_solicitacao.help_text %}
+                            <div class="form-text">{{ form.observacoes_solicitacao.help_text }}</div>
+                            {% endif %}
+                            {% if form.observacoes_solicitacao.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.observacoes_solicitacao.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campos de Regulação (só aparecem ao editar e se for admin) -->
+                        {% if object and object.pk and user.is_staff %}
+                        <hr>
+                        <h5 class="text-muted mb-3">
+                            <i class="bi bi-gear-fill"></i>
+                            Informações de Regulação (Apenas Administradores)
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.status.id_for_label }}" class="form-label">
+                                        <strong>Status</strong>
+                                    </label>
+                                    {{ form.status }}
+                                    {% if form.status.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.status.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.regulador.id_for_label }}" class="form-label">
+                                        <strong>Regulador</strong>
+                                    </label>
+                                    {{ form.regulador }}
+                                    {% if form.regulador.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.regulador.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.motivo_decisao.id_for_label }}" class="form-label">
+                                <strong>Motivo da Decisão</strong>
+                            </label>
+                            {{ form.motivo_decisao }}
+                            {% if form.motivo_decisao.help_text %}
+                            <div class="form-text">{{ form.motivo_decisao.help_text }}</div>
+                            {% endif %}
+                            {% if form.motivo_decisao.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.motivo_decisao.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'regulacao-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg"></i>
+                                {% if object %}Salvar Alterações{% else %}Criar Solicitação{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// Autocomplete de Paciente para Regulação de Exame
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('busca-paciente-regexame');
+    const list = document.getElementById('resultado-paciente-regexame');
+    const select = document.getElementById('id_paciente');
+    if (!input || !list || !select) return;
+
+    let timer = null;
+
+    function clearList() {
+        list.innerHTML = '';
+        list.style.display = 'none';
+    }
+
+    function render(items) {
+        list.innerHTML = '';
+        (items || []).forEach(item => {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action';
+            a.textContent = item.label || item.nome;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Preenche o select apenas com a opção escolhida
+                select.innerHTML = '';
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.nome;
+                opt.selected = true;
+                select.appendChild(opt);
+                clearList();
+                input.value = item.nome;
+            });
+            list.appendChild(a);
+        });
+        list.style.display = items && items.length ? 'block' : 'none';
+    }
+
+    function buscar(q) {
+        const url = new URL('{% url "paciente_autocomplete" %}', window.location.origin);
+        url.searchParams.set('q', q);
+        url.searchParams.set('limit', '20');
+        fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => render((data && data.results) || []))
+            .catch(() => clearList());
+    }
+
+    input.addEventListener('input', function () {
+        const q = (input.value || '').trim();
+        clearTimeout(timer);
+        if (q.length < 2) { clearList(); return; }
+        timer = setTimeout(() => buscar(q), 250);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!list.contains(e.target) && e.target !== input) {
+            clearList();
+        }
+    });
+});
+</script>
+{% endblock %}

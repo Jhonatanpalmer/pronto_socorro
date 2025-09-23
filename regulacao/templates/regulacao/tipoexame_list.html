@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Tipos de Exames{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">
+                <i class="bi bi-clipboard-data text-success"></i>
+                Tipos de Exames
+            </h2>
+            <p class="text-muted mb-0">Gerencie os tipos de exames disponíveis para solicitação</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'importar-sigtap' %}" class="btn btn-primary">
+                <i class="bi bi-cloud-arrow-up"></i> Importar SIGTAP
+            </a>
+            <a href="{% url 'tipo-exame-create' %}" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Novo Tipo
+            </a>
+            <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    {% if tipoexame_list %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Nome do Exame</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tipo in tipoexame_list %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">{{ tipo.codigo|default:"-" }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ tipo.nome }}</strong>
+                            </td>
+                            <td>
+                                {% if tipo.descricao %}
+                                {{ tipo.descricao|truncatechars:80 }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if tipo.valor %}
+                                <span class="text-success fw-bold">
+                                    R$ {{ tipo.valor|floatformat:2 }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if tipo.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'tipo-exame-update' tipo.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <a href="{% url 'tipo-exame-delete' tipo.pk %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                    <i class="bi bi-trash-fill"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info shadow-sm text-center">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Nenhum tipo de exame cadastrado. 
+        <a href="{% url 'tipo-exame-create' %}" class="alert-link">Clique aqui para cadastrar o primeiro</a>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

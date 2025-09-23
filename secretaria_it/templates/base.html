@@ -70,6 +70,15 @@
                             <!-- TFD -->
                             <li><a class="dropdown-item" href="{% url 'tfd-list' %}"><i class="bi bi-file-earmark-text"></i> TFD</a></li>
                             <li><a class="dropdown-item" href="{% url 'tfd-create' %}"><i class="bi bi-plus-circle"></i> Novo TFD</a></li>
+                            <li><hr class="dropdown-divider"></li>
+
+                            <!-- Regulação -->
+                            <li><a class="dropdown-item" href="{% url 'regulacao-dashboard' %}"><i class="bi bi-clipboard-check"></i> Regulação</a></li>
+                            <li><a class="dropdown-item" href="{% url 'regulacao-fila' %}"><i class="bi bi-hourglass-split"></i> Fila de Espera</a></li>
+                            <li><a class="dropdown-item" href="{% url 'regulacao-agenda' %}"><i class="bi bi-calendar2-week"></i> Agenda</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'tipo-exame-list' %}"><i class="bi bi-clipboard-data"></i> Tipos de Exames</a></li>
+                            <li><a class="dropdown-item" href="{% url 'importar-sigtap' %}"><i class="bi bi-cloud-arrow-up"></i> Importar SIGTAP</a></li>
                         </ul>
                     </li>
 
@@ -109,6 +118,14 @@
         {% endif %}
 
         {% block content %}{% endblock %}
+
+        <style>
+        /* Impressão: ocultar elementos de navegação/ação */
+        @media print {
+            .navbar, .footer, .sidebar, .btn, .d-print-none { display: none !important; }
+            .container { max-width: 100% !important; }
+        }
+        </style>
     </main>
 
     <!-- Rodapé -->

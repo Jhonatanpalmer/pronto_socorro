@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block title %}Pedido do Paciente — {{ paciente.nome }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-person-vcard"></i> Pedido do Paciente</h4>
+    <div>
+      <a class="btn btn-outline-secondary" href="{% url 'regulacao-list' %}"><i class="bi bi-arrow-left"></i> Voltar</a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h5 class="mb-2">{{ paciente.nome }}</h5>
+      <div class="text-muted small">
+        {% if paciente.cpf %}<span class="me-3">CPF: {{ paciente.cpf }}</span>{% endif %}
+        {% if paciente.cns %}<span class="me-3">CNS: {{ paciente.cns }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Form de Exames -->
+  <form method="post" class="mb-4">
+    {% csrf_token %}
+    <div class="card shadow-sm">
+      <div class="card-header bg-warning text-dark">
+        <strong>Autorizar e Agendar Exames Pendentes</strong>
+        <span class="badge bg-dark ms-2">{{ exames_pendentes_count }} pendente(s)</span>
+      </div>
+      <div class="card-body">
+        {% if exames_pendentes_count == 0 %}
+        <div class="alert alert-info">Não há exames em fila/pendente para este paciente.</div>
+        {% else %}
+        {{ exame_formset.management_form }}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Autorizar</th>
+                <th>Exame</th>
+                <th>UBS</th>
+                <th>Solicitado em</th>
+                <th>Local</th>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Médico Atendente</th>
+                <th>Obs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for form in exame_formset.forms %}
+              <tr>
+                <td>
+                  {{ form.autorizar }}
+                  {{ form.id }}
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ form.instance.tipo_exame.nome }}</div>
+                  <div class="text-muted small">Prot. #{{ form.instance.numero_protocolo }}</div>
+                </td>
+                <td><span class="badge bg-info text-dark">{{ form.instance.ubs_solicitante.nome }}</span></td>
+                <td class="text-muted small">{{ form.instance.data_solicitacao|date:'d/m/Y H:i' }}</td>
+                <td>{{ form.local_realizacao }}</td>
+                <td>{{ form.data_agendada }}</td>
+                <td>{{ form.hora_agendada }}</td>
+                <td>{{ form.medico_atendente }}</td>
+                <td>{{ form.observacoes_regulacao }}</td>
+              </tr>
+              {% if form.errors %}
+              <tr>
+                <td colspan="9">
+                  <div class="text-danger small">
+                    {% for error in form.non_field_errors %}
+                      <div>{{ error }}</div>
+                    {% endfor %}
+                    {% for field, errors in form.errors.items %}
+                      {% for error in errors %}
+                        <div>{{ error }}</div>
+                      {% endfor %}
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+              {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="submit" name="submit_exames" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar exames selecionados</button>
+    </div>
+  </form>
+
+  <!-- Form de Consultas -->
+  <form method="post" class="mb-4">
+    {% csrf_token %}
+    <div class="card shadow-sm">
+      <div class="card-header bg-info text-dark">
+        <strong>Autorizar e Agendar Consultas Pendentes</strong>
+        <span class="badge bg-dark ms-2">{{ consultas_pendentes_count }} pendente(s)</span>
+      </div>
+      <div class="card-body">
+        {% if consultas_pendentes_count == 0 %}
+          <div class="alert alert-info">Não há consultas em fila/pendente para este paciente.</div>
+        {% else %}
+          {{ consulta_formset.management_form }}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Autorizar</th>
+                <th>Especialidade</th>
+                <th>UBS</th>
+                <th>Solicitado em</th>
+                <th>Local</th>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Médico Atendente</th>
+                <th>Obs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for form in consulta_formset.forms %}
+              <tr>
+                <td>
+                  {{ form.autorizar }}
+                  {{ form.id }}
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ form.instance.especialidade.nome }}</div>
+                  <div class="text-muted small">Prot. #{{ form.instance.numero_protocolo }}</div>
+                </td>
+                <td><span class="badge bg-info text-dark">{{ form.instance.ubs_solicitante.nome }}</span></td>
+                <td class="text-muted small">{{ form.instance.data_solicitacao|date:'d/m/Y H:i' }}</td>
+                <td>{{ form.local_atendimento }}</td>
+                <td>{{ form.data_agendada }}</td>
+                <td>{{ form.hora_agendada }}</td>
+                <td>{{ form.medico_atendente }}</td>
+                <td>{{ form.observacoes_regulacao }}</td>
+              </tr>
+              {% if form.errors %}
+              <tr>
+                <td colspan="9">
+                  <div class="text-danger small">
+                    {% for error in form.non_field_errors %}
+                      <div>{{ error }}</div>
+                    {% endfor %}
+                    {% for field, errors in form.errors.items %}
+                      {% for error in errors %}
+                        <div>{{ error }}</div>
+                      {% endfor %}
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+              {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="submit" name="submit_consultas" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar consultas selecionadas</button>
+    </div>
+  </form>
+
+  <div class="card shadow-sm mt-4">
+    <div class="card-header"><strong>Todas as solicitações do paciente</strong></div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Protocolo</th>
+              <th>Tipo</th>
+              <th>Nome</th>
+              <th>Status</th>
+              <th>Pedido</th>
+              <th>Solicitado em</th>
+              <th>Agendamento</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in exames_todos %}
+            <tr>
+              <td>#{{ r.numero_protocolo }}</td>
+              <td><span class="badge bg-warning text-dark">Exame</span></td>
+              <td>{{ r.tipo_exame.nome }}</td>
+              <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
+              <td>{{ r.numero_pedido|default:'—' }}</td>
+              <td>{{ r.data_solicitacao|date:'d/m/Y H:i' }}</td>
+              <td>
+                {% if r.status == 'autorizado' %}
+                {{ r.local_realizacao }}<br>
+                {{ r.data_agendada|date:'d/m/Y' }} {{ r.hora_agendada|time:'H:i' }}
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            {% for c in consultas_todas %}
+            <tr>
+              <td>#{{ c.numero_protocolo }}</td>
+              <td><span class="badge bg-info text-dark">Consulta</span></td>
+              <td>{{ c.especialidade.nome }}</td>
+              <td><span class="badge {{ c.get_status_badge_class }}">{{ c.get_status_display }}</span></td>
+              <td>—</td>
+              <td>{{ c.data_solicitacao|date:'d/m/Y H:i' }}</td>
+              <td>
+                {% if c.status == 'autorizado' %}
+                {{ c.local_atendimento }}<br>
+                {{ c.data_agendada|date:'d/m/Y' }} {{ c.hora_agendada|time:'H:i' }}
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted">Nenhuma solicitação.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Toggle required attributes when 'autorizar' is checked
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    const examRows = document.querySelectorAll('table tbody tr');
+    examRows.forEach((row) => {
+      const checkbox = row.querySelector('input[type="checkbox"][name^="ex-"][name$="-autorizar"]');
+      if (!checkbox) return;
+      const local = row.querySelector('input[name^="ex-"][name$="-local_realizacao"]');
+      const data = row.querySelector('input[name^="ex-"][name$="-data_agendada"]');
+      const hora = row.querySelector('input[name^="ex-"][name$="-hora_agendada"]');
+      const medico = row.querySelector('select[name^="ex-"][name$="-medico_atendente"]');
+      const toggle = () => {
+        const req = !!checkbox.checked;
+        if (local) local.required = req;
+        if (data) data.required = req;
+        if (hora) hora.required = req;
+        if (medico) medico.required = req;
+      };
+      checkbox.addEventListener('change', toggle);
+      toggle();
+    });
+    const consultaRows = document.querySelectorAll('table tbody tr');
+    consultaRows.forEach((row) => {
+      const checkbox = row.querySelector('input[type="checkbox"][name^="co-"][name$="-autorizar"]');
+      if (!checkbox) return;
+      const local = row.querySelector('input[name^="co-"][name$="-local_atendimento"]');
+      const data = row.querySelector('input[name^="co-"][name$="-data_agendada"]');
+      const hora = row.querySelector('input[name^="co-"][name$="-hora_agendada"]');
+      const medico = row.querySelector('select[name^="co-"][name$="-medico_atendente"]');
+      const toggle = () => {
+        const req = !!checkbox.checked;
+        if (local) local.required = req;
+        if (data) data.required = req;
+        if (hora) hora.required = req;
+        if (medico) medico.required = req;
+      };
+      checkbox.addEventListener('change', toggle);
+      toggle();
+    });
+  } catch (e) { /* noop */ }
+});
+</script>
+{% endblock %}

@@ -47,6 +47,19 @@ def dashboard_view(request):
     except ImportError:
         pass  # TFD não disponível
 
+    # App Regulação
+    try:
+        from regulacao.urls import urlpatterns as regulacao_urls
+        apps.append({
+            'nome': 'Regulação de Exames',
+            'descricao': 'Gerencie solicitações e autorizações de exames.',
+            'url': 'regulacao-dashboard',
+            'icone': 'bi-clipboard-check-fill',
+            'cor': 'warning'
+        })
+    except ImportError:
+        pass  # Regulação não disponível
+
     # Aqui você pode adicionar outros apps existentes, apenas se tiver URLs válidas
 
     return render(request, 'secretaria_it/dashboard.html', {'apps': apps})

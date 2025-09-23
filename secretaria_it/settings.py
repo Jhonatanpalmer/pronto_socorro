@@ -11,9 +11,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carrega variáveis de ambiente do arquivo .env na raiz do projeto (se existir)
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -42,6 +47,7 @@ INSTALLED_APPS = [
     'veiculos',
     'viagens',
     'tfd',
+    'regulacao',
     'widget_tweaks',
 ]
 
@@ -83,6 +89,16 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
+
+# Secondary database for e-SUS (PostgreSQL)
+DATABASES['esus'] = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': os.getenv('ESUS_DB_NAME', 'esus'),
+    'USER': os.getenv('ESUS_DB_USER', 'postresql'),
+    'PASSWORD': os.getenv('ESUS_DB_PASSWORD', ''),
+    'HOST': os.getenv('ESUS_DB_HOST', 'localhost'),
+    'PORT': os.getenv('ESUS_DB_PORT', '5432'),
 }
 
 

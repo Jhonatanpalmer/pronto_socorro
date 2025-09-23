@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitações de Regulação{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">
+                <i class="bi bi-clipboard-check text-warning"></i>
+                Solicitações de Regulação
+            </h2>
+            <p class="text-muted mb-0">Gerencie as solicitações de exames e autorize ou negue conforme necessário</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'regulacao-create' %}" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Nova Solicitação
+            </a>
+            <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" class="form-select" id="status">
+                        <option value="">Todos os status</option>
+                        <option value="fila" {% if request.GET.status == 'fila' %}selected{% endif %}>Fila</option>
+                        <option value="pendente" {% if request.GET.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                        <option value="autorizado" {% if request.GET.status == 'autorizado' %}selected{% endif %}>Autorizado</option>
+                        <option value="negado" {% if request.GET.status == 'negado' %}selected{% endif %}>Negado</option>
+                        <option value="cancelado" {% if request.GET.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="ubs" class="form-label">UBS</label>
+                    <select name="ubs" class="form-select" id="ubs">
+                        <option value="">Todas as UBS</option>
+                        {% for ubs in ubs_list %}
+                        <option value="{{ ubs.id }}" {% if request.GET.ubs == ubs.id|stringformat:"s" %}selected{% endif %}>
+                            {{ ubs.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="data_inicio" class="form-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="form-control" value="{{ request.GET.data_inicio }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="data_fim" class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" value="{{ request.GET.data_fim }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Visão agrupada por paciente (sempre) -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Solicitações agrupadas por paciente</h5>
+                <small class="text-muted">Exibindo um registro por paciente</small>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Quantidade de exames</th>
+                            <th>Exames</th>
+                            <th>Primeiro registro</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in pacientes_page %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ item.paciente.nome }}</strong><br>
+                                    <small class="text-muted">CPF: {{ item.paciente.cpf }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ item.total_exames }}</span>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ item.exames_nomes|join:", " }}</small>
+                            </td>
+                            <td>
+                                {{ item.primeira_hora|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'paciente-pedido' item.paciente_id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center py-3">Nenhuma solicitação encontrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if pacientes_page.has_other_pages %}
+            <nav class="mt-2" aria-label="Paginação por paciente">
+                <ul class="pagination pagination-sm justify-content-end mb-0">
+                    {% if pacientes_page.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pacientes_page.previous_page_number }}">&laquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    {% endif %}
+                    {% for num in pacientes_page.paginator.page_range %}
+                    <li class="page-item {% if num == pacientes_page.number %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    {% if pacientes_page.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pacientes_page.next_page_number }}">&raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

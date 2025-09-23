@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Status das Solicitações - {{ ubs.nome }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h4 class="mb-3">Status das Solicitações — {{ ubs.nome }}</h4>
+
+  <div class="card mb-4">
+    <div class="card-header bg-light"><strong>Exames</strong></div>
+    <div class="card-body p-0">
+      <table class="table mb-0">
+        <thead>
+          <tr><th>Protocolo</th><th>Paciente</th><th>Exame</th><th>Status</th><th>Data/Hora</th></tr>
+        </thead>
+        <tbody>
+          {% for r in exames %}
+          <tr>
+            <td>{{ r.numero_protocolo }}</td>
+            <td>
+              <div><strong>{{ r.paciente.nome }}</strong></div>
+              <div class="mt-1">
+                <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                </a>
+              </div>
+            </td>
+            <td>{{ r.tipo_exame.nome }}</td>
+            <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
+            <td>
+              Solicitado: {{ r.data_solicitacao|date:'d/m/Y H:i' }}<br>
+              {% if r.data_agendada %}Agendado: {{ r.data_agendada|date:'d/m/Y' }} {{ r.hora_agendada|time:'H:i' }}{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center py-3">Nenhum exame encontrado.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header bg-light"><strong>Consultas</strong></div>
+    <div class="card-body p-0">
+      <table class="table mb-0">
+        <thead>
+          <tr><th>Protocolo</th><th>Paciente</th><th>Especialidade</th><th>Status</th><th>Data/Hora</th></tr>
+        </thead>
+        <tbody>
+          {% for r in consultas %}
+          <tr>
+            <td>{{ r.numero_protocolo }}</td>
+            <td>
+              <div><strong>{{ r.paciente.nome }}</strong></div>
+              <div class="mt-1">
+                <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                </a>
+              </div>
+            </td>
+            <td>{{ r.especialidade.nome }}</td>
+            <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
+            <td>
+              Solicitado: {{ r.data_solicitacao|date:'d/m/Y H:i' }}<br>
+              {% if r.data_agendada %}Agendado: {{ r.data_agendada|date:'d/m/Y' }} {{ r.hora_agendada|time:'H:i' }}{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center py-3">Nenhuma consulta encontrada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Agenda de Regulação{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h4 class="mb-3">Agenda de Atendimentos</h4>
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-success text-white"><strong>Exames Agendados</strong></div>
+        <div class="card-body p-0">
+          <table class="table mb-0">
+            <thead>
+              <tr><th>Data</th><th>Hora</th><th>Paciente</th><th>Exame</th><th>UBS</th><th class="d-print-none">Comprovante</th></tr>
+            </thead>
+            <tbody>
+              {% for r in exames %}
+              <tr>
+                <td>{{ r.data_agendada|date:'d/m/Y' }}</td>
+                <td>{{ r.hora_agendada|time:'H:i' }}</td>
+                <td>
+                  <div><strong>{{ r.paciente.nome }}</strong></div>
+                  <div class="mt-1">
+                    <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-sm btn-outline-secondary">
+                      <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                    </a>
+                  </div>
+                </td>
+                <td>{{ r.tipo_exame.nome }}</td>
+                <td>{{ r.ubs_solicitante.nome }}</td>
+                <td class="d-print-none">
+                  <a href="{% url 'comprovante-exame' r.pk %}" class="btn btn-sm btn-outline-primary" title="Imprimir comprovante">
+                    <i class="bi bi-printer"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center py-3">Sem exames agendados.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-success text-white"><strong>Consultas Agendadas</strong></div>
+        <div class="card-body p-0">
+          <table class="table mb-0">
+            <thead>
+              <tr><th>Data</th><th>Hora</th><th>Paciente</th><th>Especialidade</th><th>UBS</th><th class="d-print-none">Comprovante</th></tr>
+            </thead>
+            <tbody>
+              {% for r in consultas %}
+              <tr>
+                <td>{{ r.data_agendada|date:'d/m/Y' }}</td>
+                <td>{{ r.hora_agendada|time:'H:i' }}</td>
+                <td>
+                  <div><strong>{{ r.paciente.nome }}</strong></div>
+                  <div class="mt-1">
+                    <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-sm btn-outline-secondary">
+                      <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                    </a>
+                  </div>
+                </td>
+                <td>{{ r.especialidade.nome }}</td>
+                <td>{{ r.ubs_solicitante.nome }}</td>
+                <td class="d-print-none">
+                  <a href="{% url 'comprovante-consulta' r.pk %}" class="btn btn-sm btn-outline-primary" title="Imprimir comprovante">
+                    <i class="bi bi-printer"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center py-3">Sem consultas agendadas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

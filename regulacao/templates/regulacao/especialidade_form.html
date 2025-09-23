@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Editar Especialidade{% else %}Nova Especialidade{% endif %}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">{% if object %}Editar{% else %}Nova{% endif %} Especialidade</h5>
+    </div>
+    <div class="card-body">
+      <form method="post">{% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Nome</label>
+          {{ form.nome }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Descrição</label>
+          {{ form.descricao }}
+        </div>
+        <div class="form-check mb-3">
+          {{ form.ativa }} <label class="form-check-label">Ativa</label>
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+          <a class="btn btn-secondary" href="{% url 'especialidade-list' %}">Cancelar</a>
+          <button class="btn btn-success" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

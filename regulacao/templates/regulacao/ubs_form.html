@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if object %}Editar UBS{% else %}Nova UBS{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="bi bi-building"></i>
+                        {% if object %}Editar UBS{% else %}Nova UBS{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">
+                                <strong>Nome da UBS <span class="text-danger">*</span></strong>
+                            </label>
+                            {{ form.nome }}
+                            {% if form.nome.help_text %}
+                            <div class="form-text">{{ form.nome.help_text }}</div>
+                            {% endif %}
+                            {% if form.nome.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.nome.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.endereco.id_for_label }}" class="form-label">
+                                <strong>Endereço</strong>
+                            </label>
+                            {{ form.endereco }}
+                            {% if form.endereco.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.endereco.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.responsavel.id_for_label }}" class="form-label">
+                                        <strong>Responsável</strong>
+                                    </label>
+                                    {{ form.responsavel }}
+                                    {% if form.responsavel.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.responsavel.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.telefone.id_for_label }}" class="form-label">
+                                        <strong>Telefone</strong>
+                                    </label>
+                                    {{ form.telefone }}
+                                    {% if form.telefone.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.telefone.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                <strong>E-mail</strong>
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.ativa }}
+                                <label class="form-check-label" for="{{ form.ativa.id_for_label }}">
+                                    UBS Ativa
+                                </label>
+                            </div>
+                            {% if form.ativa.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.ativa.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'ubs-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg"></i>
+                                {% if object %}Salvar Alterações{% else %}Cadastrar UBS{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

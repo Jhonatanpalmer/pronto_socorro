@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if object %}Editar Médico{% else %}Novo Médico{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="bi bi-person-badge"></i>
+                        {% if object %}Editar Médico{% else %}Novo Médico{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">
+                                <strong>Nome Completo <span class="text-danger">*</span></strong>
+                            </label>
+                            {{ form.nome }}
+                            {% if form.nome.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.nome.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.crm.id_for_label }}" class="form-label">
+                                        <strong>CRM <span class="text-danger">*</span></strong>
+                                    </label>
+                                    {{ form.crm }}
+                                    {% if form.crm.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.crm.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.especialidade.id_for_label }}" class="form-label">
+                                        <strong>Especialidade</strong>
+                                    </label>
+                                    {{ form.especialidade }}
+                                    {% if form.especialidade.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.especialidade.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.ubs_padrao.id_for_label }}" class="form-label">
+                                <strong>UBS Padrão</strong>
+                            </label>
+                            {{ form.ubs_padrao }}
+                            {% if form.ubs_padrao.help_text %}
+                            <div class="form-text">{{ form.ubs_padrao.help_text }}</div>
+                            {% endif %}
+                            {% if form.ubs_padrao.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.ubs_padrao.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.telefone.id_for_label }}" class="form-label">
+                                        <strong>Telefone</strong>
+                                    </label>
+                                    {{ form.telefone }}
+                                    {% if form.telefone.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.telefone.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">
+                                        <strong>E-mail</strong>
+                                    </label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.email.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.ativo }}
+                                <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                    Médico Ativo
+                                </label>
+                            </div>
+                            {% if form.ativo.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.ativo.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'medico-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg"></i>
+                                {% if object %}Salvar Alterações{% else %}Cadastrar Médico{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
