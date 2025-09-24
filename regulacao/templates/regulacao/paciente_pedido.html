@@ -7,6 +7,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-person-vcard"></i> Pedido do Paciente</h4>
     <div>
+      <a class="btn btn-outline-primary me-2" href="{% url 'paciente_historico' paciente.id %}"><i class="bi bi-clock-history"></i> Histórico</a>
       <a class="btn btn-outline-secondary" href="{% url 'regulacao-list' %}"><i class="bi bi-arrow-left"></i> Voltar</a>
     </div>
   </div>
@@ -38,22 +39,28 @@
           <table class="table table-sm align-middle">
             <thead class="table-light">
               <tr>
-                <th>Autorizar</th>
+                <th>Ação</th>
                 <th>Exame</th>
                 <th>UBS</th>
                 <th>Solicitado em</th>
                 <th>Local</th>
                 <th>Data</th>
                 <th>Hora</th>
-                <th>Médico Atendente</th>
+                <th>Laboratório Autorizado</th>
                 <th>Obs</th>
+                <th>Motivo (se negar)</th>
               </tr>
             </thead>
             <tbody>
               {% for form in exame_formset.forms %}
               <tr>
                 <td>
-                  {{ form.autorizar }}
+                  <div class="form-check">
+                    {{ form.autorizar }} <label class="form-check-label small">Autorizar</label>
+                  </div>
+                  <div class="form-check">
+                    {{ form.negar }} <label class="form-check-label small text-danger">Negar</label>
+                  </div>
                   {{ form.id }}
                 </td>
                 <td>
@@ -65,8 +72,9 @@
                 <td>{{ form.local_realizacao }}</td>
                 <td>{{ form.data_agendada }}</td>
                 <td>{{ form.hora_agendada }}</td>
-                <td>{{ form.medico_atendente }}</td>
+                <td>{{ form.local_realizacao }}</td>
                 <td>{{ form.observacoes_regulacao }}</td>
+                <td>{{ form.motivo_decisao }}</td>
               </tr>
               {% if form.errors %}
               <tr>
@@ -94,6 +102,7 @@
 
     <div class="d-flex justify-content-end gap-2 mt-3">
       <button type="submit" name="submit_exames" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar exames selecionados</button>
+      <button type="submit" name="deny_exames" class="btn btn-danger"><i class="bi bi-x-octagon"></i> Negar exames selecionados</button>
     </div>
   </form>
 
@@ -114,7 +123,7 @@
             <table class="table table-sm align-middle">
             <thead class="table-light">
               <tr>
-                <th>Autorizar</th>
+                <th>Ação</th>
                 <th>Especialidade</th>
                 <th>UBS</th>
                 <th>Solicitado em</th>
@@ -123,13 +132,19 @@
                 <th>Hora</th>
                 <th>Médico Atendente</th>
                 <th>Obs</th>
+                <th>Motivo (se negar)</th>
               </tr>
             </thead>
             <tbody>
               {% for form in consulta_formset.forms %}
               <tr>
                 <td>
-                  {{ form.autorizar }}
+                  <div class="form-check">
+                    {{ form.autorizar }} <label class="form-check-label small">Autorizar</label>
+                  </div>
+                  <div class="form-check">
+                    {{ form.negar }} <label class="form-check-label small text-danger">Negar</label>
+                  </div>
                   {{ form.id }}
                 </td>
                 <td>
@@ -143,6 +158,7 @@
                 <td>{{ form.hora_agendada }}</td>
                 <td>{{ form.medico_atendente }}</td>
                 <td>{{ form.observacoes_regulacao }}</td>
+                <td>{{ form.motivo_decisao }}</td>
               </tr>
               {% if form.errors %}
               <tr>
@@ -169,12 +185,23 @@
     </div>
     <div class="d-flex justify-content-end gap-2 mt-3">
       <button type="submit" name="submit_consultas" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar consultas selecionadas</button>
+      <button type="submit" name="deny_consultas" class="btn btn-danger"><i class="bi bi-x-octagon"></i> Negar consultas selecionadas</button>
     </div>
   </form>
 
   <div class="card shadow-sm mt-4">
     <div class="card-header"><strong>Todas as solicitações do paciente</strong></div>
     <div class="card-body">
+      <div class="d-flex justify-content-end gap-2 mb-3">
+        {% if exames_aut_count and exames_aut_count > 0 %}
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'comprovantes-exames' %}?ids={{ exames_aut_ids_csv }}" target="_blank"><i class="bi bi-printer"></i> Imprimir exames autorizados</a>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'comprovantes-exames' %}?ids={{ exames_aut_ids_csv }}&detalhes=1" target="_blank"><i class="bi bi-printer-fill"></i> Imprimir exames (detalhes)</a>
+        {% endif %}
+        {% if consultas_aut_count and consultas_aut_count > 0 %}
+          <a class="btn btn-outline-success btn-sm" href="{% url 'comprovantes-consultas' %}?ids={{ consultas_aut_ids_csv }}" target="_blank"><i class="bi bi-printer"></i> Imprimir consultas autorizadas</a>
+          <a class="btn btn-outline-success btn-sm" href="{% url 'comprovantes-consultas' %}?ids={{ consultas_aut_ids_csv }}&detalhes=1" target="_blank"><i class="bi bi-printer-fill"></i> Imprimir consultas (detalhes)</a>
+        {% endif %}
+      </div>
       <div class="table-responsive">
         <table class="table table-sm align-middle">
           <thead class="table-light">
@@ -235,39 +262,56 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     const examRows = document.querySelectorAll('table tbody tr');
     examRows.forEach((row) => {
-      const checkbox = row.querySelector('input[type="checkbox"][name^="ex-"][name$="-autorizar"]');
-      if (!checkbox) return;
+      const autorizar = row.querySelector('input[type="checkbox"][name^="ex-"][name$="-autorizar"]');
+      const negar = row.querySelector('input[type="checkbox"][name^="ex-"][name$="-negar"]');
+      if (!autorizar && !negar) return;
       const local = row.querySelector('input[name^="ex-"][name$="-local_realizacao"]');
       const data = row.querySelector('input[name^="ex-"][name$="-data_agendada"]');
       const hora = row.querySelector('input[name^="ex-"][name$="-hora_agendada"]');
-      const medico = row.querySelector('select[name^="ex-"][name$="-medico_atendente"]');
+      const motivo = row.querySelector('textarea[name^="ex-"][name$="-motivo_decisao"]');
       const toggle = () => {
-        const req = !!checkbox.checked;
-        if (local) local.required = req;
-        if (data) data.required = req;
-        if (hora) hora.required = req;
-        if (medico) medico.required = req;
+        const reqAuth = !!(autorizar && autorizar.checked);
+        const reqDeny = !!(negar && negar.checked);
+        if (local) local.required = reqAuth;
+        if (data) data.required = reqAuth;
+        if (hora) hora.required = reqAuth;
+        if (motivo) motivo.required = reqDeny;
+        // exclusividade
+        if (autorizar && negar) {
+          if (this === autorizar && autorizar.checked) negar.checked = false;
+          if (this === negar && negar.checked) autorizar.checked = false;
+        }
       };
-      checkbox.addEventListener('change', toggle);
-      toggle();
+      if (autorizar) autorizar.addEventListener('change', toggle);
+      if (negar) negar.addEventListener('change', toggle);
+      toggle.call(null);
     });
     const consultaRows = document.querySelectorAll('table tbody tr');
     consultaRows.forEach((row) => {
-      const checkbox = row.querySelector('input[type="checkbox"][name^="co-"][name$="-autorizar"]');
-      if (!checkbox) return;
+      const autorizar = row.querySelector('input[type="checkbox"][name^="co-"][name$="-autorizar"]');
+      const negar = row.querySelector('input[type="checkbox"][name^="co-"][name$="-negar"]');
+      if (!autorizar && !negar) return;
       const local = row.querySelector('input[name^="co-"][name$="-local_atendimento"]');
       const data = row.querySelector('input[name^="co-"][name$="-data_agendada"]');
       const hora = row.querySelector('input[name^="co-"][name$="-hora_agendada"]');
       const medico = row.querySelector('select[name^="co-"][name$="-medico_atendente"]');
+      const motivo = row.querySelector('textarea[name^="co-"][name$="-motivo_decisao"]');
       const toggle = () => {
-        const req = !!checkbox.checked;
-        if (local) local.required = req;
-        if (data) data.required = req;
-        if (hora) hora.required = req;
-        if (medico) medico.required = req;
+        const reqAuth = !!(autorizar && autorizar.checked);
+        const reqDeny = !!(negar && negar.checked);
+        if (local) local.required = reqAuth;
+        if (data) data.required = reqAuth;
+        if (hora) hora.required = reqAuth;
+        if (medico) medico.required = reqAuth;
+        if (motivo) motivo.required = reqDeny;
+        if (autorizar && negar) {
+          if (this === autorizar && autorizar.checked) negar.checked = false;
+          if (this === negar && negar.checked) autorizar.checked = false;
+        }
       };
-      checkbox.addEventListener('change', toggle);
-      toggle();
+      if (autorizar) autorizar.addEventListener('change', toggle);
+      if (negar) negar.addEventListener('change', toggle);
+      toggle.call(null);
     });
   } catch (e) { /* noop */ }
 });

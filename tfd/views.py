@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from secretaria_it.access import AccessRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
@@ -9,8 +10,9 @@ from .models import TFD
 from .forms import TFDForm
 
 # Lista de TFDs
-class TFDListView(LoginRequiredMixin, ListView):
+class TFDListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
+    access_key = 'tfd'
     model = TFD
     template_name = 'tfd/tfd_list.html'
     context_object_name = 'tfds'
@@ -68,31 +70,35 @@ class TFDListView(LoginRequiredMixin, ListView):
         return ctx
 
 # Detalhe de um TFD
-class TFDDetailView(LoginRequiredMixin, DetailView):
+class TFDDetailView(AccessRequiredMixin, LoginRequiredMixin, DetailView):
     login_url = '/accounts/login/'
+    access_key = 'tfd'
     model = TFD
     template_name = 'tfd/tfd_detail.html'
     context_object_name = 'tfd'
 
 # Criar TFD
-class TFDCreateView(LoginRequiredMixin, CreateView):
+class TFDCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
+    access_key = 'tfd'
     model = TFD
     form_class = TFDForm
     template_name = 'tfd/tfd_form.html'
     success_url = reverse_lazy('tfd-list')
 
 # Editar TFD
-class TFDUpdateView(LoginRequiredMixin, UpdateView):
+class TFDUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
+    access_key = 'tfd'
     model = TFD
     form_class = TFDForm
     template_name = 'tfd/tfd_form.html'
     success_url = reverse_lazy('tfd-list')
 
 # Deletar TFD
-class TFDDeleteView(LoginRequiredMixin, DeleteView):
+class TFDDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
     login_url = '/accounts/login/'
+    access_key = 'tfd'
     model = TFD
     template_name = 'tfd/tfd_confirm_delete.html'
     success_url = reverse_lazy('tfd-list')

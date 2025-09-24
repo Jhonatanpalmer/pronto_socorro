@@ -18,6 +18,8 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
+                        <div id="exame-alerta" class="alert alert-warning d-none" role="alert"></div>
+                        <div id="exame-detalhes" class="alert alert-info d-none" role="alert"></div>
                         
                         <!-- Informações do Paciente -->
                         <div class="row">
@@ -359,6 +361,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 select.appendChild(opt);
                 clearList();
                 input.value = item.nome;
+                // Atualiza alertas
+                try { atualizarAlertas(); } catch(err) {}
             });
             list.appendChild(a);
         });
@@ -387,6 +391,52 @@ document.addEventListener('DOMContentLoaded', function () {
             clearList();
         }
     });
+        // Helpers para alertas
+        const alerta = document.getElementById('exame-alerta');
+        const detalhes = document.getElementById('exame-detalhes');
+        function coletarTiposSelecionados(){
+                const hiddenSelect = document.getElementById('id_tipos_exame');
+                if (!hiddenSelect) return [];
+                return Array.from(hiddenSelect.options).filter(o => o.selected).map(o => o.value);
+        }
+        function atualizarAlertas(){
+                if (alerta){ alerta.classList.add('d-none'); alerta.textContent = ''; }
+                if (detalhes){ detalhes.classList.add('d-none'); detalhes.innerHTML=''; }
+                const pid = parseInt((select.value||'0'), 10);
+                if (!pid) return;
+                const tipos = coletarTiposSelecionados();
+                const url = new URL('{% url "exame-alertas" %}', window.location.origin);
+                url.searchParams.set('paciente_id', String(pid));
+                if (tipos.length){ url.searchParams.set('tipos', tipos.join(',')); }
+                fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(d => {
+                        if (!d || !d.ok) return;
+                        const fila = d.fila_count || 0;
+                        const ag = d.agendadas_count || 0;
+                        let parts = [];
+                        if (fila) parts.push(`${fila} em fila de espera`);
+                        if (ag) parts.push(`${ag} agendado(s)`);
+                        if (parts.length && alerta){
+                            alerta.textContent = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
+                            alerta.classList.remove('d-none');
+                        }
+                        const det = Array.isArray(d.detalhes) ? d.detalhes : [];
+                        if (det.length && detalhes){
+                            let confl = '';
+                            const confs = Array.isArray(d.conflitos_tipos) ? d.conflitos_tipos : [];
+                            if (d.same_tipos && confs.length){
+                                confl = `<div class="text-danger"><strong>Conflito de tipo:</strong> ${confs.join(', ')}</div>`;
+                            }
+                            detalhes.innerHTML = `${confl}<div><strong>Detalhes:</strong></div><ul class="mb-0">${det.map(t => `<li>${t}</li>`).join('')}</ul>`;
+                            detalhes.classList.remove('d-none');
+                        }
+                    })
+                    .catch(()=>{});
+        }
+        // Disparar ao carregar (edição) e ao alterar seleção de tipos
+        try { atualizarAlertas(); } catch(err) {}
+        document.getElementById('id_tipos_exame')?.addEventListener('change', function(){ try { atualizarAlertas(); } catch(err) {} });
 });
 </script>
 {% endblock %}

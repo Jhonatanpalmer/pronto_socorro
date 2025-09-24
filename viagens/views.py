@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from secretaria_it.access import AccessRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -7,8 +8,9 @@ import datetime
 from .models import Viagem
 from .forms import ViagemForm
 
-class ViagemListView(LoginRequiredMixin, ListView):
+class ViagemListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
+    access_key = 'viagens'
     model = Viagem
     template_name = 'viagens/viagem_list.html'
     context_object_name = 'viagens'
@@ -59,8 +61,9 @@ class ViagemListView(LoginRequiredMixin, ListView):
         ctx['today'] = datetime.date.today()
         return ctx
 
-class ViagemCreateView(LoginRequiredMixin, CreateView):
+class ViagemCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
+    access_key = 'viagens'
     model = Viagem
     form_class = ViagemForm
     template_name = 'viagens/viagem_form.html'
@@ -75,8 +78,9 @@ class ViagemCreateView(LoginRequiredMixin, CreateView):
         messages.error(self.request, 'Erro ao criar viagem. Verifique os dados e tente novamente.')
         return super().form_invalid(form)
 
-class ViagemUpdateView(LoginRequiredMixin, UpdateView):
+class ViagemUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
+    access_key = 'viagens'
     model = Viagem
     form_class = ViagemForm
     template_name = 'viagens/viagem_form.html'
@@ -92,8 +96,9 @@ class ViagemUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_invalid(form)
 
 
-class ViagemDeleteView(LoginRequiredMixin, DeleteView):
+class ViagemDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
     login_url = '/accounts/login/'
+    access_key = 'viagens'
     model = Viagem
     template_name = 'viagens/viagem_confirm_delete.html'
     success_url = reverse_lazy('viagem-list')

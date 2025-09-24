@@ -9,6 +9,8 @@
     </div>
     <div class="card-body">
       <form method="post">{% csrf_token %}
+  <div id="consulta-alerta" class="alert alert-warning d-none" role="alert"></div>
+  <div id="consulta-detalhes" class="alert alert-info d-none" role="alert"></div>
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Paciente</label>
@@ -58,6 +60,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const input = document.getElementById('busca-paciente-regconsulta');
   const list = document.getElementById('resultado-paciente-regconsulta');
   const select = document.getElementById('id_paciente');
+  const espec = document.getElementById('id_especialidade');
+  const banner = document.getElementById('consulta-alerta');
+  const detalhesBox = document.getElementById('consulta-detalhes');
   if (!input || !list || !select) return;
 
   let timer = null;
@@ -77,6 +82,47 @@ document.addEventListener('DOMContentLoaded', function () {
         select.appendChild(opt);
         input.value = item.nome;
         clearList();
+        // Atualizar aviso de consultas existentes
+        try {
+          if (banner){
+            banner.classList.add('d-none');
+            banner.textContent = '';
+          }
+          if (detalhesBox){
+            detalhesBox.classList.add('d-none');
+            detalhesBox.innerHTML = '';
+          }
+          const pid = parseInt(select.value, 10);
+          const eid = espec ? parseInt(espec.value || '0', 10) : 0;
+          if (!isNaN(pid) && pid > 0){
+            const url = new URL('{% url "consulta-alertas" %}', window.location.origin);
+            url.searchParams.set('paciente_id', String(pid));
+            if (eid){ url.searchParams.set('especialidade_id', String(eid)); }
+            fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+              .then(r => r.ok ? r.json() : Promise.reject())
+              .then(d => {
+                if (!d || !d.ok || !banner) return;
+                const fila = d.fila_count || 0;
+                const ag = d.agendadas_count || 0;
+                const same = d.same_especialidade;
+                let parts = [];
+                if (fila) parts.push(`${fila} em fila de espera`);
+                if (ag) parts.push(`${ag} agendada(s)`);
+                if (parts.length){
+                  let msg = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
+                  if (same === true){ msg += ' Já existe solicitação nesta mesma especialidade.'; }
+                  banner.textContent = msg;
+                  banner.classList.remove('d-none');
+                }
+                const detalhes = Array.isArray(d.detalhes) ? d.detalhes : [];
+                if (detalhes.length && detalhesBox){
+                  detalhesBox.innerHTML = `<div><strong>Detalhes:</strong></div><ul class="mb-0">${detalhes.map(t => `<li>${t}</li>`).join('')}</ul>`;
+                  detalhesBox.classList.remove('d-none');
+                }
+              })
+              .catch(() => {});
+          }
+        } catch(err) {}
       });
       list.appendChild(a);
     });
@@ -99,6 +145,81 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('click', function(e){
     if (!list.contains(e.target) && e.target !== input){ clearList(); }
   });
+  // Atualizar banner ao mudar especialidade (se paciente já selecionado)
+  if (espec){
+    espec.addEventListener('change', function(){
+      try {
+  if (!banner) return;
+        banner.classList.add('d-none');
+        banner.textContent = '';
+  if (detalhesBox){ detalhesBox.classList.add('d-none'); detalhesBox.innerHTML = ''; }
+        const pid = parseInt(select.value || '0', 10);
+        const eid = parseInt(espec.value || '0', 10);
+        if (!pid) return;
+        const url = new URL('{% url "consulta-alertas" %}', window.location.origin);
+        url.searchParams.set('paciente_id', String(pid));
+        if (eid){ url.searchParams.set('especialidade_id', String(eid)); }
+        fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+          .then(r => r.ok ? r.json() : Promise.reject())
+          .then(d => {
+            if (!d || !d.ok) return;
+            const fila = d.fila_count || 0;
+            const ag = d.agendadas_count || 0;
+            const same = d.same_especialidade;
+            let parts = [];
+            if (fila) parts.push(`${fila} em fila de espera`);
+            if (ag) parts.push(`${ag} agendada(s)`);
+            if (parts.length){
+              let msg = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
+              if (same === true){ msg += ' Já existe solicitação nesta mesma especialidade.'; }
+              banner.textContent = msg;
+              banner.classList.remove('d-none');
+            }
+            const detalhes = Array.isArray(d.detalhes) ? d.detalhes : [];
+            if (detalhes.length && detalhesBox){
+              detalhesBox.innerHTML = `<div><strong>Detalhes:</strong></div><ul class="mb-0">${detalhes.map(t => `<li>${t}</li>`).join('')}</ul>`;
+              detalhesBox.classList.remove('d-none');
+            }
+          })
+          .catch(() => {});
+      } catch(err) {}
+    });
+  }
+  // Se já houver paciente selecionado (edição), carregar alertas ao abrir
+  try {
+    const pid = parseInt(select.value || '0', 10);
+    const eid = espec ? parseInt(espec.value || '0', 10) : 0;
+    if (pid > 0){
+      if (banner){ banner.classList.add('d-none'); banner.textContent = ''; }
+      if (detalhesBox){ detalhesBox.classList.add('d-none'); detalhesBox.innerHTML = ''; }
+      const url = new URL('{% url "consulta-alertas" %}', window.location.origin);
+      url.searchParams.set('paciente_id', String(pid));
+      if (eid){ url.searchParams.set('especialidade_id', String(eid)); }
+      fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(d => {
+          if (!d || !d.ok) return;
+          const fila = d.fila_count || 0;
+          const ag = d.agendadas_count || 0;
+          const same = d.same_especialidade;
+          let parts = [];
+          if (fila) parts.push(`${fila} em fila de espera`);
+          if (ag) parts.push(`${ag} agendada(s)`);
+          if (parts.length && banner){
+            let msg = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
+            if (same === true){ msg += ' Já existe solicitação nesta mesma especialidade.'; }
+            banner.textContent = msg;
+            banner.classList.remove('d-none');
+          }
+          const detalhes = Array.isArray(d.detalhes) ? d.detalhes : [];
+          if (detalhes.length && detalhesBox){
+            detalhesBox.innerHTML = `<div><strong>Detalhes:</strong></div><ul class="mb-0">${detalhes.map(t => `<li>${t}</li>`).join('')}</ul>`;
+            detalhesBox.classList.remove('d-none');
+          }
+        })
+        .catch(()=>{});
+    }
+  } catch(err) {}
 });
   </script>
 {% endblock %}

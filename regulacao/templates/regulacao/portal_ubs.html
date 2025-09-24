@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Regulação - Portal UBS{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row mb-3">
+    <div class="col">
+      <h2 class="mb-0">Regulação</h2>
+      <div class="text-muted">Portal UBS{% if ubs_atual %}: {{ ubs_atual.nome }}{% endif %}</div>
+    </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <a class="text-decoration-none" href="{% url 'regulacao-create' %}">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex align-items-center">
+            <i class="bi bi-file-earmark-medical fs-1 text-primary me-3"></i>
+            <div>
+              <h5 class="card-title mb-1">Solicitar Exame</h5>
+              <p class="card-text text-muted mb-0">Criar um novo pedido de exame</p>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a class="text-decoration-none" href="{% url 'consulta-create' %}">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex align-items-center">
+            <i class="bi bi-journal-medical fs-1 text-success me-3"></i>
+            <div>
+              <h5 class="card-title mb-1">Solicitar Consulta</h5>
+              <p class="card-text text-muted mb-0">Criar um novo pedido de consulta</p>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

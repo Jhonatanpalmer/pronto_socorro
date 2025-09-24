@@ -42,6 +42,9 @@ urlpatterns = [
     path('consultas/<int:pk>/regular/', views.regular_consulta, name='regular-consulta'),
     # Comprovantes (Consultas)
     path('consultas/<int:pk>/comprovante/', views.comprovante_consulta, name='comprovante-consulta'),
+    path('consultas/comprovantes/', views.comprovantes_consultas, name='comprovantes-consultas'),
+    # Auxiliar (AJAX) - alertas de consultas por paciente
+    path('consultas/alertas/', views.consulta_paciente_alertas, name='consulta-alertas'),
 
     # Regulação de Exames
     path('regulacao/', views.RegulacaoListView.as_view(), name='regulacao-list'),
@@ -54,4 +57,7 @@ urlpatterns = [
     path('paciente/<int:paciente_id>/pedido/', views.paciente_pedido, name='paciente-pedido'),
     # Comprovantes (Exames)
     path('regulacao/<int:pk>/comprovante/', views.comprovante_exame, name='comprovante-exame'),
+    path('regulacao/comprovantes/', views.comprovantes_exames, name='comprovantes-exames'),
+    # Auxiliar (AJAX) - alertas de exames por paciente
+    path('regulacao/alertas/', views.exame_paciente_alertas, name='exame-alertas'),
 ]

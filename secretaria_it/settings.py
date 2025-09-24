@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'secretaria_it',
     'funcionarios',
     'pacientes',
     'veiculos',
@@ -73,6 +74,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'secretaria_it.context_processors.group_flags',
             ],
         },
     },
@@ -157,4 +159,8 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Não expira ao fechar browser
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = False  # Mude para True se usar HTTPS
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Mantemos o CsrfViewMiddleware ativo também em desenvolvimento para garantir
+# logout/login e demais POSTs com proteção adequada. Use o helper JS para fetch
+# (já incluído em base.html) que injeta o cabeçalho X-CSRFToken automaticamente.
 

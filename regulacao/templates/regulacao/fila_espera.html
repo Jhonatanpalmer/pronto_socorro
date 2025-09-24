@@ -12,11 +12,21 @@
         </div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-center mb-2">
-            <div class="col-9">
+            <div class="col-5">
               <input type="text" name="q_ex" value="{{ q_ex }}" class="form-control form-control-sm" placeholder="Buscar por paciente, exame ou UBS..." />
               {% if q_co %}<input type="hidden" name="q_co" value="{{ q_co }}">{% endif %}
+              {% if di %}<input type="hidden" name="di" value="{{ di }}">{% endif %}
+              {% if df %}<input type="hidden" name="df" value="{{ df }}">{% endif %}
             </div>
-            <div class="col-3 text-end">
+            <div class="col-5">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">De</span>
+                <input type="date" class="form-control" name="di" value="{{ di }}">
+                <span class="input-group-text">até</span>
+                <input type="date" class="form-control" name="df" value="{{ df }}">
+              </div>
+            </div>
+            <div class="col-2 text-end">
               <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
               <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}"><i class="bi bi-x"></i></a>
             </div>
@@ -65,19 +75,19 @@
             <ul class="pagination pagination-sm justify-content-end mb-0">
               {% if exames.has_previous %}
               <li class="page-item">
-                <a class="page-link" href="?page_ex={{ exames.previous_page_number }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&laquo;</a>
+                <a class="page-link" href="?page_ex={{ exames.previous_page_number }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}{% if di %}&di={{ di }}{% endif %}{% if df %}&df={{ df }}{% endif %}">&laquo;</a>
               </li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
               {% endif %}
               {% for num in exames.paginator.page_range %}
               <li class="page-item {% if num == exames.number %}active{% endif %}">
-                <a class="page-link" href="?page_ex={{ num }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">{{ num }}</a>
+                <a class="page-link" href="?page_ex={{ num }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}{% if di %}&di={{ di }}{% endif %}{% if df %}&df={{ df }}{% endif %}">{{ num }}</a>
               </li>
               {% endfor %}
               {% if exames.has_next %}
               <li class="page-item">
-                <a class="page-link" href="?page_ex={{ exames.next_page_number }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&raquo;</a>
+                <a class="page-link" href="?page_ex={{ exames.next_page_number }}&page_co={{ consultas.number }}&per_ex={{ per_ex }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}{% if di %}&di={{ di }}{% endif %}{% if df %}&df={{ df }}{% endif %}">&raquo;</a>
               </li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
@@ -97,11 +107,21 @@
         </div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-center mb-2">
-            <div class="col-9">
+            <div class="col-5">
               <input type="text" name="q_co" value="{{ q_co }}" class="form-control form-control-sm" placeholder="Buscar por paciente, especialidade ou UBS..." />
               {% if q_ex %}<input type="hidden" name="q_ex" value="{{ q_ex }}">{% endif %}
+              {% if di %}<input type="hidden" name="di" value="{{ di }}">{% endif %}
+              {% if df %}<input type="hidden" name="df" value="{{ df }}">{% endif %}
             </div>
-            <div class="col-3 text-end">
+            <div class="col-5">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">De</span>
+                <input type="date" class="form-control" name="di" value="{{ di }}">
+                <span class="input-group-text">até</span>
+                <input type="date" class="form-control" name="df" value="{{ df }}">
+              </div>
+            </div>
+            <div class="col-2 text-end">
               <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
               <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}"><i class="bi bi-x"></i></a>
             </div>
@@ -150,19 +170,19 @@
             <ul class="pagination pagination-sm justify-content-end mb-0">
               {% if consultas.has_previous %}
               <li class="page-item">
-                <a class="page-link" href="?page_co={{ consultas.previous_page_number }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&laquo;</a>
+                <a class="page-link" href="?page_co={{ consultas.previous_page_number }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}{% if di %}&di={{ di }}{% endif %}{% if df %}&df={{ df }}{% endif %}">&laquo;</a>
               </li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
               {% endif %}
               {% for num in consultas.paginator.page_range %}
               <li class="page-item {% if num == consultas.number %}active{% endif %}">
-                <a class="page-link" href="?page_co={{ num }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">{{ num }}</a>
+                <a class="page-link" href="?page_co={{ num }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}{% if di %}&di={{ di }}{% endif %}{% if df %}&df={{ df }}{% endif %}">{{ num }}</a>
               </li>
               {% endfor %}
               {% if consultas.has_next %}
               <li class="page-item">
-                <a class="page-link" href="?page_co={{ consultas.next_page_number }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}">&raquo;</a>
+                <a class="page-link" href="?page_co={{ consultas.next_page_number }}&page_ex={{ exames.number }}&per_co={{ per_co }}{% if q_ex %}&q_ex={{ q_ex }}{% endif %}{% if q_co %}&q_co={{ q_co }}{% endif %}{% if di %}&di={{ di }}{% endif %}{% if df %}&df={{ df }}{% endif %}">&raquo;</a>
               </li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">&raquo;</span></li>

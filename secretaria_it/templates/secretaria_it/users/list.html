@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Usuários{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Usuários</h2>
+  <a class="btn btn-primary" href="{% url 'user-create' %}"><i class="bi bi-person-plus"></i> Novo Usuário</a>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Nome</th>
+      <th>E-mail</th>
+      <th>UBS</th>
+      <th>Ativo</th>
+      <th>Staff</th>
+      <th>Superuser</th>
+      <th>Grupos</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <td>{{ u.username }}</td>
+      <td>{{ u.get_full_name }}</td>
+  <td>{{ u.email }}</td>
+  <td>{% if u.perfil_ubs and u.perfil_ubs.ubs %}{{ u.perfil_ubs.ubs.nome }}{% else %}-{% endif %}</td>
+      <td>{{ u.is_active|yesno:"Sim,Não" }}</td>
+      <td>{{ u.is_staff|yesno:"Sim,Não" }}</td>
+      <td>{{ u.is_superuser|yesno:"Sim,Não" }}</td>
+      <td>{% for g in u.groups.all %}<span class="badge bg-secondary me-1">{{ g.name }}</span>{% empty %}-{% endfor %}</td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'user-update' u.pk %}"><i class="bi bi-pencil-square"></i></a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'user-delete' u.pk %}"><i class="bi bi-trash"></i></a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="8" class="text-center text-muted">Sem usuários.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<div class="mt-3">
+  <a class="btn btn-outline-secondary" href="{% url 'groups-list' %}"><i class="bi bi-people"></i> Gerenciar Grupos</a>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Comprovantes de Exames{% endblock %}
+{% block content %}
+<div class="container py-3">
+  <div class="d-print-none mb-2 text-end">
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+  </div>
+  {% if grupos and grupos|length %}
+    {% for dia, regs in grupos %}
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <strong>Exames autorizados{% if dia %} em {{ dia|date:'d/m/Y' }}{% else %} (sem data){% endif %}</strong>
+        </div>
+        <div class="card-body">
+          {% for reg in regs %}
+            <div class="border rounded p-3 mb-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">Comprovante de Agendamento — Exame</h6>
+                  <div class="text-muted small">Protocolo: <strong>{{ reg.numero_protocolo }}</strong></div>
+                </div>
+              </div>
+              <div class="row g-2 mt-2">
+                <div class="col-md-8">
+                  <div class="mb-1"><strong>Paciente:</strong> {{ reg.paciente.nome }}</div>
+                  {% if show_details %}
+                    {% if reg.paciente.cpf %}<div class="mb-1"><strong>CPF:</strong> {{ reg.paciente.cpf }}</div>{% endif %}
+                    {% if reg.paciente.cns %}<div class="mb-1"><strong>CNS:</strong> {{ reg.paciente.cns }}</div>{% endif %}
+                    <div class="mb-1"><strong>UBS Solicitante:</strong> {{ reg.ubs_solicitante.nome }}</div>
+                    <div class="mb-1"><strong>Médico Solicitante:</strong> {{ reg.medico_solicitante.nome }}</div>
+                  {% endif %}
+                  <div class="mb-1"><strong>Exame:</strong> {{ reg.tipo_exame.nome }}</div>
+                  <div class="mb-1"><strong>Local:</strong> {{ reg.local_realizacao|default:'—' }}</div>
+                  <div class="mb-1"><strong>Data/Hora:</strong> {{ reg.data_agendada|date:'d/m/Y' }} {% if reg.hora_agendada %}{{ reg.hora_agendada|time:'H:i' }}{% endif %}</div>
+                  {% if show_details %}
+                    {% if reg.observacoes_solicitacao %}<div class="mb-1"><strong>Obs. Solicitação:</strong> {{ reg.observacoes_solicitacao }}</div>{% endif %}
+                    {% if reg.observacoes_regulacao %}<div class="mb-1"><strong>Obs. Regulação:</strong> {{ reg.observacoes_regulacao }}</div>{% endif %}
+                    {% if reg.numero_pedido %}<div class="mb-1"><strong>Nº Pedido:</strong> {{ reg.numero_pedido }}</div>{% endif %}
+                  {% endif %}
+                </div>
+                <div class="col-md-4 text-center">
+                  <div class="small text-muted">QR Code indisponível</div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">Nenhum exame autorizado para imprimir.</div>
+  {% endif %}
+</div>
+<style>
+@media print { .d-print-none { display:none !important; } }
+</style>
+<script>window.onload = function(){ setTimeout(()=>window.print(), 200); };</script>
+{% endblock %}

@@ -25,44 +25,57 @@
     <!-- Filtros -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <strong>Status:</strong>
+                <a href="{% url 'regulacao-list' %}" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline-primary{% endif %}">Todos</a>
+                <a href="{% url 'regulacao-list' %}?status=fila" class="btn btn-sm {% if current_status == 'fila' %}btn-primary{% else %}btn-outline-primary{% endif %}">Fila</a>
+                <a href="{% url 'regulacao-list' %}?status=pendente" class="btn btn-sm {% if current_status == 'pendente' %}btn-primary{% else %}btn-outline-primary{% endif %}">Pendente</a>
+                <a href="{% url 'regulacao-list' %}?status=autorizado" class="btn btn-sm {% if current_status == 'autorizado' %}btn-primary{% else %}btn-outline-primary{% endif %}">Autorizados</a>
+                <a href="{% url 'regulacao-list' %}?status=agendados" class="btn btn-sm {% if current_status == 'agendados' %}btn-primary{% else %}btn-outline-primary{% endif %}">Agendados</a>
+                <a href="{% url 'regulacao-list' %}?status=negado" class="btn btn-sm {% if current_status == 'negado' %}btn-primary{% else %}btn-outline-primary{% endif %}">Negados</a>
+                <a href="{% url 'regulacao-list' %}?status=cancelado" class="btn btn-sm {% if current_status == 'cancelado' %}btn-primary{% else %}btn-outline-primary{% endif %}">Cancelados</a>
+            </div>
             <form method="get" class="row g-3">
-                <div class="col-md-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select name="status" class="form-select" id="status">
-                        <option value="">Todos os status</option>
-                        <option value="fila" {% if request.GET.status == 'fila' %}selected{% endif %}>Fila</option>
-                        <option value="pendente" {% if request.GET.status == 'pendente' %}selected{% endif %}>Pendente</option>
-                        <option value="autorizado" {% if request.GET.status == 'autorizado' %}selected{% endif %}>Autorizado</option>
-                        <option value="negado" {% if request.GET.status == 'negado' %}selected{% endif %}>Negado</option>
-                        <option value="cancelado" {% if request.GET.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
-                    </select>
-                </div>
+                <input type="hidden" name="status" value="{{ current_status }}" />
                 <div class="col-md-3">
                     <label for="ubs" class="form-label">UBS</label>
-                    <select name="ubs" class="form-select" id="ubs">
+                    <select name="ubs" class="form-select" id="ubs" onchange="this.form.submit()">
                         <option value="">Todas as UBS</option>
                         {% for ubs in ubs_list %}
-                        <option value="{{ ubs.id }}" {% if request.GET.ubs == ubs.id|stringformat:"s" %}selected{% endif %}>
-                            {{ ubs.nome }}
-                        </option>
+                        <option value="{{ ubs.id }}" {% if current_ubs == ubs.id|stringformat:'s' %}selected{% endif %}>{{ ubs.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="data_inicio" class="form-label">Data Início</label>
-                    <input type="date" name="data_inicio" class="form-control" value="{{ request.GET.data_inicio }}">
+                <div class="col-md-3">
+                    <label for="tipo_exame" class="form-label">Tipo de Exame</label>
+                    <select name="tipo_exame" class="form-select" id="tipo_exame" onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        {% for t in tipoexame_list %}
+                        <option value="{{ t.id }}" {% if current_tipo_exame == t.id|stringformat:'s' %}selected{% endif %}>{{ t.nome }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="data_fim" class="form-label">Data Fim</label>
-                    <input type="date" name="data_fim" class="form-control" value="{{ request.GET.data_fim }}">
+                <div class="col-md-3">
+                    <label for="q" class="form-label">Paciente (nome, CPF ou CNS)</label>
+                    <div class="input-group">
+                        <input type="text" name="q" id="q" class="form-control" value="{{ q }}" placeholder="Buscar paciente...">
+                        <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+                    </div>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="bi bi-search"></i> Filtrar
-                    </button>
-                    <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
+                <div class="col-md-3">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label for="data_inicio" class="form-label">Data Início</label>
+                            <input type="date" name="data_inicio" class="form-control" value="{{ request.GET.data_inicio }}">
+                        </div>
+                        <div class="col-6">
+                            <label for="data_fim" class="form-label">Data Fim</label>
+                            <input type="date" name="data_fim" class="form-control" value="{{ request.GET.data_fim }}">
+                        </div>
+                        <div class="col-12 d-flex align-items-end justify-content-end">
+                            <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -105,9 +118,14 @@
                                 {{ item.primeira_hora|date:"d/m/Y H:i" }}
                             </td>
                             <td class="text-end">
-                                <a href="{% url 'paciente-pedido' item.paciente_id %}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-box-arrow-up-right"></i> Ver pedido
-                                </a>
+                                <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                    <a href="{% url 'paciente-pedido' item.paciente_id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                                    </a>
+                                    <a href="{% url 'paciente_historico' item.paciente_id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-clock-history"></i> Histórico
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
@@ -121,19 +139,19 @@
                 <ul class="pagination pagination-sm justify-content-end mb-0">
                     {% if pacientes_page.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ pacientes_page.previous_page_number }}">&laquo;</a>
+                        <a class="page-link" href="?page={{ pacientes_page.previous_page_number }}&status={{ current_status }}&ubs={{ current_ubs }}&tipo_exame={{ current_tipo_exame }}&q={{ q }}&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">&laquo;</a>
                     </li>
                     {% else %}
                     <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
                     {% endif %}
                     {% for num in pacientes_page.paginator.page_range %}
                     <li class="page-item {% if num == pacientes_page.number %}active{% endif %}">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        <a class="page-link" href="?page={{ num }}&status={{ current_status }}&ubs={{ current_ubs }}&tipo_exame={{ current_tipo_exame }}&q={{ q }}&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">{{ num }}</a>
                     </li>
                     {% endfor %}
                     {% if pacientes_page.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ pacientes_page.next_page_number }}">&raquo;</a>
+                        <a class="page-link" href="?page={{ pacientes_page.next_page_number }}&status={{ current_status }}&ubs={{ current_ubs }}&tipo_exame={{ current_tipo_exame }}&q={{ q }}&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">&raquo;</a>
                     </li>
                     {% else %}
                     <li class="page-item disabled"><span class="page-link">&raquo;</span></li>

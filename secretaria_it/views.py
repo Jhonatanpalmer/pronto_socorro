@@ -1,5 +1,9 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import User, Group
+from django.conf import settings
+from .forms import UserCreateForm, UserUpdateForm, GroupForm
+from .access import user_has_access
 
 @login_required
 def dashboard_view(request):
@@ -9,8 +13,7 @@ def dashboard_view(request):
     apps = []
 
     # App Pacientes
-    try:
-        from pacientes.urls import urlpatterns as pacientes_urls
+    if 'pacientes' in settings.INSTALLED_APPS and user_has_access(request.user, 'pacientes'):
         apps.append({
             'nome': 'Gestão de Pacientes',
             'descricao': 'Cadastre, edite e visualize os pacientes.',
@@ -18,12 +21,10 @@ def dashboard_view(request):
             'icone': 'bi-people-fill',
             'cor': 'primary'
         })
-    except ImportError:
-        pass  # Pacientes não disponível
+    
 
     # App Viagens
-    try:
-        from viagens.urls import urlpatterns as viagens_urls
+    if 'viagens' in settings.INSTALLED_APPS and user_has_access(request.user, 'viagens'):
         apps.append({
             'nome': 'Gestão de Viagens',
             'descricao': 'Acompanhe viagens, horários e status.',
@@ -31,12 +32,10 @@ def dashboard_view(request):
             'icone': 'bi-truck',
             'cor': 'success'
         })
-    except ImportError:
-        pass  # Viagens não disponível
+    
 
     # App TFD
-    try:
-        from tfd.urls import urlpatterns as tfd_urls
+    if 'tfd' in settings.INSTALLED_APPS and user_has_access(request.user, 'tfd'):
         apps.append({
             'nome': 'Gestão de TFD',
             'descricao': 'Gerencie os tratamentos fora do domicílio.',
@@ -44,12 +43,10 @@ def dashboard_view(request):
             'icone': 'bi-hospital-fill',
             'cor': 'info'
         })
-    except ImportError:
-        pass  # TFD não disponível
+    
 
     # App Regulação
-    try:
-        from regulacao.urls import urlpatterns as regulacao_urls
+    if 'regulacao' in settings.INSTALLED_APPS and user_has_access(request.user, 'regulacao'):
         apps.append({
             'nome': 'Regulação de Exames',
             'descricao': 'Gerencie solicitações e autorizações de exames.',
@@ -57,9 +54,107 @@ def dashboard_view(request):
             'icone': 'bi-clipboard-check-fill',
             'cor': 'warning'
         })
-    except ImportError:
-        pass  # Regulação não disponível
+    
 
     # Aqui você pode adicionar outros apps existentes, apenas se tiver URLs válidas
 
     return render(request, 'secretaria_it/dashboard.html', {'apps': apps})
+
+
+# ====== Gestão de Usuários e Grupos ======
+
+def _staff_or_super(user):
+    return bool(user and user.is_authenticated and (user.is_superuser or user.is_staff))
+
+def _users_admin_allowed(user):
+    # Superusers always allowed; otherwise require users_admin access flag
+    return bool(user and user.is_authenticated and (user.is_superuser or user_has_access(user, 'users_admin')))
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def users_list(request):
+    qs = User.objects.all().order_by('username')
+    return render(request, 'secretaria_it/users/list.html', {'users': qs})
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def user_create(request):
+    if request.method == 'POST':
+        form = UserCreateForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('users-list')
+    else:
+        form = UserCreateForm()
+    return render(request, 'secretaria_it/users/form.html', {'form': form, 'title': 'Novo Usuário'})
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def user_update(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        form = UserUpdateForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('users-list')
+    else:
+        form = UserUpdateForm(instance=user)
+    return render(request, 'secretaria_it/users/form.html', {'form': form, 'title': f'Editar Usuário: {user.username}'})
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def user_delete(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        user.delete()
+        return redirect('users-list')
+    return render(request, 'secretaria_it/users/confirm_delete.html', {'obj': user, 'title': f'Excluir {user.username}'})
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def groups_list(request):
+    qs = Group.objects.all().order_by('name')
+    return render(request, 'secretaria_it/users/groups_list.html', {'groups': qs})
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def group_create(request):
+    if request.method == 'POST':
+        form = GroupForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('groups-list')
+    else:
+        form = GroupForm()
+    return render(request, 'secretaria_it/users/group_form.html', {'form': form, 'title': 'Novo Grupo'})
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def group_update(request, pk):
+    group = get_object_or_404(Group, pk=pk)
+    if request.method == 'POST':
+        form = GroupForm(request.POST, instance=group)
+        if form.is_valid():
+            form.save()
+            return redirect('groups-list')
+    else:
+        form = GroupForm(instance=group)
+    return render(request, 'secretaria_it/users/group_form.html', {'form': form, 'title': f'Editar Grupo: {group.name}'})
+
+
+@login_required
+@user_passes_test(_users_admin_allowed)
+def group_delete(request, pk):
+    group = get_object_or_404(Group, pk=pk)
+    if request.method == 'POST':
+        group.delete()
+        return redirect('groups-list')
+    return render(request, 'secretaria_it/users/confirm_delete.html', {'obj': group, 'title': f'Excluir {group.name}'})
+

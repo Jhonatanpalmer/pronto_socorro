@@ -1,14 +1,19 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
+from secretaria_it.access import AccessRequiredMixin
+from django.contrib.auth.decorators import login_required, user_passes_test
+from secretaria_it.access import require_access
+from secretaria_it.access import is_ubs_user
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.forms import modelformset_factory
 from django.db import transaction
+from django.db.models import Q
 from django.core.paginator import Paginator
 from .models import UBS, MedicoSolicitante, TipoExame, RegulacaoExame, Especialidade, RegulacaoConsulta
 from pacientes.models import Paciente
+from django.http import JsonResponse
 import base64
 from io import BytesIO
 from .forms import (
@@ -19,20 +24,70 @@ from .forms import (
 import os
 import shutil
 import tempfile
+from functools import wraps
+
+
+# ==== Helpers de Grupo/Permissão ====
+
+def _in_group(user, group_name: str) -> bool:
+    return bool(user and user.is_authenticated and user.groups.filter(name=group_name).exists())
+
+
+def require_group(group_name: str):
+    """Decorator para exigir um grupo específico."""
+    return user_passes_test(lambda u: _in_group(u, group_name))
+
+
+class GroupRequiredMixin(LoginRequiredMixin):
+    """(Desativado) Mantido por compatibilidade; não aplica restrições de grupo."""
+    pass
+
+
+def require_any_group(*group_names: str):
+    """Decorator: permite acesso se o usuário estiver em qualquer um dos grupos listados."""
+    return user_passes_test(lambda u: any(_in_group(u, g) for g in group_names))
+
+
+# Versões “amigáveis”: assumem que @login_required vem antes e, se faltar permissão,
+# redirecionam para o dashboard (evita loop de login quando usuário autenticado não tem grupo)
+def group_required(group_name: str):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            if not _in_group(request.user, group_name):
+                messages.error(request, 'Você não tem permissão para acessar esta área.')
+                return redirect('dashboard')
+            return view_func(request, *args, **kwargs)
+        return _wrapped
+    return decorator
+
+
+def any_group_required(*group_names: str):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            if not any(_in_group(request.user, g) for g in group_names):
+                messages.error(request, 'Você não tem permissão para acessar esta área.')
+                return redirect('dashboard')
+            return view_func(request, *args, **kwargs)
+        return _wrapped
+    return decorator
 
 
 # ============ VIEWS PARA UBS ============
 
-class UBSListView(LoginRequiredMixin, ListView):
+class UBSListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = UBS
     template_name = 'regulacao/ubs_list.html'
     context_object_name = 'ubs_list'
     ordering = ['nome']
 
 
-class UBSCreateView(LoginRequiredMixin, CreateView):
+class UBSCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = UBS
     form_class = UBSForm
     template_name = 'regulacao/ubs_form.html'
@@ -43,8 +98,9 @@ class UBSCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class UBSUpdateView(LoginRequiredMixin, UpdateView):
+class UBSUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = UBS
     form_class = UBSForm
     template_name = 'regulacao/ubs_form.html'
@@ -55,8 +111,9 @@ class UBSUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class UBSDeleteView(LoginRequiredMixin, DeleteView):
+class UBSDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = UBS
     template_name = 'regulacao/ubs_confirm_delete.html'
     success_url = reverse_lazy('ubs-list')
@@ -68,16 +125,18 @@ class UBSDeleteView(LoginRequiredMixin, DeleteView):
 
 # ============ VIEWS PARA MÉDICOS ============
 
-class MedicoListView(LoginRequiredMixin, ListView):
+class MedicoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = MedicoSolicitante
     template_name = 'regulacao/medicosolicitante_list.html'
     context_object_name = 'medico_list'
     ordering = ['nome']
 
 
-class MedicoCreateView(LoginRequiredMixin, CreateView):
+class MedicoCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = MedicoSolicitante
     form_class = MedicoSolicitanteForm
     template_name = 'regulacao/medicosolicitante_form.html'
@@ -88,8 +147,9 @@ class MedicoCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class MedicoUpdateView(LoginRequiredMixin, UpdateView):
+class MedicoUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = MedicoSolicitante
     form_class = MedicoSolicitanteForm
     template_name = 'regulacao/medicosolicitante_form.html'
@@ -100,8 +160,9 @@ class MedicoUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class MedicoDeleteView(LoginRequiredMixin, DeleteView):
+class MedicoDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = MedicoSolicitante
     template_name = 'regulacao/medicosolicitante_confirm_delete.html'
     success_url = reverse_lazy('medico-list')
@@ -113,16 +174,18 @@ class MedicoDeleteView(LoginRequiredMixin, DeleteView):
 
 # ============ VIEWS PARA TIPOS DE EXAMES ============
 
-class TipoExameListView(LoginRequiredMixin, ListView):
+class TipoExameListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = TipoExame
     template_name = 'regulacao/tipoexame_list.html'
     context_object_name = 'tipoexame_list'
     ordering = ['nome']
 
 
-class TipoExameCreateView(LoginRequiredMixin, CreateView):
+class TipoExameCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = TipoExame
     form_class = TipoExameForm
     template_name = 'regulacao/tipoexame_form.html'
@@ -133,8 +196,9 @@ class TipoExameCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class TipoExameUpdateView(LoginRequiredMixin, UpdateView):
+class TipoExameUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = TipoExame
     form_class = TipoExameForm
     template_name = 'regulacao/tipoexame_form.html'
@@ -145,8 +209,9 @@ class TipoExameUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class TipoExameDeleteView(LoginRequiredMixin, DeleteView):
+class TipoExameDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = TipoExame
     template_name = 'regulacao/tipoexame_confirm_delete.html'
     success_url = reverse_lazy('tipo-exame-list')
@@ -158,8 +223,9 @@ class TipoExameDeleteView(LoginRequiredMixin, DeleteView):
 
 # ============ VIEWS PARA REGULAÇÃO DE EXAMES ============
 
-class RegulacaoListView(LoginRequiredMixin, ListView):
+class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = RegulacaoExame
     template_name = 'regulacao/regulacaoexame_list.html'
     context_object_name = 'regulacaoexame_list'
@@ -167,27 +233,56 @@ class RegulacaoListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         qs = RegulacaoExame.objects.select_related('paciente', 'ubs_solicitante', 'medico_solicitante', 'tipo_exame')
-        
+
+        # Se usuário for UBS, restringir à sua própria UBS
+        ubs_user = getattr(getattr(self.request.user, 'perfil_ubs', None), 'ubs', None)
+        if ubs_user:
+            qs = qs.filter(ubs_solicitante=ubs_user)
+
         # Aplicar filtros
-        status = self.request.GET.get('status')
-        ubs = self.request.GET.get('ubs')
-        data_inicio = self.request.GET.get('data_inicio')
-        data_fim = self.request.GET.get('data_fim')
-        
+        status = (self.request.GET.get('status') or '').strip()
+        ubs = (self.request.GET.get('ubs') or '').strip()
+        tipo = (self.request.GET.get('tipo_exame') or '').strip()
+        q = (self.request.GET.get('q') or '').strip()
+        data_inicio = (self.request.GET.get('data_inicio') or '').strip()
+        data_fim = (self.request.GET.get('data_fim') or '').strip()
+
         if status:
-            qs = qs.filter(status=status)
+            if status == 'agendados':
+                qs = qs.filter(status='autorizado', data_agendada__isnull=False)
+            else:
+                qs = qs.filter(status=status)
         if ubs:
-            qs = qs.filter(ubs_solicitante_id=ubs)
+            try:
+                qs = qs.filter(ubs_solicitante_id=int(ubs))
+            except (TypeError, ValueError):
+                pass
+        if tipo:
+            try:
+                qs = qs.filter(tipo_exame_id=int(tipo))
+            except (TypeError, ValueError):
+                pass
+        if q:
+            qs = qs.filter(
+                Q(paciente__nome__icontains=q) |
+                Q(paciente__cpf__icontains=q) |
+                Q(paciente__cns__icontains=q)
+            )
         if data_inicio:
             qs = qs.filter(data_solicitacao__date__gte=data_inicio)
         if data_fim:
             qs = qs.filter(data_solicitacao__date__lte=data_fim)
-            
+
         return qs.order_by('-data_solicitacao')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['ubs_list'] = UBS.objects.filter(ativa=True).order_by('nome')
+        context['tipoexame_list'] = TipoExame.objects.filter(ativo=True).order_by('nome')
+        context['current_status'] = (self.request.GET.get('status') or '').strip()
+        context['current_ubs'] = (self.request.GET.get('ubs') or '').strip()
+        context['current_tipo_exame'] = (self.request.GET.get('tipo_exame') or '').strip()
+        context['q'] = (self.request.GET.get('q') or '').strip()
 
         # Agrupar SEMPRE por paciente, respeitando filtros aplicados no queryset base
         base_qs = self.get_queryset()
@@ -222,12 +317,19 @@ class RegulacaoListView(LoginRequiredMixin, ListView):
         return context
 
 
-class RegulacaoCreateView(LoginRequiredMixin, CreateView):
+class RegulacaoCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = RegulacaoExame
     form_class = RegulacaoExameCreateForm
     template_name = 'regulacao/regulacaoexame_form.html'
     success_url = reverse_lazy('regulacao-list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Passar request para que o form consiga aplicar as regras de UBS do usuário
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
         # Cria múltiplas solicitações, uma por tipo de exame selecionado, compartilhando o mesmo numero_pedido
@@ -240,10 +342,34 @@ class RegulacaoCreateView(LoginRequiredMixin, CreateView):
         # Gerar um número de pedido agrupador
         from datetime import datetime
         numero_pedido = f"PED{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        # Bloquear criação para tipos já existentes em fila/autorizado para o mesmo paciente,
+        # porém permitir se a autorização anterior já passou da data agendada.
+        from django.utils import timezone
+        hoje = timezone.localdate()
+        conflitos_qs = (
+            RegulacaoExame.objects
+            .filter(paciente=cleaned['paciente'], tipo_exame__in=tipos)
+            .filter(
+                Q(status='fila') |
+                (Q(status='autorizado') & (Q(data_agendada__isnull=True) | Q(data_agendada__gte=hoje)))
+            )
+            .values('tipo_exame_id', 'tipo_exame__nome', 'status')
+            .distinct()
+        )
+        bloqueados_ids = {c['tipo_exame_id'] for c in conflitos_qs}
+        bloqueados_nomes = sorted({c['tipo_exame__nome'] for c in conflitos_qs if c['tipo_exame__nome']})
+        tipos_permitidos = [t for t in tipos if t.id not in bloqueados_ids]
+
+        if not tipos_permitidos:
+            # Nada a criar: informar conflitos e invalidar o formulário
+            if bloqueados_nomes:
+                form.add_error('tipos_exame',
+                               f"Paciente já possui em fila/autorizado: {', '.join(bloqueados_nomes)}.")
+            return self.form_invalid(form)
 
         created = []
         with transaction.atomic():
-            for tipo in tipos:
+            for tipo in tipos_permitidos:
                 obj = RegulacaoExame(
                     paciente=cleaned['paciente'],
                     ubs_solicitante=cleaned['ubs_solicitante'],
@@ -257,8 +383,15 @@ class RegulacaoCreateView(LoginRequiredMixin, CreateView):
                 )
                 obj.save()
                 created.append(obj)
-
-        messages.success(self.request, f"Solicitação criada com {len(created)} exame(s) no pedido {numero_pedido}.")
+        # Mensagens de retorno
+        if created:
+            messages.success(self.request, f"Solicitação criada com {len(created)} exame(s) no pedido {numero_pedido}.")
+        if bloqueados_nomes:
+            messages.warning(
+                self.request,
+                'Alguns exames foram ignorados pois já existem para este paciente em fila ou com agendamento futuro. '
+                f"Itens: {', '.join(bloqueados_nomes)}. Caso a data agendada já tenha passado, será possível solicitar novamente."
+            )
         # Redireciona para a lista; poderíamos direcionar para o detalhe do primeiro
         return redirect(self.success_url)
     
@@ -268,15 +401,17 @@ class RegulacaoCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class RegulacaoDetailView(LoginRequiredMixin, DetailView):
+class RegulacaoDetailView(AccessRequiredMixin, LoginRequiredMixin, DetailView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = RegulacaoExame
     template_name = 'regulacao/regulacao_detail.html'
     context_object_name = 'regulacao'
 
 
-class RegulacaoUpdateView(LoginRequiredMixin, UpdateView):
+class RegulacaoUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = RegulacaoExame
     form_class = RegulacaoExameForm
     template_name = 'regulacao/regulacaoexame_form.html'
@@ -287,8 +422,9 @@ class RegulacaoUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class RegulacaoDeleteView(LoginRequiredMixin, DeleteView):
+class RegulacaoDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
     login_url = '/accounts/login/'
+    access_key = 'regulacao'
     model = RegulacaoExame
     template_name = 'regulacao/regulacaoexame_confirm_delete.html'
     success_url = reverse_lazy('regulacao-list')
@@ -302,6 +438,7 @@ class RegulacaoDeleteView(LoginRequiredMixin, DeleteView):
 
 
 @login_required
+@require_access('regulacao')
 def regular_consulta(request, pk):
     """Redireciona para a tela unificada de autorização por paciente."""
     regulacao = get_object_or_404(RegulacaoConsulta, pk=pk)
@@ -311,8 +448,19 @@ def regular_consulta(request, pk):
 
 
 @login_required
+@require_access('regulacao')
 def dashboard_regulacao(request):
-    """Dashboard com estatísticas da regulação"""
+    """Dashboard da regulação.
+    - Para usuários de UBS: exibe um portal simplificado com apenas as ações de solicitação.
+    - Para demais perfis: exibe o dashboard completo com estatísticas.
+    """
+    # Rota enxuta para usuários de UBS
+    ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
+    if ubs_user:
+        return render(request, 'regulacao/portal_ubs.html', {
+            'ubs_atual': ubs_user,
+        })
+
     # Filtros rápidos de período para listas recentes
     period_ex = (request.GET.get('period_ex') or '7').lower()
     period_co = (request.GET.get('period_co') or '7').lower()
@@ -419,13 +567,52 @@ class RegulacaoConsultaListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = RegulacaoConsulta.objects.select_related('paciente', 'ubs_solicitante', 'medico_solicitante', 'especialidade')
-        status = self.request.GET.get('status')
-        ubs = self.request.GET.get('ubs')
+        # Se usuário for UBS, restringir à sua própria UBS
+        ubs_user = getattr(getattr(self.request.user, 'perfil_ubs', None), 'ubs', None)
+        if ubs_user:
+            qs = qs.filter(ubs_solicitante=ubs_user)
+        status = (self.request.GET.get('status') or '').strip()
+        ubs = (self.request.GET.get('ubs') or '').strip()
+        espec = (self.request.GET.get('especialidade') or '').strip()
+        q = (self.request.GET.get('q') or '').strip()
+
+        # Status filter, including virtual "agendados" (autorizado com data agendada)
         if status:
-            qs = qs.filter(status=status)
+            if status == 'agendados':
+                qs = qs.filter(status='autorizado', data_agendada__isnull=False)
+            else:
+                qs = qs.filter(status=status)
+
         if ubs:
-            qs = qs.filter(ubs_solicitante_id=ubs)
+            try:
+                qs = qs.filter(ubs_solicitante_id=int(ubs))
+            except (TypeError, ValueError):
+                pass
+
+        if espec:
+            try:
+                qs = qs.filter(especialidade_id=int(espec))
+            except (TypeError, ValueError):
+                pass
+
+        if q:
+            qs = qs.filter(
+                Q(paciente__nome__icontains=q) |
+                Q(paciente__cpf__icontains=q) |
+                Q(paciente__cns__icontains=q)
+            )
+
         return qs.order_by('-data_solicitacao')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['current_status'] = (self.request.GET.get('status') or '').strip()
+        context['current_ubs'] = (self.request.GET.get('ubs') or '').strip()
+        context['current_especialidade'] = (self.request.GET.get('especialidade') or '').strip()
+        context['q'] = (self.request.GET.get('q') or '').strip()
+        context['ubs_list'] = UBS.objects.filter(ativa=True).order_by('nome')
+        context['especialidades'] = Especialidade.objects.filter(ativa=True).order_by('nome')
+        return context
 
 
 class RegulacaoConsultaCreateView(LoginRequiredMixin, CreateView):
@@ -435,6 +622,229 @@ class RegulacaoConsultaCreateView(LoginRequiredMixin, CreateView):
     template_name = 'regulacao/regulacaoconsulta_form.html'
     success_url = reverse_lazy('consulta-list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Passar request para que o form consiga aplicar as regras de UBS do usuário
+        kwargs['request'] = self.request
+        return kwargs
+
+    def form_valid(self, form):
+        cleaned = form.cleaned_data
+        paciente = cleaned.get('paciente')
+        especialidade = cleaned.get('especialidade')
+        if paciente and especialidade:
+            from django.utils import timezone
+            hoje = timezone.localdate()
+            conflito = (
+                RegulacaoConsulta.objects.filter(
+                    paciente=paciente,
+                    especialidade=especialidade,
+                )
+                .filter(
+                    Q(status='fila') |
+                    (Q(status='autorizado') & (Q(data_agendada__isnull=True) | Q(data_agendada__gte=hoje)))
+                )
+            )
+            if getattr(form.instance, 'pk', None):
+                conflito = conflito.exclude(pk=form.instance.pk)
+            if conflito.exists():
+                # Mensagem de alerta para o usuário
+                total = conflito.count()
+                tem_agendada = conflito.filter(status='autorizado', data_agendada__isnull=False).exists()
+                detalhes_list = []
+                for r in conflito.select_related('especialidade', 'ubs_solicitante'):
+                    espec_nome = r.especialidade.nome if r.especialidade else '—'
+                    ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else '—'
+                    ag_txt = ''
+                    if r.status == 'autorizado' and r.data_agendada:
+                        try:
+                            ag_txt = f" (agendada para {r.data_agendada.strftime('%d/%m/%Y')}"
+                            if r.hora_agendada:
+                                ag_txt += f" {r.hora_agendada.strftime('%H:%M')}"
+                            ag_txt += ")"
+                        except Exception:
+                            ag_txt = ''
+                    detalhes_list.append(f"{espec_nome} (UBS {ubs_nome}) - {r.get_status_display()}{ag_txt}")
+                detalhes_txt = '; '.join(detalhes_list)
+                msg = (
+                    f"Paciente já possui {total} consulta(s) desta especialidade em fila ou autorizada. "
+                    + ("Há consulta agendada nessa especialidade. " if tem_agendada else "")
+                    + (f"Detalhes: {detalhes_txt}." if detalhes_txt else "")
+                ).strip()
+                messages.warning(self.request, msg)
+                form.add_error('especialidade', 'Paciente já possui solicitação desta especialidade em fila ou autorizada. ' 
+                                               'Conclua ou cancele antes de criar outra.')
+                return self.form_invalid(form)
+
+        # Aviso geral: paciente já possui outras consultas (qualquer especialidade) em fila ou agendadas
+        if paciente:
+            outros = RegulacaoConsulta.objects.filter(paciente=paciente, status__in=['fila', 'autorizado'])
+            if especialidade:
+                outros = outros.exclude(especialidade=especialidade)
+            if outros.exists():
+                fila_count = outros.filter(status='fila').count()
+                agendadas_count = outros.filter(status='autorizado', data_agendada__isnull=False).count()
+                if fila_count or agendadas_count:
+                    detalhes_list = []
+                    for r in outros.select_related('especialidade', 'ubs_solicitante'):
+                        espec_nome = r.especialidade.nome if r.especialidade else '—'
+                        ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else '—'
+                        ag_txt = ''
+                        if r.status == 'autorizado' and r.data_agendada:
+                            try:
+                                ag_txt = f" (agendada para {r.data_agendada.strftime('%d/%m/%Y')}"
+                                if r.hora_agendada:
+                                    ag_txt += f" {r.hora_agendada.strftime('%H:%M')}"
+                                ag_txt += ")"
+                            except Exception:
+                                ag_txt = ''
+                        detalhes_list.append(f"{espec_nome} (UBS {ubs_nome}) - {r.get_status_display()}{ag_txt}")
+                    detalhes_txt = '; '.join(detalhes_list)
+                    messages.info(
+                        self.request,
+                        (
+                            f"Atenção: este paciente já possui "
+                            f"{fila_count} consulta(s) em fila de espera e {agendadas_count} consulta(s) agendada(s). "
+                            + (f"Detalhes: {detalhes_txt}." if detalhes_txt else "")
+                        )
+                    )
+        return super().form_valid(form)
+
+
+@login_required
+@require_access('regulacao')
+def consulta_paciente_alertas(request):
+    """Retorna contagens de consultas em fila e agendadas para um paciente (JSON).
+    Parâmetros GET:
+      - paciente_id (obrigatório)
+      - especialidade_id (opcional) para informar se já há na mesma especialidade
+    """
+    try:
+        pid = int(request.GET.get('paciente_id') or 0)
+    except (TypeError, ValueError):
+        pid = 0
+    if not pid:
+        return JsonResponse({'ok': False, 'error': 'paciente_id ausente'}, status=400)
+    espec_id = request.GET.get('especialidade_id')
+    try:
+        espec_id = int(espec_id) if espec_id else None
+    except (TypeError, ValueError):
+        espec_id = None
+
+    from django.utils import timezone
+    hoje = timezone.localdate()
+    base_qs = (
+        RegulacaoConsulta.objects.select_related('especialidade', 'ubs_solicitante')
+        .filter(paciente_id=pid)
+        .filter(
+            Q(status='fila') |
+            (Q(status='autorizado') & (Q(data_agendada__isnull=True) | Q(data_agendada__gte=hoje)))
+        )
+    )
+    fila_count = base_qs.filter(status='fila').count()
+    agendadas_count = base_qs.filter(status='autorizado', data_agendada__isnull=False, data_agendada__gte=hoje).count()
+
+    same_espec = None
+    if espec_id:
+        same_espec = base_qs.filter(especialidade_id=espec_id).exists()
+
+    # Detalhes por item (especialidade, UBS, status e, se houver, data/hora)
+    detalhes = []
+    for r in base_qs.order_by('data_solicitacao'):
+        espec_nome = r.especialidade.nome if r.especialidade else '-'
+        ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else '-'
+        ag_txt = ''
+        if r.status == 'autorizado' and r.data_agendada:
+            try:
+                ag_txt = f" (agendada para {r.data_agendada.strftime('%d/%m/%Y')}"
+                if r.hora_agendada:
+                    ag_txt += f" {r.hora_agendada.strftime('%H:%M')}"
+                ag_txt += ")"
+            except Exception:
+                ag_txt = ''
+        detalhes.append(f"{espec_nome} (UBS {ubs_nome}) - {r.get_status_display()}{ag_txt}")
+
+    return JsonResponse({
+        'ok': True,
+        'fila_count': fila_count,
+        'agendadas_count': agendadas_count,
+        'same_especialidade': bool(same_espec) if same_espec is not None else None,
+        'detalhes': detalhes,
+    })
+
+
+@login_required
+@require_access('regulacao')
+def exame_paciente_alertas(request):
+    """Retorna informações sobre exames do paciente para avisos (fila/autorizados e conflitos por tipo).
+    GET params:
+      - paciente_id (int) obrigatório
+      - tipos (csv de ids de tipo_exame) opcional
+    """
+    try:
+        pid = int(request.GET.get('paciente_id') or 0)
+    except (TypeError, ValueError):
+        pid = 0
+    if not pid:
+        return JsonResponse({'ok': False, 'error': 'paciente_id ausente'}, status=400)
+
+    tipos_param = (request.GET.get('tipos') or '').strip()
+    tipos_ids = set()
+    if tipos_param:
+        for part in tipos_param.split(','):
+            try:
+                tipos_ids.add(int(part))
+            except (TypeError, ValueError):
+                continue
+
+    from django.utils import timezone
+    hoje = timezone.localdate()
+    base_qs = (
+        RegulacaoExame.objects
+        .select_related('tipo_exame', 'ubs_solicitante')
+        .filter(paciente_id=pid)
+        .filter(
+            Q(status='fila') |
+            (Q(status='autorizado') & (Q(data_agendada__isnull=True) | Q(data_agendada__gte=hoje)))
+        )
+        .order_by('data_solicitacao')
+    )
+
+    fila_count = base_qs.filter(status='fila').count()
+    agendadas_count = base_qs.filter(status='autorizado', data_agendada__isnull=False, data_agendada__gte=hoje).count()
+
+    same_tipos = False
+    conflitos_tipos = []
+    if tipos_ids:
+        confl_qs = base_qs.filter(tipo_exame_id__in=tipos_ids)
+        same_tipos = confl_qs.exists()
+        if same_tipos:
+            conflitos_tipos = sorted({r.tipo_exame.nome for r in confl_qs if r.tipo_exame})
+
+    detalhes = []
+    for r in base_qs:
+        exame_nome = r.tipo_exame.nome if r.tipo_exame else '-'
+        ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else '-'
+        ag_txt = ''
+        if r.status == 'autorizado' and r.data_agendada:
+            try:
+                ag_txt = f" (agendado para {r.data_agendada.strftime('%d/%m/%Y')}"
+                if r.hora_agendada:
+                    ag_txt += f" {r.hora_agendada.strftime('%H:%M')}"
+                ag_txt += ")"
+            except Exception:
+                ag_txt = ''
+        detalhes.append(f"{exame_nome} (UBS {ubs_nome}) - {r.get_status_display()}{ag_txt}")
+
+    return JsonResponse({
+        'ok': True,
+        'fila_count': fila_count,
+        'agendadas_count': agendadas_count,
+        'same_tipos': same_tipos,
+        'conflitos_tipos': conflitos_tipos,
+        'detalhes': detalhes,
+    })
+
 
 class RegulacaoConsultaUpdateView(LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
@@ -442,6 +852,12 @@ class RegulacaoConsultaUpdateView(LoginRequiredMixin, UpdateView):
     form_class = RegulacaoConsultaForm
     template_name = 'regulacao/regulacaoconsulta_form.html'
     success_url = reverse_lazy('consulta-list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Passar request para que o form consiga aplicar as regras de UBS do usuário
+        kwargs['request'] = self.request
+        return kwargs
 
     def form_valid(self, form):
         messages.success(self.request, 'Solicitação de consulta atualizada com sucesso!')
@@ -466,15 +882,28 @@ class RegulacaoConsultaDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy('consulta-list')
 
 
+#### Adicionar filtro para consultas na fila de espera
 @login_required
+@require_access('regulacao')
 def fila_espera(request):
     """Fila de espera unificada para exames e consultas (status = fila)."""
-    from django.db.models import Q
+    # UBS users não devem acessar a fila completa
+    if is_ubs_user(request.user):
+        return redirect('regulacao-dashboard')
     q_ex = (request.GET.get('q_ex') or '').strip()
     q_co = (request.GET.get('q_co') or '').strip()
     only = (request.GET.get('only') or '').strip()
+    di = (request.GET.get('di') or '').strip()  # data início
+    df = (request.GET.get('df') or '').strip()  # data fim
+    from django.utils.dateparse import parse_date
+    di_d = parse_date(di) if di else None
+    df_d = parse_date(df) if df else None
 
     exames_qs = RegulacaoExame.objects.select_related('paciente', 'tipo_exame', 'ubs_solicitante').filter(status='fila')
+    if di_d:
+        exames_qs = exames_qs.filter(data_solicitacao__date__gte=di_d)
+    if df_d:
+        exames_qs = exames_qs.filter(data_solicitacao__date__lte=df_d)
     if q_ex:
         exames_qs = exames_qs.filter(
             Q(paciente__nome__icontains=q_ex) |
@@ -486,6 +915,10 @@ def fila_espera(request):
     exames_qs = exames_qs.order_by('paciente__nome', 'data_solicitacao')
 
     consultas_qs = RegulacaoConsulta.objects.select_related('paciente', 'especialidade', 'ubs_solicitante').filter(status='fila')
+    if di_d:
+        consultas_qs = consultas_qs.filter(data_solicitacao__date__gte=di_d)
+    if df_d:
+        consultas_qs = consultas_qs.filter(data_solicitacao__date__lte=df_d)
     if q_co:
         consultas_qs = consultas_qs.filter(
             Q(paciente__nome__icontains=q_co) |
@@ -568,12 +1001,18 @@ def fila_espera(request):
         'per_ex': per_page_ex,
         'per_co': per_page_co,
         'only': only,
+        'di': di,
+        'df': df,
     })
 
 
 @login_required
+@require_access('regulacao')
 def agenda_regulacao(request):
     """Agenda da regulação: itens autorizados com data/hora agendadas."""
+    # UBS users não devem acessar a agenda completa
+    if is_ubs_user(request.user):
+        return redirect('regulacao-dashboard')
     exames = RegulacaoExame.objects.select_related('paciente', 'tipo_exame', 'ubs_solicitante').filter(status='autorizado', data_agendada__isnull=False).order_by('data_agendada', 'hora_agendada')
     consultas = RegulacaoConsulta.objects.select_related('paciente', 'especialidade', 'ubs_solicitante').filter(status='autorizado', data_agendada__isnull=False).order_by('data_agendada', 'hora_agendada')
     return render(request, 'regulacao/agenda.html', {
@@ -583,6 +1022,7 @@ def agenda_regulacao(request):
 
 
 @login_required
+@require_access('regulacao')
 def status_ubs(request, ubs_id):
     """Tela para a UBS ver o status das suas solicitações."""
     ubs = get_object_or_404(UBS, pk=ubs_id)
@@ -607,6 +1047,7 @@ def _qrcode_base64(texto: str):
         return None
 
 @login_required
+@require_access('regulacao')
 def comprovante_exame(request, pk: int):
     reg = get_object_or_404(RegulacaoExame.objects.select_related('paciente','tipo_exame','ubs_solicitante','medico_atendente'), pk=pk)
     qr = _qrcode_base64(reg.numero_protocolo)
@@ -616,6 +1057,7 @@ def comprovante_exame(request, pk: int):
     })
 
 @login_required
+@require_access('regulacao')
 def comprovante_consulta(request, pk: int):
     reg = get_object_or_404(RegulacaoConsulta.objects.select_related('paciente','especialidade','ubs_solicitante','medico_atendente'), pk=pk)
     qr = _qrcode_base64(reg.numero_protocolo)
@@ -625,6 +1067,49 @@ def comprovante_consulta(request, pk: int):
     })
 
 @login_required
+@require_access('regulacao')
+def comprovantes_exames(request):
+    """Imprime múltiplos comprovantes de exames autorizados.
+    - Se "ids" estiver no querystring, filtra por esses IDs.
+    - Agrupa por data_agendada (data) e imprime todos do mesmo dia juntos.
+    """
+    qs = RegulacaoExame.objects.select_related('paciente','tipo_exame','ubs_solicitante','medico_atendente').filter(status='autorizado')
+    ids = request.GET.get('ids')
+    if ids:
+        ids_list = [int(x) for x in ids.split(',') if x.isdigit()]
+        qs = qs.filter(id__in=ids_list)
+    from collections import defaultdict
+    grupos = defaultdict(list)
+    for reg in qs.order_by('data_agendada','hora_agendada','id'):
+        dia = reg.data_agendada or None
+        grupos[dia].append(reg)
+    # Ordenar por data (None por último)
+    chaves = sorted(grupos.keys(), key=lambda d: (d is None, d))
+    grupos_ordenados = [(k, grupos[k]) for k in chaves]
+    return render(request, 'regulacao/comprovantes_exames.html', {
+        'grupos': grupos_ordenados,
+        'qtd': qs.count(),
+        'show_details': request.GET.get('detalhes') in ('1','true','True','sim','yes'),
+    })
+
+@login_required
+@require_access('regulacao')
+def comprovantes_consultas(request):
+    """Imprime múltiplos comprovantes de consultas autorizadas; aceita filtro por "ids"."""
+    qs = RegulacaoConsulta.objects.select_related('paciente','especialidade','ubs_solicitante','medico_atendente').filter(status='autorizado')
+    ids = request.GET.get('ids')
+    if ids:
+        ids_list = [int(x) for x in ids.split(',') if x.isdigit()]
+        qs = qs.filter(id__in=ids_list)
+    qs = qs.order_by('data_agendada','hora_agendada','id')
+    return render(request, 'regulacao/comprovantes_consultas.html', {
+        'regs': list(qs),
+        'qtd': qs.count(),
+        'show_details': request.GET.get('detalhes') in ('1','true','True','sim','yes'),
+    })
+
+@login_required
+@require_access('regulacao')
 def paciente_pedido(request, paciente_id):
     """Página única por paciente para listar todas as solicitações e autorizar/agendar seleções."""
     paciente = get_object_or_404(Paciente, pk=paciente_id)
@@ -640,20 +1125,36 @@ def paciente_pedido(request, paciente_id):
     ConsultaFormSet = modelformset_factory(RegulacaoConsulta, form=RegulacaoConsultaBatchForm, extra=0, can_delete=False)
 
     if request.method == 'POST':
-        submitted_exames = 'submit_exames' in request.POST
-        submitted_consultas = 'submit_consultas' in request.POST
+        submitted_exames = 'submit_exames' in request.POST or 'deny_exames' in request.POST
+        submitted_consultas = 'submit_consultas' in request.POST or 'deny_consultas' in request.POST
         exame_fs = ExameFormSet(request.POST if submitted_exames else None, queryset=exames_pendentes_qs, prefix='ex')
         consulta_fs = ConsultaFormSet(request.POST if submitted_consultas else None, queryset=consultas_pendentes_qs, prefix='co')
-        # ajustar queryset de médicos
+        # ajustar querysets (se necessário)
         for f in list(exame_fs.forms) + list(consulta_fs.forms):
-            if 'medico_atendente' in f.fields:
-                f.fields['medico_atendente'].queryset = MedicoSolicitante.objects.filter(ativo=True).order_by('nome')
+            pass
 
         # Processar apenas o formset submetido
         from django.utils import timezone
         if submitted_exames:
             if exame_fs.is_valid():
                 aprovados_exames = 0
+                negados_exames = 0
+                aprovados_ids = []
+                # Verificar conflitos de agenda por data (antes de salvar)
+                datas_selecionadas = set()
+                for form in exame_fs.forms:
+                    if form.cleaned_data.get('autorizar'):
+                        d = form.cleaned_data.get('data_agendada')
+                        if d:
+                            datas_selecionadas.add(d)
+                conflitos_por_data = {}
+                if datas_selecionadas:
+                    for d in sorted(datas_selecionadas):
+                        ex_count = RegulacaoExame.objects.filter(paciente=paciente, status='autorizado', data_agendada=d).count()
+                        co_count = RegulacaoConsulta.objects.filter(paciente=paciente, status='autorizado', data_agendada=d).count()
+                        total = ex_count + co_count
+                        if total > 0:
+                            conflitos_por_data[d] = (ex_count, co_count, total)
                 with transaction.atomic():
                     for form in exame_fs.forms:
                         inst = form.instance
@@ -664,13 +1165,35 @@ def paciente_pedido(request, paciente_id):
                             inst.local_realizacao = form.cleaned_data.get('local_realizacao')
                             inst.data_agendada = form.cleaned_data.get('data_agendada')
                             inst.hora_agendada = form.cleaned_data.get('hora_agendada')
-                            inst.medico_atendente = form.cleaned_data.get('medico_atendente')
+                            # médico atendente removido do fluxo de exames
                             inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
+                            inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
                             inst.save()
                             aprovados_exames += 1
+                            aprovados_ids.append(inst.id)
+                        elif form.cleaned_data.get('negar'):
+                            inst.status = 'negado'
+                            inst.regulador = request.user
+                            inst.data_regulacao = timezone.now()
+                            # limpar dados de agendamento ao negar
+                            inst.local_realizacao = ''
+                            inst.data_agendada = None
+                            inst.hora_agendada = None
+                            inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
+                            inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
+                            inst.save()
+                            negados_exames += 1
                 if aprovados_exames:
                     messages.success(request, f"{aprovados_exames} exame(s) autorizados e agendados para {paciente.nome}.")
-                else:
+                    # Exibir avisos de conflitos encontrados
+                    for d, (ex_count, co_count, total) in conflitos_por_data.items():
+                        messages.warning(request, (
+                            f"Atenção: {paciente.nome} já possui {total} compromisso(s) nessa data {d:%d/%m/%Y} "
+                            f"({ex_count} exame(s), {co_count} consulta(s))."
+                        ))
+                if negados_exames:
+                    messages.warning(request, f"{negados_exames} exame(s) negados para {paciente.nome}.")
+                if not aprovados_exames and not negados_exames:
                     messages.info(request, 'Nenhum exame marcado para autorização.')
                 return redirect('paciente-pedido', paciente_id=paciente.id)
             else:
@@ -679,6 +1202,23 @@ def paciente_pedido(request, paciente_id):
         if submitted_consultas:
             if consulta_fs.is_valid():
                 aprovados_consultas = 0
+                negadas_consultas = 0
+                aprovados_ids = []
+                # Verificar conflitos de agenda por data (antes de salvar)
+                datas_selecionadas = set()
+                for form in consulta_fs.forms:
+                    if form.cleaned_data.get('autorizar'):
+                        d = form.cleaned_data.get('data_agendada')
+                        if d:
+                            datas_selecionadas.add(d)
+                conflitos_por_data = {}
+                if datas_selecionadas:
+                    for d in sorted(datas_selecionadas):
+                        ex_count = RegulacaoExame.objects.filter(paciente=paciente, status='autorizado', data_agendada=d).count()
+                        co_count = RegulacaoConsulta.objects.filter(paciente=paciente, status='autorizado', data_agendada=d).count()
+                        total = ex_count + co_count
+                        if total > 0:
+                            conflitos_por_data[d] = (ex_count, co_count, total)
                 with transaction.atomic():
                     for form in consulta_fs.forms:
                         inst = form.instance
@@ -689,13 +1229,35 @@ def paciente_pedido(request, paciente_id):
                             inst.local_atendimento = form.cleaned_data.get('local_atendimento')
                             inst.data_agendada = form.cleaned_data.get('data_agendada')
                             inst.hora_agendada = form.cleaned_data.get('hora_agendada')
-                            inst.medico_atendente = form.cleaned_data.get('medico_atendente')
+                            # médico atendente permanece para consultas
                             inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
+                            inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
                             inst.save()
                             aprovados_consultas += 1
+                            aprovados_ids.append(inst.id)
+                        elif form.cleaned_data.get('negar'):
+                            inst.status = 'negado'
+                            inst.regulador = request.user
+                            inst.data_regulacao = timezone.now()
+                            # limpar dados de agendamento ao negar
+                            inst.local_atendimento = ''
+                            inst.data_agendada = None
+                            inst.hora_agendada = None
+                            inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
+                            inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
+                            inst.save()
+                            negadas_consultas += 1
                 if aprovados_consultas:
                     messages.success(request, f"{aprovados_consultas} consulta(s) autorizadas e agendadas para {paciente.nome}.")
-                else:
+                    # Exibir avisos de conflitos encontrados
+                    for d, (ex_count, co_count, total) in conflitos_por_data.items():
+                        messages.warning(request, (
+                            f"Atenção: {paciente.nome} já possui {total} compromisso(s) nessa data {d:%d/%m/%Y} "
+                            f"({ex_count} exame(s), {co_count} consulta(s))."
+                        ))
+                if negadas_consultas:
+                    messages.warning(request, f"{negadas_consultas} consulta(s) negadas para {paciente.nome}.")
+                if not aprovados_consultas and not negadas_consultas:
                     messages.info(request, 'Nenhuma consulta marcada para autorização.')
                 return redirect('paciente-pedido', paciente_id=paciente.id)
             else:
@@ -707,6 +1269,12 @@ def paciente_pedido(request, paciente_id):
             if 'medico_atendente' in f.fields:
                 f.fields['medico_atendente'].queryset = MedicoSolicitante.objects.filter(ativo=True).order_by('nome')
 
+    # IDs autorizados (para botões de impressão)
+    exames_aut_ids = list(exames_qs.filter(status='autorizado').values_list('id', flat=True))
+    consultas_aut_ids = list(consultas_qs.filter(status='autorizado').values_list('id', flat=True))
+    exames_aut_ids_csv = ','.join(str(i) for i in exames_aut_ids)
+    consultas_aut_ids_csv = ','.join(str(i) for i in consultas_aut_ids)
+
     return render(request, 'regulacao/paciente_pedido.html', {
         'paciente': paciente,
         'exame_formset': exame_fs,
@@ -715,10 +1283,15 @@ def paciente_pedido(request, paciente_id):
         'exames_pendentes_count': exames_pendentes_qs.count(),
         'consultas_todas': consultas_qs,
         'consultas_pendentes_count': consultas_pendentes_qs.count(),
+        'exames_aut_ids_csv': exames_aut_ids_csv,
+        'consultas_aut_ids_csv': consultas_aut_ids_csv,
+        'exames_aut_count': len(exames_aut_ids),
+        'consultas_aut_count': len(consultas_aut_ids),
     })
 
 
 @login_required
+@require_access('regulacao')
 def importar_sigtap(request):
     """Upload do pacote SIGTAP (.rar/.zip), extração no servidor e importação em TipoExame."""
     form = SIGTAPImportForm(request.POST or None, request.FILES or None)

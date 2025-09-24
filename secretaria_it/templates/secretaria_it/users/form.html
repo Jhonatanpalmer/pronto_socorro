@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h2 class="mb-3">{{ title }}</h2>
+<form method="post" class="card p-3">
+  {% csrf_token %}
+  <div class="row g-3">
+    {% for field in form %}
+      <div class="col-md-6">
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.name == 'ubs' %}
+          <div class="mt-1">
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'ubs-list' %}"><i class="bi bi-building"></i> Gerenciar UBS</a>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'ubs-create' %}"><i class="bi bi-plus-circle"></i> Nova UBS</a>
+          </div>
+        {% endif %}
+        {% if field.help_text %}<small class="text-muted d-block">{{ field.help_text }}</small>{% endif %}
+        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  {% if form.instance.pk %}
+  <hr/>
+  <div class="row g-3">
+    <div class="col-12">
+      <h5 class="mb-2">Resumo de Acesso</h5>
+      <div>
+        {% for g in form.instance.groups.all %}
+          <div class="mb-2 p-2 border rounded">
+            <strong>Grupo:</strong> {{ g.name }}
+            {% if g.access %}
+              <div class="small text-muted mt-1">
+                Pode: 
+                {% if g.access.can_pacientes %}<span class="badge bg-secondary me-1">Pacientes</span>{% endif %}
+                {% if g.access.can_viagens %}<span class="badge bg-secondary me-1">Viagens</span>{% endif %}
+                {% if g.access.can_tfd %}<span class="badge bg-secondary me-1">TFD</span>{% endif %}
+                {% if g.access.can_regulacao %}<span class="badge bg-secondary me-1">Regulação</span>{% endif %}
+                {% if g.access.can_users_admin %}<span class="badge bg-secondary me-1">Admin Usuários</span>{% endif %}
+                {% if not g.access.can_pacientes and not g.access.can_viagens and not g.access.can_tfd and not g.access.can_regulacao and not g.access.can_users_admin %}
+                  <span class="text-muted">Nenhum módulo liberado</span>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="small text-muted">Sem configurações de acesso (o sistema criará automaticamente ao salvar o grupo).</div>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="text-muted">Usuário sem grupos.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="mt-3 d-flex gap-2">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Salvar</button>
+    <a class="btn btn-secondary" href="{% url 'users-list' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

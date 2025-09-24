@@ -24,6 +24,20 @@ class UBS(models.Model):
         return self.nome
 
 
+class UsuarioUBS(models.Model):
+    """Associação 1-para-1 de usuário a uma UBS específica."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_ubs')
+    ubs = models.ForeignKey(UBS, on_delete=models.CASCADE, related_name='usuarios')
+
+    class Meta:
+        verbose_name = 'Usuário da UBS'
+        verbose_name_plural = 'Usuários das UBS'
+        unique_together = ('user',)
+
+    def __str__(self):  # pragma: no cover
+        return f"{self.user.username} @ {self.ubs.nome}"
+
+
 class MedicoSolicitante(models.Model):
     """Médicos que podem solicitar exames"""
     nome = models.CharField('Nome do Médico', max_length=150)

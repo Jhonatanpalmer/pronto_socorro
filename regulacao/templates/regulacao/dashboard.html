@@ -1,20 +1,21 @@
 {% extends 'base.html' %}
 
-{% block title %}Regulação de Exames - Dashboard{% endblock %}
+{% block title %}Sistema de Gerenciamento de Regulação - Dashboard{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="d-flex align-items-center mb-4">
         <h2 class="fw-bold">
             <i class="bi bi-clipboard-check-fill text-warning"></i>
-            Regulação de Exames
+            Sistema de Gerenciamento de Regulação
         </h2>
     </div>
 
     <!-- Cards de Estatísticas -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card border-warning text-center">
+            <a href="{% url 'regulacao-list' %}?status=pendente" class="text-decoration-none">
+            <div class="card border-warning text-center h-100">
                 <div class="card-body">
                     <h5 class="card-title text-warning">
                         <i class="bi bi-clock-fill"></i> Pendentes
@@ -23,9 +24,11 @@
                     <small class="text-muted">Aguardando regulação</small>
                 </div>
             </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card border-success text-center">
+            <a href="{% url 'regulacao-list' %}?status=autorizado" class="text-decoration-none">
+            <div class="card border-success text-center h-100">
                 <div class="card-body">
                     <h5 class="card-title text-success">
                         <i class="bi bi-check-circle-fill"></i> Exames autorizados
@@ -34,9 +37,11 @@
                     <small class="text-muted">Total de exames com status autorizado</small>
                 </div>
             </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card border-danger text-center">
+            <a href="{% url 'regulacao-list' %}?status=negado" class="text-decoration-none">
+            <div class="card border-danger text-center h-100">
                 <div class="card-body">
                     <h5 class="card-title text-danger">
                         <i class="bi bi-x-circle-fill"></i> Negados
@@ -45,17 +50,20 @@
                     <small class="text-muted">Exames negados</small>
                 </div>
             </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="card border-info text-center">
+            <a href="{% url 'consulta-list' %}?status=autorizado" class="text-decoration-none">
+            <div class="card border-info text-center h-100">
                 <div class="card-body">
                     <h5 class="card-title text-info">
-                        <i class="bi bi-hospital-fill"></i> UBS Ativas
+                        <i class="bi bi-person-check-fill"></i> Consultas Autorizadas
                     </h5>
-                    <h2 class="text-info">{{ total_ubs }}</h2>
-                    <small class="text-muted">Unidades cadastradas</small>
+                    <h2 class="text-info">{{ total_consultas_autorizadas }}</h2>
+                    <small class="text-muted">Total de consultas com status autorizado</small>
                 </div>
             </div>
+            </a>
         </div>
     </div>
 
@@ -105,16 +113,6 @@
         <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <i class="bi bi-list-check fs-1 text-primary mb-3"></i>
-                    <h5 class="card-title">Solicitações</h5>
-                    <p class="card-text">Visualizar e gerenciar todas as solicitações de exames</p>
-                    <a href="{% url 'regulacao-list' %}" class="btn btn-primary">Acessar</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body text-center">
                     <i class="bi bi-building fs-1 text-info mb-3"></i>
                     <h5 class="card-title">UBS</h5>
                     <p class="card-text">Cadastrar e gerenciar Unidades Básicas de Saúde</p>
@@ -135,6 +133,7 @@
     </div>
 
     <div class="row mb-4">
+        <!-- 1) Fila de Espera -->
         <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-body text-center">
@@ -145,6 +144,29 @@
                 </div>
             </div>
         </div>
+        <!-- 2) Solicitações de Exames -->
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-list-check fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Solicitações de Exames</h5>
+                    <p class="card-text">Visualizar e gerenciar todas as solicitações</p>
+                    <a href="{% url 'regulacao-list' %}" class="btn btn-outline-primary">Acessar</a>
+                </div>
+            </div>
+        </div>
+        <!-- 3) Solicitações de Consultas (renomeado) -->
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-journal-medical fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Solicitações de Consultas</h5>
+                    <p class="card-text">Solicitações de consulta por especialidade</p>
+                    <a href="{% url 'consulta-list' %}" class="btn btn-outline-primary">Gerenciar</a>
+                </div>
+            </div>
+        </div>
+        <!-- 4) Agenda -->
         <div class="col-md-3">
             <div class="card h-100">
                 <div class="card-body text-center">
@@ -152,26 +174,6 @@
                     <h5 class="card-title">Agenda</h5>
                     <p class="card-text">Exames e consultas autorizados e agendados</p>
                     <a href="{% url 'regulacao-agenda' %}" class="btn btn-outline-success">Ver Agenda</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="bi bi-journal-medical fs-1 text-primary mb-3"></i>
-                    <h5 class="card-title">Consultas</h5>
-                    <p class="card-text">Solicitações de consulta por especialidade</p>
-                    <a href="{% url 'consulta-list' %}" class="btn btn-outline-primary">Gerenciar</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="bi bi-bookmark-star fs-1 text-warning mb-3"></i>
-                    <h5 class="card-title">Especialidades</h5>
-                    <p class="card-text">Cadastro de especialidades para consultas</p>
-                    <a href="{% url 'especialidade-list' %}" class="btn btn-outline-warning">Acessar</a>
                 </div>
             </div>
         </div>
@@ -338,5 +340,65 @@
         </div>
     </div>
     {% endif %}
+
+        <!-- Filtros rápidos -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header"><strong>Filtrar Exames</strong></div>
+                    <div class="card-body">
+                        <form method="get" action="{% url 'regulacao-list' %}" class="row g-2 align-items-end">
+                            <div class="col-5">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option value="fila">Fila</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="autorizado">Autorizados</option>
+                                    <option value="agendados">Agendados</option>
+                                    <option value="negado">Negados</option>
+                                    <option value="cancelado">Cancelados</option>
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label">Paciente</label>
+                                <input type="text" class="form-control" name="q" placeholder="Nome, CPF, CNS">
+                            </div>
+                            <div class="col-2 d-grid">
+                                <button class="btn btn-outline-primary" type="submit">Filtrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header"><strong>Filtrar Consultas</strong></div>
+                    <div class="card-body">
+                        <form method="get" action="{% url 'consulta-list' %}" class="row g-2 align-items-end">
+                            <div class="col-5">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option value="fila">Fila</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="autorizado">Autorizados</option>
+                                    <option value="agendados">Agendados</option>
+                                    <option value="negado">Negados</option>
+                                    <option value="cancelado">Cancelados</option>
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label">Paciente</label>
+                                <input type="text" class="form-control" name="q" placeholder="Nome, CPF, CNS">
+                            </div>
+                            <div class="col-2 d-grid">
+                                <button class="btn btn-outline-primary" type="submit">Filtrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 </div>
 {% endblock %}

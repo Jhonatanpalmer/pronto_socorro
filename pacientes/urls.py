@@ -5,6 +5,7 @@ from .views import (
     PacienteUpdateView,
     PacienteDeleteView,
     paciente_autocomplete,
+    PacienteHistoricoView,
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path('editar/<int:pk>/', PacienteUpdateView.as_view(), name='paciente_update'),
     path('deletar/<int:pk>/', PacienteDeleteView.as_view(), name='paciente_delete'),
     path('autocomplete/', paciente_autocomplete, name='paciente_autocomplete'),
+    path('<int:pk>/historico/', PacienteHistoricoView.as_view(), name='paciente_historico'),
 ]

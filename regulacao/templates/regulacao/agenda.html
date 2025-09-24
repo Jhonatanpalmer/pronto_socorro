@@ -19,9 +19,12 @@
                 <td>{{ r.hora_agendada|time:'H:i' }}</td>
                 <td>
                   <div><strong>{{ r.paciente.nome }}</strong></div>
-                  <div class="mt-1">
+                  <div class="mt-1 d-flex gap-2 flex-wrap">
                     <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-sm btn-outline-secondary">
                       <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                    </a>
+                    <a href="{% url 'paciente_historico' r.paciente_id %}" class="btn btn-sm btn-outline-primary" title="Ver histórico do paciente">
+                      <i class="bi bi-clock-history"></i> Histórico
                     </a>
                   </div>
                 </td>
@@ -56,9 +59,12 @@
                 <td>{{ r.hora_agendada|time:'H:i' }}</td>
                 <td>
                   <div><strong>{{ r.paciente.nome }}</strong></div>
-                  <div class="mt-1">
+                  <div class="mt-1 d-flex gap-2 flex-wrap">
                     <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-sm btn-outline-secondary">
                       <i class="bi bi-box-arrow-up-right"></i> Ver pedido
+                    </a>
+                    <a href="{% url 'paciente_historico' r.paciente_id %}" class="btn btn-sm btn-outline-primary" title="Ver histórico do paciente">
+                      <i class="bi bi-clock-history"></i> Histórico
                     </a>
                   </div>
                 </td>

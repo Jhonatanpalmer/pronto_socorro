@@ -6,6 +6,47 @@
     <h4>Solicitações de Consultas</h4>
     <a class="btn btn-primary" href="{% url 'consulta-create' %}">Nova Solicitação</a>
   </div>
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <strong>Status:</strong>
+        <a href="{% url 'consulta-list' %}" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline-primary{% endif %}">Todos</a>
+        <a href="{% url 'consulta-list' %}?status=fila" class="btn btn-sm {% if current_status == 'fila' %}btn-primary{% else %}btn-outline-primary{% endif %}">Fila de Espera</a>
+        <a href="{% url 'consulta-list' %}?status=autorizado" class="btn btn-sm {% if current_status == 'autorizado' %}btn-primary{% else %}btn-outline-primary{% endif %}">Autorizados</a>
+        <a href="{% url 'consulta-list' %}?status=agendados" class="btn btn-sm {% if current_status == 'agendados' %}btn-primary{% else %}btn-outline-primary{% endif %}">Agendados</a>
+        <a href="{% url 'consulta-list' %}?status=negado" class="btn btn-sm {% if current_status == 'negado' %}btn-primary{% else %}btn-outline-primary{% endif %}">Negados</a>
+      </div>
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label form-label-sm">UBS</label>
+          <select name="ubs" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Todas</option>
+            {% for u in ubs_list %}
+              <option value="{{ u.id }}" {% if current_ubs|default:'' == u.id|stringformat:'s' %}selected{% endif %}>{{ u.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label form-label-sm">Especialidade</label>
+          <select name="especialidade" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Todas</option>
+            {% for e in especialidades %}
+              <option value="{{ e.id }}" {% if current_especialidade|default:'' == e.id|stringformat:'s' %}selected{% endif %}>{{ e.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label form-label-sm">Paciente (nome, CPF ou CNS)</label>
+          <div class="input-group input-group-sm">
+            <input type="text" name="q" class="form-control" value="{{ q }}" placeholder="Buscar paciente...">
+            <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+          </div>
+        </div>
+        <input type="hidden" name="status" value="{{ current_status }}" />
+      </form>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-body p-0">
       <table class="table mb-0">
@@ -35,6 +76,7 @@
               {% endif %}
               <a class="btn btn-sm btn-outline-secondary" href="{% url 'consulta-update' r.pk %}">Editar</a>
               <a class="btn btn-sm btn-outline-danger" href="{% url 'consulta-delete' r.pk %}">Excluir</a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'paciente_historico' r.paciente_id %}"><i class="bi bi-clock-history"></i> Histórico</a>
             </td>
           </tr>
           {% empty %}
