@@ -57,6 +57,7 @@
             <th>Especialidade</th>
             <th>UBS</th>
             <th>Status</th>
+            <th>Situação</th>
             <th>Solicitado em</th>
             <th class="text-end">Ações</th>
           </tr>
@@ -69,6 +70,21 @@
             <td>{{ r.especialidade.nome }}</td>
             <td>{{ r.ubs_solicitante.nome }}</td>
             <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
+            <td>
+              {% if r.status == 'autorizado' and r.data_agendada %}
+                {% if r.data_agendada < hoje %}
+                  <span class="badge bg-danger" title="Agendada no passado">Vencida</span>
+                {% else %}
+                  <span class="badge bg-success" title="Agendada para hoje ou futuro">Futuro</span>
+                {% endif %}
+              {% elif r.status == 'fila' %}
+                <span class="badge bg-info text-dark">Fila</span>
+              {% elif r.status == 'pendente' %}
+                <span class="badge bg-warning text-dark">Pendente</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
             <td>{{ r.data_solicitacao|date:'d/m/Y H:i' }}</td>
             <td class="text-end">
               {% if r.status == 'fila' or r.status == 'pendente' %}

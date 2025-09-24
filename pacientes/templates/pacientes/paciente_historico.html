@@ -5,31 +5,11 @@
 {% block content %}
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-clock-history"></i> Histórico do Paciente</h4>
     <div>
-      <a class="btn btn-outline-secondary" href="javascript:history.back()"><i class="bi bi-arrow-left"></i> Voltar</a>
-    </div>
-  </div>
-
-  <div class="card shadow-sm mb-3">
-    <div class="card-body">
-      <h5 class="mb-2">{{ paciente.nome }}</h5>
+      <h4 class="mb-1"><i class="bi bi-clock-history"></i> Histórico do Paciente — {{ paciente.nome }}</h4>
       <div class="text-muted small">
-        {% if paciente.cpf %}<span class="me-3">CPF: {{ paciente.cpf }}</span>{% endif %}
         {% if paciente.cns %}<span class="me-3">CNS: {{ paciente.cns }}</span>{% endif %}
         {% if paciente.data_nascimento %}<span class="me-3">Nascimento: {{ paciente.data_nascimento|date:'d/m/Y' }}</span>{% endif %}
-      </div>
-      <div class="mt-3 d-flex flex-wrap gap-2">
-        <a href="#sec-viagens" class="btn btn-sm btn-outline-secondary"><i class="bi bi-truck"></i> Ir para Viagens</a>
-        <a href="#sec-tfd" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-text"></i> Ir para TFD</a>
-        <a href="#sec-consultas" class="btn btn-sm btn-outline-secondary"><i class="bi bi-person-badge"></i> Ir para Consultas</a>
-        <a href="#sec-exames" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clipboard-check"></i> Ir para Exames</a>
-        <span class="vr d-none d-md-inline mx-1"></span>
-        <a href="{% url 'viagem-create' %}?paciente={{ paciente.id }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> Nova Viagem</a>
-        <a href="{% url 'tfd-create' %}?paciente={{ paciente.id }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> Novo TFD</a>
-        <a href="{% url 'consulta-create' %}?paciente={{ paciente.id }}" class="btn btn-sm btn-success"><i class="bi bi-calendar-plus"></i> Marcar Consulta</a>
-        <a href="{% url 'regulacao-create' %}?paciente={{ paciente.id }}" class="btn btn-sm btn-success"><i class="bi bi-calendar-plus"></i> Marcar Exame</a>
-        <a href="{% url 'paciente-pedido' paciente.id %}" class="btn btn-sm btn-warning"><i class="bi bi-clipboard-data"></i> Pedido do Paciente</a>
       </div>
     </div>
   </div>
@@ -54,7 +34,32 @@
 
   <!-- Exames -->
   <div class="card mb-4" id="sec-exames">
-    <div class="card-header bg-warning text-dark"><strong>Exames</strong></div>
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <strong>Exames</strong>
+        {% if ex_aut_ids_csv %}
+          <a href="{% url 'comprovantes-exames' %}?ids={{ ex_aut_ids_csv }}" target="_blank" class="btn btn-sm btn-outline-primary d-print-none" title="Imprimir todos os exames autorizados do histórico">
+            <i class="bi bi-printer-fill"></i>
+          </a>
+        {% endif %}
+      </div>
+      {% if ex_print_groups %}
+      <div class="dropdown d-print-none">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-printer"></i> Imprimir do dia
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% for g in ex_print_groups %}
+          <li>
+            <a class="dropdown-item" href="{% url 'comprovantes-exames' %}?ids={{ g.ids_csv }}" target="_blank">
+              {{ g.date|date:'d/m/Y' }} — {{ g.count }} exame(s)
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
     <div class="card-body">
       <form method="get" class="row g-2 align-items-end mb-3">
         <input type="hidden" name="inicio" value="{{ inicio }}" />
@@ -169,7 +174,25 @@
 
   <!-- Consultas -->
   <div class="card mb-4" id="sec-consultas">
-    <div class="card-header bg-info text-dark"><strong>Consultas</strong></div>
+    <div class="card-header bg-info text-dark d-flex justify-content-between align-items-center">
+      <strong>Consultas</strong>
+      {% if co_print_groups %}
+      <div class="dropdown d-print-none">
+        <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-printer"></i> Imprimir do dia
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% for g in co_print_groups %}
+          <li>
+            <a class="dropdown-item" href="{% url 'comprovantes-consultas' %}?ids={{ g.ids_csv }}" target="_blank">
+              {{ g.date|date:'d/m/Y' }} — {{ g.count }} consulta(s)
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
     <div class="card-body">
       <form method="get" class="row g-2 align-items-end mb-3">
         <input type="hidden" name="inicio" value="{{ inicio }}" />
@@ -244,7 +267,12 @@
               </td>
               <td>
                 {% if c.status == 'autorizado' %}
-                  {{ c.local_atendimento }} — {{ c.data_agendada|date:'d/m/Y' }} {{ c.hora_agendada|time:'H:i' }}
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span>{{ c.local_atendimento }} — {{ c.data_agendada|date:'d/m/Y' }} {{ c.hora_agendada|time:'H:i' }}</span>
+                    <a href="{% url 'comprovante-consulta' c.pk %}" class="btn btn-sm btn-outline-primary d-print-none" title="Imprimir comprovante de consulta">
+                      <i class="bi bi-printer"></i>
+                    </a>
+                  </div>
                   {% if c.data_agendada and c.data_agendada < hoje %}
                     <div><a class="btn btn-link btn-sm p-0" href="{% url 'consulta-create' %}?paciente={{ paciente.id }}&especialidade={{ c.especialidade.id }}">Reagendar</a></div>
                   {% endif %}

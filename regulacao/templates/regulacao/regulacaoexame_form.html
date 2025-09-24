@@ -5,7 +5,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-4">
+    <style>
+      /* Página: Nova Solicitação de Exame */
+      .dual-list { min-height: 280px; max-height: 320px; overflow: auto; }
+      .sticky-actions { position: sticky; bottom: 0; background: var(--bs-body-bg); z-index: 2; }
+      @media (max-width: 767.98px) {
+        .dual-list { min-height: 200px; max-height: 260px; }
+      }
+    </style>
     <div class="row justify-content-center">
         <div class="col-md-10 col-lg-8">
             <div class="card shadow-sm">
@@ -30,11 +38,12 @@
                                     </label>
                                     <!-- Busca rápida com autocomplete para Paciente (não carrega todos no select) -->
                                     <div class="position-relative mb-2">
-                                        <input type="text" id="busca-paciente-regexame" class="form-control form-control-sm" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
+                                        <input type="text" id="busca-paciente-regexame" class="form-control" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
                                         <div id="resultado-paciente-regexame" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
                                         <div class="form-text">Digite ao menos 2 letras e selecione o paciente para preencher o campo abaixo.</div>
                                     </div>
                                     {{ form.paciente }}
+                                    <div id="resumo-paciente-regexame" class="text-muted small mt-1"></div>
                                     {% if form.paciente.errors %}
                                     <div class="text-danger small">
                                         {% for error in form.paciente.errors %}
@@ -69,20 +78,20 @@
                             <div class="d-none">
                                 {{ form.tipos_exame }}
                             </div>
-                            <div class="row g-2">
+                            <div class="row g-3 align-items-stretch">
                                 <div class="col-md-5">
-                                    <input type="text" id="search-exames" class="form-control form-control-sm" placeholder="Buscar exames..." autocomplete="off">
+                                    <input type="text" id="search-exames" class="form-control" placeholder="Buscar exames..." autocomplete="off">
                                     <small class="text-muted">Duplo clique para adicionar</small>
-                                    <ul id="lista-disponiveis" class="list-group mt-2" style="max-height: 260px; overflow:auto;"></ul>
+                                    <ul id="lista-disponiveis" class="list-group mt-2 dual-list"></ul>
                                 </div>
                                 <div class="col-md-2 d-flex flex-column align-items-center justify-content-center gap-2">
-                                    <button type="button" id="btn-add" class="btn btn-outline-primary btn-sm">&gt;&gt;</button>
-                                    <button type="button" id="btn-remove" class="btn btn-outline-secondary btn-sm">&lt;&lt;</button>
+                                    <button type="button" id="btn-add" class="btn btn-outline-primary btn-sm" title="Adicionar todos visíveis"><i class="bi bi-chevron-double-right"></i></button>
+                                    <button type="button" id="btn-remove" class="btn btn-outline-secondary btn-sm" title="Remover todos selecionados"><i class="bi bi-chevron-double-left"></i></button>
                                 </div>
-                                <div class="col-md-5">
+                                <div class="col-md-5 d-flex flex-column">
                                     <label class="form-label small text-muted">Selecionados</label>
                                     <small class="text-muted d-block">Duplo clique para remover</small>
-                                    <ul id="lista-selecionados" class="list-group" style="max-height: 300px; overflow:auto;"></ul>
+                                    <ul id="lista-selecionados" class="list-group dual-list mt-2 flex-grow-1"></ul>
                                 </div>
                             </div>
                             <div class="form-text">Você pode adicionar quantos quiser.</div>
@@ -313,8 +322,8 @@
                         </div>
                         {% endif %}
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'regulacao-list' %}" class="btn btn-secondary">
+                        <div class="sticky-actions border-top pt-3 mt-4 d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                            <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
                                 <i class="bi bi-arrow-left"></i> Cancelar
                             </a>
                             <button type="submit" class="btn btn-success">
@@ -334,6 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('busca-paciente-regexame');
     const list = document.getElementById('resultado-paciente-regexame');
     const select = document.getElementById('id_paciente');
+    const resumo = document.getElementById('resumo-paciente-regexame');
     if (!input || !list || !select) return;
 
     let timer = null;
@@ -361,6 +371,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 select.appendChild(opt);
                 clearList();
                 input.value = item.nome;
+                if (resumo) {
+                    const parts = [];
+                    if (item.cpf) parts.push(`CPF: ${item.cpf}`);
+                    if (item.cns) parts.push(`CNS: ${item.cns}`);
+                    if (item.telefone) parts.push(`Tel.: ${item.telefone}`);
+                    if (item.endereco) parts.push(item.endereco);
+                    resumo.textContent = parts.join(' | ');
+                }
                 // Atualiza alertas
                 try { atualizarAlertas(); } catch(err) {}
             });

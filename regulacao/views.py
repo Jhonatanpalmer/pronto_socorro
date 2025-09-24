@@ -283,6 +283,9 @@ class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
         context['current_ubs'] = (self.request.GET.get('ubs') or '').strip()
         context['current_tipo_exame'] = (self.request.GET.get('tipo_exame') or '').strip()
         context['q'] = (self.request.GET.get('q') or '').strip()
+        from django.utils import timezone
+        hoje = timezone.localdate()
+        context['hoje'] = hoje
 
         # Agrupar SEMPRE por paciente, respeitando filtros aplicados no queryset base
         base_qs = self.get_queryset()
@@ -296,6 +299,11 @@ class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
                     'total_exames': 0,
                     'exames_nomes': [],
                     'primeira_hora': reg.data_solicitacao,
+                    # Situação agregada
+                    'fila_count': 0,
+                    'pendente_count': 0,
+                    'vencidas_count': 0,   # autorizadas com data < hoje
+                    'futuras_count': 0,    # autorizadas com data >= hoje
                 }
             g = grupos[pid]
             g['total_exames'] += 1
@@ -303,6 +311,17 @@ class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
                 g['exames_nomes'].append(reg.tipo_exame.nome)
             if reg.data_solicitacao and reg.data_solicitacao < g['primeira_hora']:
                 g['primeira_hora'] = reg.data_solicitacao
+            # Atualizar contadores de situação
+            if reg.status == 'fila':
+                g['fila_count'] += 1
+            elif reg.status == 'pendente':
+                g['pendente_count'] += 1
+            elif reg.status == 'autorizado':
+                if reg.data_agendada:
+                    if reg.data_agendada < hoje:
+                        g['vencidas_count'] += 1
+                    else:
+                        g['futuras_count'] += 1
 
         pacientes_grouped = sorted(grupos.values(), key=lambda x: (x['paciente'].nome or '').lower())
 
@@ -612,6 +631,8 @@ class RegulacaoConsultaListView(LoginRequiredMixin, ListView):
         context['q'] = (self.request.GET.get('q') or '').strip()
         context['ubs_list'] = UBS.objects.filter(ativa=True).order_by('nome')
         context['especialidades'] = Especialidade.objects.filter(ativa=True).order_by('nome')
+        from django.utils import timezone
+        context['hoje'] = timezone.localdate()
         return context
 
 

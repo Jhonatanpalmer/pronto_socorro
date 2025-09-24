@@ -14,6 +14,7 @@ from tfd.models import TFD
 from django.utils.dateparse import parse_date
 from django.utils.http import urlencode
 from .forms import PacienteForm
+from collections import defaultdict
 
 class PacienteListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
@@ -143,7 +144,7 @@ class PacienteHistoricoView(AccessRequiredMixin, LoginRequiredMixin, DetailView)
         s = parse_date(start) if start else None
         e = parse_date(end) if end else None
 
-        # Exames
+    # Exames
         exames = RegulacaoExame.objects.select_related('tipo_exame', 'ubs_solicitante').filter(paciente=paciente)
         if s:
             exames = exames.filter(data_solicitacao__date__gte=s)
@@ -173,6 +174,26 @@ class PacienteHistoricoView(AccessRequiredMixin, LoginRequiredMixin, DetailView)
             except (TypeError, ValueError):
                 pass
         exames = exames.order_by('-data_solicitacao')
+
+        # Grupos de impressão (exames autorizados por data agendada)
+        ex_groups_map = defaultdict(list)
+        for rid, d in (
+            RegulacaoExame.objects
+            .filter(paciente=paciente, status='autorizado', data_agendada__isnull=False)
+            .values_list('id', 'data_agendada')
+        ):
+            ex_groups_map[d].append(rid)
+        ex_print_groups = [
+            {
+                'date': d,
+                'ids_csv': ",".join(str(i) for i in ids),
+                'count': len(ids),
+            }
+            for d, ids in sorted(ex_groups_map.items(), key=lambda x: x[0], reverse=True)
+        ]
+
+        # IDs CSV para imprimir todos os exames autorizados visíveis no histórico
+        ex_aut_ids_csv = ",".join(str(i) for i in exames.filter(status='autorizado').values_list('id', flat=True))
 
         # Consultas
         consultas = RegulacaoConsulta.objects.select_related('especialidade', 'ubs_solicitante').filter(paciente=paciente)
@@ -204,6 +225,23 @@ class PacienteHistoricoView(AccessRequiredMixin, LoginRequiredMixin, DetailView)
             except (TypeError, ValueError):
                 pass
         consultas = consultas.order_by('-data_solicitacao')
+
+        # Grupos de impressão (consultas autorizadas por data agendada)
+        co_groups_map = defaultdict(list)
+        for cid, d in (
+            RegulacaoConsulta.objects
+            .filter(paciente=paciente, status='autorizado', data_agendada__isnull=False)
+            .values_list('id', 'data_agendada')
+        ):
+            co_groups_map[d].append(cid)
+        co_print_groups = [
+            {
+                'date': d,
+                'ids_csv': ",".join(str(i) for i in ids),
+                'count': len(ids),
+            }
+            for d, ids in sorted(co_groups_map.items(), key=lambda x: x[0], reverse=True)
+        ]
 
         # Viagens
         viagens = Viagem.objects.select_related('paciente','veiculo').filter(paciente=paciente)
@@ -266,6 +304,9 @@ class PacienteHistoricoView(AccessRequiredMixin, LoginRequiredMixin, DetailView)
             'co_page': co_page,
             'vi_page': vi_page,
             'tfd_page': tfd_page,
+            'ex_print_groups': ex_print_groups,
+            'co_print_groups': co_print_groups,
+            'ex_aut_ids_csv': ex_aut_ids_csv,
             'inicio': start or '',
             'fim': end or '',
             'q': q,

@@ -89,6 +89,9 @@
                                                                 <li><a class="dropdown-item" href="{% url 'regulacao-fila' %}"><i class="bi bi-hourglass-split"></i> Fila de Espera</a></li>
                                                                 <li><a class="dropdown-item" href="{% url 'regulacao-agenda' %}"><i class="bi bi-calendar2-week"></i> Agenda</a></li>
                                                                 <li><hr class="dropdown-divider"></li>
+                                                                <li><a class="dropdown-item" href="{% url 'ubs-create' %}"><i class="bi bi-building-add"></i> Cadastrar UBS</a></li>
+                                                                <li><a class="dropdown-item" href="{% url 'medico-create' %}"><i class="bi bi-person-plus"></i> Cadastrar Médico</a></li>
+                                                                <li><hr class="dropdown-divider"></li>
                                                                 <li><a class="dropdown-item" href="{% url 'tipo-exame-list' %}"><i class="bi bi-clipboard-data"></i> Tipos de Exames</a></li>
                                                                 <li><a class="dropdown-item" href="{% url 'importar-sigtap' %}"><i class="bi bi-cloud-arrow-up"></i> Importar SIGTAP</a></li>
                                                             {% endif %}

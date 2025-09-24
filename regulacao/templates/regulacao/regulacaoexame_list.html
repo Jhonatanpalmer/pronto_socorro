@@ -95,6 +95,7 @@
                             <th>Paciente</th>
                             <th>Quantidade de exames</th>
                             <th>Exames</th>
+                            <th>Situação</th>
                             <th>Primeiro registro</th>
                             <th class="text-end">Ações</th>
                         </tr>
@@ -113,6 +114,25 @@
                             </td>
                             <td>
                                 <small class="text-muted">{{ item.exames_nomes|join:", " }}</small>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% if item.fila_count %}
+                                        <span class="badge bg-info text-dark" title="Em fila">Fila {{ item.fila_count }}</span>
+                                    {% endif %}
+                                    {% if item.pendente_count %}
+                                        <span class="badge bg-warning text-dark" title="Pendente">Pendente {{ item.pendente_count }}</span>
+                                    {% endif %}
+                                    {% if item.vencidas_count %}
+                                        <span class="badge bg-danger" title="Autorizadas com data já passada">Vencida {{ item.vencidas_count }}</span>
+                                    {% endif %}
+                                    {% if item.futuras_count %}
+                                        <span class="badge bg-success" title="Autorizadas com data hoje/futura">Futuro {{ item.futuras_count }}</span>
+                                    {% endif %}
+                                    {% if not item.fila_count and not item.pendente_count and not item.vencidas_count and not item.futuras_count %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </div>
                             </td>
                             <td>
                                 {{ item.primeira_hora|date:"d/m/Y H:i" }}
