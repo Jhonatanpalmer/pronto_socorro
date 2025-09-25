@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Abrir Malote - Regulação{% endblock %}
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <strong>Qual Unidade Básica de Saúde você deseja abrir o malote?</strong>
+        </div>
+        <div class="card-body">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+          <form method="post" class="vstack gap-3">
+            {% csrf_token %}
+            <div>
+              <label class="form-label">Unidade Básica de Saúde</label>
+              <select name="ubs_id" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for u in ubs_list %}
+                  <option value="{{ u.id }}">{{ u.nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">Cancelar</a>
+              <button class="btn btn-primary">Abrir malote</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

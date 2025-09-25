@@ -9,8 +9,14 @@
         <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-dark">
             <div class="display-6"><i class="bi bi-clipboard-check-fill"></i></div>
             <div class="flex-grow-1">
-                <h2 class="fw-bold mb-1">Regulação</h2>
-                <div class="text-dark-50">Fila, agenda e solicitações</div>
+                                <h2 class="fw-bold mb-1">Regulação</h2>
+                                <div class="text-dark-50">Fila, agenda e solicitações</div>
+                                {% if ubs_malote %}
+                                    <div class="mt-2">
+                                        <span class="badge bg-dark-subtle text-dark">Malote aberto: {{ ubs_malote.nome }}</span>
+                                        <a href="{% url 'regulacao-selecionar-malote' %}" class="btn btn-sm btn-outline-dark ms-2">Trocar UBS</a>
+                                    </div>
+                                {% endif %}
             </div>
             <div class="d-flex gap-2">
                 <a href="{% url 'regulacao-fila' %}" class="btn btn-dark"><i class="bi bi-hourglass-split"></i> Fila</a>

@@ -73,6 +73,39 @@ def any_group_required(*group_names: str):
             return view_func(request, *args, **kwargs)
         return _wrapped
     return decorator
+# ============ Seleção de UBS (Malote) para Reguladores ============
+
+@login_required
+@require_access('regulacao')
+def selecionar_malote(request):
+    """Pergunta ao regulador qual UBS deseja abrir o malote e salva na sessão.
+
+    - GET: lista UBS ativas para seleção
+    - POST: recebe ubs_id, valida e salva em session['malote_ubs_id']
+    """
+    # Usuários UBS não precisam selecionar malote; redirecionar para portal
+    ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
+    if ubs_user:
+        return redirect('regulacao-dashboard')
+
+    if request.method == 'POST':
+        try:
+            ubs_id = int((request.POST.get('ubs_id') or '0').strip())
+        except ValueError:
+            ubs_id = 0
+        ubs = UBS.objects.filter(ativa=True, id=ubs_id).first()
+        if not ubs:
+            messages.error(request, 'Selecione uma UBS válida para abrir o malote.')
+        else:
+            request.session['malote_ubs_id'] = ubs.id
+            messages.success(request, f"Malote aberto: {ubs.nome}")
+            return redirect('regulacao-dashboard')
+
+    ubs_list = UBS.objects.filter(ativa=True).order_by('nome')
+    return render(request, 'regulacao/malote_select.html', {
+        'ubs_list': ubs_list,
+    })
+
 
 
 # ============ VIEWS PARA UBS ============
@@ -378,9 +411,8 @@ class RegulacaoCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
         # Gerar um número de pedido agrupador
         from datetime import datetime
         numero_pedido = f"PED{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        # Bloquear criação para tipos já existentes em fila/autorizado para o mesmo paciente,
-        # porém permitir se a autorização anterior já passou da data agendada.
-        from django.utils import timezone
+    # Bloquear criação para tipos já existentes em fila/autorizado para o mesmo paciente,
+    # porém permitir se a autorização anterior já passou da data agendada.
         hoje = timezone.localdate()
         conflitos_qs = (
             RegulacaoExame.objects
@@ -522,15 +554,39 @@ def dashboard_regulacao(request):
             'ubs_atual': ubs_user,
         })
 
-    # Quantidade de pacientes distintos na fila (exames e consultas) — usado no dashboard enxuto
-    exames_fila_pacientes = RegulacaoExame.objects.filter(status='fila').values_list('paciente_id', flat=True).distinct()
-    consultas_fila_pacientes = RegulacaoConsulta.objects.filter(status='fila').values_list('paciente_id', flat=True).distinct()
+    # Reguladores (não UBS): exigir seleção de malote (UBS) e filtrar contagens por essa UBS
+    malote_ubs_id = request.session.get('malote_ubs_id')
+    ubs_malote = None
+    if not malote_ubs_id:
+        # Solicitar seleção de UBS (malote)
+        return redirect('regulacao-selecionar-malote')
+    try:
+        ubs_malote = UBS.objects.get(pk=int(malote_ubs_id))
+    except Exception:
+        # ID inválido na sessão: limpar e exigir nova seleção
+        request.session.pop('malote_ubs_id', None)
+        return redirect('regulacao-selecionar-malote')
+
+    # Quantidade de pacientes distintos na fila (exames e consultas) para a UBS selecionada
+    exames_fila_pacientes = (
+        RegulacaoExame.objects
+        .filter(status='fila', ubs_solicitante=ubs_malote)
+        .values_list('paciente_id', flat=True)
+        .distinct()
+    )
+    consultas_fila_pacientes = (
+        RegulacaoConsulta.objects
+        .filter(status='fila', ubs_solicitante=ubs_malote)
+        .values_list('paciente_id', flat=True)
+        .distinct()
+    )
     pacientes_fila_exames_count = exames_fila_pacientes.count()
     pacientes_fila_consultas_count = consultas_fila_pacientes.count()
 
     return render(request, 'regulacao/dashboard.html', {
         'pacientes_fila_exames_count': pacientes_fila_exames_count,
         'pacientes_fila_consultas_count': pacientes_fila_consultas_count,
+        'ubs_malote': ubs_malote,
     })
 
 
@@ -624,7 +680,6 @@ class RegulacaoConsultaListView(LoginRequiredMixin, ListView):
         context['q'] = (self.request.GET.get('q') or '').strip()
         context['ubs_list'] = UBS.objects.filter(ativa=True).order_by('nome')
         context['especialidades'] = Especialidade.objects.filter(ativa=True).order_by('nome')
-        from django.utils import timezone
         context['hoje'] = timezone.localdate()
         return context
 
@@ -647,7 +702,6 @@ class RegulacaoConsultaCreateView(LoginRequiredMixin, CreateView):
         paciente = cleaned.get('paciente')
         especialidade = cleaned.get('especialidade')
         if paciente and especialidade:
-            from django.utils import timezone
             hoje = timezone.localdate()
             conflito = (
                 RegulacaoConsulta.objects.filter(
@@ -747,7 +801,6 @@ def consulta_paciente_alertas(request):
     except (TypeError, ValueError):
         espec_id = None
 
-    from django.utils import timezone
     hoje = timezone.localdate()
     base_qs = (
         RegulacaoConsulta.objects.select_related('especialidade', 'ubs_solicitante')
@@ -813,7 +866,6 @@ def exame_paciente_alertas(request):
             except (TypeError, ValueError):
                 continue
 
-    from django.utils import timezone
     hoje = timezone.localdate()
     base_qs = (
         RegulacaoExame.objects
@@ -916,6 +968,13 @@ def fila_espera(request):
     df_d = parse_date(df) if df else None
 
     exames_qs = RegulacaoExame.objects.select_related('paciente', 'tipo_exame', 'ubs_solicitante').filter(status='fila')
+    # Se regulador tiver malote selecionado, restringir à UBS escolhida
+    malote_ubs_id = request.session.get('malote_ubs_id')
+    if malote_ubs_id:
+        try:
+            exames_qs = exames_qs.filter(ubs_solicitante_id=int(malote_ubs_id))
+        except Exception:
+            pass
     if di_d:
         exames_qs = exames_qs.filter(data_solicitacao__date__gte=di_d)
     if df_d:
@@ -931,6 +990,11 @@ def fila_espera(request):
     exames_qs = exames_qs.order_by('paciente__nome', 'data_solicitacao')
 
     consultas_qs = RegulacaoConsulta.objects.select_related('paciente', 'especialidade', 'ubs_solicitante').filter(status='fila')
+    if malote_ubs_id:
+        try:
+            consultas_qs = consultas_qs.filter(ubs_solicitante_id=int(malote_ubs_id))
+        except Exception:
+            pass
     if di_d:
         consultas_qs = consultas_qs.filter(data_solicitacao__date__gte=di_d)
     if df_d:
@@ -1036,7 +1100,7 @@ def agenda_regulacao(request):
     """Agenda da regulação: itens autorizados com data/hora agendadas."""
     # Utilitário local para parse de datas em filtros
     from django.utils.dateparse import parse_date
-    from django.utils import timezone
+    # timezone já importado no topo do arquivo
     # Se usuário for UBS, restringir agenda à sua própria UBS
     ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
     exames_qs = RegulacaoExame.objects.select_related('paciente', 'tipo_exame', 'ubs_solicitante').filter(
@@ -1337,13 +1401,26 @@ def registrar_resultado_consulta(request, pk: int):
 
 
 def _back_to_agenda(request, default_only: str | None = None, default_hash: str = '') -> str:
-    """Monta uma URL de retorno à agenda preservando filtros e aba."""
+    """Monta uma URL de retorno à agenda preservando filtros essenciais (di/df/only) e aba.
+
+    Observação: coleta parâmetros tanto do GET quanto do POST, mas restringe a uma whitelist
+    para evitar vazar campos do formulário (como csrf, resultado, observacao).
+    """
     base = '/regulacao/agenda/'
     from django.utils.http import urlencode
+    allowed = {'di', 'df', 'only'}
     params = []
-    for k in request.GET.keys():
-        for v in request.GET.getlist(k):
-            params.append((k, v))
+
+    def add_allowed(source):
+        for k in source.keys():
+            if k in allowed:
+                for v in source.getlist(k):
+                    params.append((k, v))
+
+    # Preservar do GET (URL atual) e do POST (inputs ocultos)
+    add_allowed(request.GET)
+    add_allowed(request.POST)
+
     # Se não há "only" e foi fornecido um default, usar
     if default_only and not any(k == 'only' for k, _ in params):
         params.append(('only', default_only))
@@ -1351,6 +1428,108 @@ def _back_to_agenda(request, default_only: str | None = None, default_hash: str 
     if qs:
         return f"{base}?{qs}{default_hash}"
     return f"{base}{default_hash}"
+
+
+@login_required
+@require_access('regulacao')
+def registrar_resultados_agenda(request):
+    """Recebe POST em massa da agenda e atualiza resultados de múltiplas consultas/exames.
+
+    Campos esperados (se existirem):
+      - di/df/only (preservar filtros)
+      - co-<id>-resultado, co-<id>-observacao
+      - ex-<id>-resultado, ex-<id>-observacao
+    """
+    if request.method != 'POST':
+        return redirect('regulacao-agenda')
+
+    hoje = timezone.localdate()
+    updated_co = skipped_co = 0
+    updated_ex = skipped_ex = 0
+
+    # Coletar IDs informados no POST
+    co_ids = set()
+    ex_ids = set()
+    for key in request.POST.keys():
+        if key.startswith('co-') and key.endswith('-resultado'):
+            try:
+                pk = int(key.split('-')[1])
+                co_ids.add(pk)
+            except (ValueError, IndexError):
+                continue
+        elif key.startswith('ex-') and key.endswith('-resultado'):
+            try:
+                pk = int(key.split('-')[1])
+                ex_ids.add(pk)
+            except (ValueError, IndexError):
+                continue
+
+    # Processar Consultas
+    if co_ids:
+        regs = {r.id: r for r in RegulacaoConsulta.objects.filter(id__in=co_ids)}
+        for pk in co_ids:
+            reg = regs.get(pk)
+            if not reg:
+                continue
+            # Apenas autorizadas e com data passada/hoje
+            if reg.status != 'autorizado' or not reg.data_agendada or reg.data_agendada > hoje:
+                skipped_co += 1
+                continue
+            val = (request.POST.get(f'co-{pk}-resultado') or '').strip()
+            if val not in ('compareceu', 'faltou', 'pendente'):
+                skipped_co += 1
+                continue
+            obs = (request.POST.get(f'co-{pk}-observacao') or '').strip()
+            reg.resultado_atendimento = val
+            reg.resultado_observacao = obs
+            reg.resultado_por = request.user
+            reg.resultado_em = timezone.now()
+            reg.save(update_fields=['resultado_atendimento','resultado_observacao','resultado_por','resultado_em','atualizado_em'])
+            updated_co += 1
+
+    # Processar Exames
+    if ex_ids:
+        regs = {r.id: r for r in RegulacaoExame.objects.filter(id__in=ex_ids)}
+        for pk in ex_ids:
+            reg = regs.get(pk)
+            if not reg:
+                continue
+            if reg.status != 'autorizado' or not reg.data_agendada or reg.data_agendada > hoje:
+                skipped_ex += 1
+                continue
+            val = (request.POST.get(f'ex-{pk}-resultado') or '').strip()
+            if val not in ('compareceu', 'faltou', 'pendente'):
+                skipped_ex += 1
+                continue
+            obs = (request.POST.get(f'ex-{pk}-observacao') or '').strip()
+            reg.resultado_atendimento = val
+            reg.resultado_observacao = obs
+            reg.resultado_por = request.user
+            reg.resultado_em = timezone.now()
+            reg.save(update_fields=['resultado_atendimento','resultado_observacao','resultado_por','resultado_em','atualizado_em'])
+            updated_ex += 1
+
+    # Mensagens
+    if updated_co or updated_ex:
+        parts = []
+        if updated_co:
+            parts.append(f"{updated_co} consulta(s)")
+        if updated_ex:
+            parts.append(f"{updated_ex} exame(s)")
+        messages.success(request, f"Resultados salvos: {', '.join(parts)}.")
+    if skipped_co or skipped_ex:
+        parts = []
+        if skipped_co:
+            parts.append(f"{skipped_co} consulta(s) ignoradas (não autorizadas ou data futura)")
+        if skipped_ex:
+            parts.append(f"{skipped_ex} exame(s) ignorados (não autorizados ou data futura)")
+        messages.warning(request, '; '.join(parts))
+
+    # Redireciona de volta preservando filtros e aba
+    # Se o POST tiver only, será preservado; senão, usar co como padrão se houve consultas, senão ex
+    default_only = 'co' if co_ids else ('ex' if ex_ids else None)
+    default_hash = '#consultas-pane' if default_only == 'co' else ('#exames-pane' if default_only == 'ex' else '')
+    return redirect(_back_to_agenda(request, default_only=default_only, default_hash=default_hash))
 
 @login_required
 @require_access('regulacao')
@@ -1383,7 +1562,6 @@ def paciente_pedido(request, paciente_id):
             setattr(f, 'request', request)
 
         # Processar apenas o formset submetido
-        from django.utils import timezone
         if submitted_exames:
             if exame_fs.is_valid():
                 aprovados_exames = 0

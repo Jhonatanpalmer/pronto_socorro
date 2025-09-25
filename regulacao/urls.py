@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     # Dashboard
     path('', views.dashboard_regulacao, name='regulacao-dashboard'),
+    path('malote/', views.selecionar_malote, name='regulacao-selecionar-malote'),
     path('fila/', views.fila_espera, name='regulacao-fila'),
     path('agenda/', views.agenda_regulacao, name='regulacao-agenda'),
     path('ubs/<int:ubs_id>/status/', views.status_ubs, name='regulacao-status-ubs'),
@@ -61,6 +62,7 @@ urlpatterns = [
     # Resultado de atendimento (Compareceu/Faltou)
     path('regulacao/<int:pk>/resultado/', views.registrar_resultado_exame, name='resultado-exame'),
     path('consultas/<int:pk>/resultado/', views.registrar_resultado_consulta, name='resultado-consulta'),
+    path('agenda/resultado/batch/', views.registrar_resultados_agenda, name='agenda-resultado-batch'),
     # Auxiliar (AJAX) - alertas de exames por paciente
     path('regulacao/alertas/', views.exame_paciente_alertas, name='exame-alertas'),
 ]
