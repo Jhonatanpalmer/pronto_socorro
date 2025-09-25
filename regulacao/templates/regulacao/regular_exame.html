@@ -102,28 +102,28 @@
                         <!-- Decisão destacada em cartões grandes -->
                         <div class="mb-4">
                             <label class="form-label fw-semibold">Decisão <span class="text-danger">*</span></label>
-                            <div class="row g-3">
-                                <div class="col-12 col-lg-6">
-                                    <input type="radio" class="btn-check" name="decisao" id="autorizar" value="autorizado" required {% if decisao == 'autorizado' %}checked{% endif %}>
-                                    <label class="btn w-100 p-3 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-success" for="autorizar">
-                                        <span class="display-6"><i class="bi bi-check-circle-fill text-success"></i></span>
-                                        <span>
-                                            <span class="h5 mb-1 d-block">Autorizar</span>
-                                            <small class="text-muted">Abrirá os campos para definir local, data e médico.</small>
-                                        </span>
-                                    </label>
-                                </div>
-                                <div class="col-12 col-lg-6">
-                                    <input type="radio" class="btn-check" name="decisao" id="negar" value="negado" required {% if decisao == 'negado' %}checked{% endif %}>
-                                    <label class="btn w-100 p-3 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-danger" for="negar">
-                                        <span class="display-6"><i class="bi bi-x-circle-fill text-danger"></i></span>
-                                        <span>
-                                            <span class="h5 mb-1 d-block">Negar</span>
-                                            <small class="text-muted">Será solicitado o motivo da negação.</small>
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-12 col-lg-6">
+                                                    <input type="radio" class="btn-check" name="decisao" id="autorizar" value="autorizado" required {% if decisao == 'autorizado' %}checked{% endif %}>
+                                                    <label class="btn btn-lg w-100 p-4 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-success decision-option" for="autorizar">
+                                                        <span class="display-5"><i class="bi bi-check-circle-fill text-success"></i></span>
+                                                        <span>
+                                                            <span class="h4 mb-1 d-block">Autorizar</span>
+                                                            <small class="text-muted">Definir local, data e médico do exame.</small>
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                                <div class="col-12 col-lg-6">
+                                                    <input type="radio" class="btn-check" name="decisao" id="negar" value="negado" required {% if decisao == 'negado' %}checked{% endif %}>
+                                                    <label class="btn btn-lg w-100 p-4 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-danger decision-option" for="negar">
+                                                        <span class="display-5"><i class="bi bi-x-circle-fill text-danger"></i></span>
+                                                        <span>
+                                                            <span class="h4 mb-1 d-block">Negar</span>
+                                                            <small class="text-muted">Será necessário informar o motivo da negação.</small>
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            </div>
                         </div>
 
                         <!-- Campos quando autorizado -->
@@ -164,13 +164,14 @@
                             <div class="form-text">Explique os motivos que levaram à sua decisão.</div>
                         </div>
 
-                        <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+                                    <div class="d-grid gap-3 d-sm-flex justify-content-sm-end align-items-center">
                             <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
                                 <i class="bi bi-arrow-left"></i> Voltar à lista
                             </a>
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="bi bi-check2-circle"></i> Confirmar regulação
-                            </button>
+                                        <button type="submit" id="submitDecisionBtn" class="btn btn-primary btn-lg px-4">
+                                            <i class="bi bi-check2-circle me-1"></i>
+                                            <span class="btn-text">Confirmar regulação</span>
+                                        </button>
                         </div>
                     </form>
                 </div>
@@ -212,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const negar = document.getElementById('negar');
     const bloco = document.getElementById('campos-autorizacao');
     const form = document.getElementById('form-regular-exame');
+        const submitBtn = document.getElementById('submitDecisionBtn');
     const reqFields = [
         'input[name="local_realizacao"]',
         'input[name="data_agendada"]',
@@ -223,9 +225,33 @@ document.addEventListener('DOMContentLoaded', function(){
         const on = autorizar && autorizar.checked;
         if (bloco) bloco.style.display = on ? 'block' : 'none';
         reqFields.forEach(el => { if (el){ el.required = on; el.disabled = !on; }});
+
+            // Atualiza CTA principal (texto e cor) conforme decisão
+            if (submitBtn) {
+                if (on) {
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.classList.add('btn-success');
+                    submitBtn.querySelector('.btn-text').textContent = 'Autorizar e salvar';
+                } else if (negar && negar.checked) {
+                    submitBtn.classList.remove('btn-success');
+                    submitBtn.classList.add('btn-danger');
+                    submitBtn.querySelector('.btn-text').textContent = 'Negar e salvar';
+                } else {
+                    submitBtn.classList.remove('btn-success', 'btn-danger');
+                    submitBtn.classList.add('btn-primary');
+                    submitBtn.querySelector('.btn-text').textContent = 'Confirmar regulação';
+                }
+            }
     }
-    if (autorizar) autorizar.addEventListener('change', toggle);
-    if (negar) negar.addEventListener('change', toggle);
+        // Garantir exclusividade explícita e atualizar CTA
+        if (autorizar) autorizar.addEventListener('change', () => {
+            if (negar) negar.checked = false;
+            toggle();
+        });
+        if (negar) negar.addEventListener('change', () => {
+            if (autorizar) autorizar.checked = false;
+            toggle();
+        });
     {% if decisao == 'autorizado' %}
         if (autorizar) autorizar.checked = true;
     {% endif %}
