@@ -43,9 +43,19 @@
   <div class="tab-content" id="agendaTabsContent">
     <div class="tab-pane fade {% if only != 'ex' %}show active{% endif %}" id="consultas-pane" role="tabpanel" aria-labelledby="consultas-tab" tabindex="0">
       <div class="card h-100 shadow-sm mb-4">
-        <div class="card-header bg-success text-white"><strong>Consultas Agendadas</strong></div>
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <strong>Consultas Agendadas</strong>
+          <button type="submit" form="form-consultas" class="btn btn-light btn-sm text-success fw-semibold" title="Salvar alterações desta aba">
+            <i class="bi bi-check2-circle"></i> Salvar alterações
+          </button>
+        </div>
         <div class="card-body p-0">
-          <div class="table-responsive">
+          <form id="form-consultas" method="post" action="{% url 'agenda-resultado-batch' %}">
+            {% csrf_token %}
+            <input type="hidden" name="only" value="co">
+            <input type="hidden" name="di" value="{{ di }}">
+            <input type="hidden" name="df" value="{{ df }}">
+            <div class="table-responsive">
             <table class="table table-hover table-striped align-middle mb-0">
               <thead class="table-light">
                 <tr>
@@ -69,7 +79,6 @@
                   <td>{{ r.especialidade.nome }}</td>
                   <td>
                     <span class="d-inline-block text-truncate align-middle" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
-                    <span class="badge {{ r.get_resultado_badge_class }} ms-2 align-middle">{{ r.get_resultado_atendimento_display }}</span>
                   </td>
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm align-items-stretch" role="group">
@@ -85,29 +94,36 @@
                         <i class="bi bi-printer"></i>
                       </a>
                       {% if r.data_agendada and r.data_agendada <= hoje %}
-                      <form method="post" action="{% url 'resultado-consulta' r.pk %}" class="d-flex gap-1 ms-2">
-                        {% csrf_token %}
-                        <input type="hidden" name="only" value="co">
-                        <select name="resultado" class="form-select form-select-sm">
+                      <div class="d-flex gap-1 ms-2 align-items-center">
+                        <select name="co-{{ r.pk }}-resultado" class="form-select form-select-sm">
                           <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>Aguardando</option>
                           <option value="compareceu" {% if r.resultado_atendimento == 'compareceu' %}selected{% endif %}>Compareceu</option>
                           <option value="faltou" {% if r.resultado_atendimento == 'faltou' %}selected{% endif %}>Faltou</option>
                         </select>
-                        <input name="observacao" class="form-control form-control-sm" placeholder="Obs." value="{{ r.resultado_observacao }}" style="max-width: 180px;">
-                        <button class="btn btn-sm btn-primary" title="Salvar resultado">
+                        <input name="co-{{ r.pk }}-observacao" class="form-control form-control-sm" placeholder="Obs." value="{{ r.resultado_observacao }}" style="max-width: 180px;">
+                        <button type="submit" class="btn btn-success btn-sm" title="Aplicar apenas esta linha">
                           <i class="bi bi-check2"></i>
                         </button>
-                      </form>
+                      </div>
                       {% endif %}
                     </div>
                   </td>
+                  <td class="text-nowrap">
+                    <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+                  </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center py-3">Sem consultas agendadas.</td></tr>
+                <tr><td colspan="7" class="text-center py-3">Sem consultas agendadas.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
-          </div>
+            </div>
+            <div class="d-flex justify-content-end p-2">
+              <button class="btn btn-success btn-sm">
+                <i class="bi bi-check2-circle"></i> Salvar alterações
+              </button>
+            </div>
+          </form>
         </div>
       </div>
       {% if pend_consultas %}
@@ -193,9 +209,19 @@
     </div>
   <div class="tab-pane fade {% if only == 'ex' %}show active{% endif %}" id="exames-pane" role="tabpanel" aria-labelledby="exames-tab" tabindex="0">
       <div class="card h-100 shadow-sm">
-        <div class="card-header bg-success text-white"><strong>Exames Agendados</strong></div>
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <strong>Exames Agendados</strong>
+          <button type="submit" form="form-exames" class="btn btn-light btn-sm text-success fw-semibold" title="Salvar alterações desta aba">
+            <i class="bi bi-check2-circle"></i> Salvar alterações
+          </button>
+        </div>
         <div class="card-body p-0">
-          <div class="table-responsive">
+          <form id="form-exames" method="post" action="{% url 'agenda-resultado-batch' %}">
+            {% csrf_token %}
+            <input type="hidden" name="only" value="ex">
+            <input type="hidden" name="di" value="{{ di }}">
+            <input type="hidden" name="df" value="{{ df }}">
+            <div class="table-responsive">
             <table class="table table-hover table-striped align-middle mb-0">
               <thead class="table-light">
                 <tr>
@@ -219,7 +245,6 @@
                   <td>{{ r.tipo_exame.nome }}</td>
                   <td>
                     <span class="d-inline-block text-truncate align-middle" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
-                    <span class="badge {{ r.get_resultado_badge_class }} ms-2 align-middle">{{ r.get_resultado_atendimento_display }}</span>
                   </td>
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm align-items-stretch" role="group">
@@ -235,29 +260,36 @@
                         <i class="bi bi-printer"></i>
                       </a>
                       {% if r.data_agendada and r.data_agendada <= hoje %}
-                      <form method="post" action="{% url 'resultado-exame' r.pk %}" class="d-flex gap-1 ms-2">
-                        {% csrf_token %}
-                        <input type="hidden" name="only" value="ex">
-                        <select name="resultado" class="form-select form-select-sm">
+                      <div class="d-flex gap-1 ms-2 align-items-center">
+                        <select name="ex-{{ r.pk }}-resultado" class="form-select form-select-sm">
                           <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>Aguardando</option>
                           <option value="compareceu" {% if r.resultado_atendimento == 'compareceu' %}selected{% endif %}>Compareceu</option>
                           <option value="faltou" {% if r.resultado_atendimento == 'faltou' %}selected{% endif %}>Faltou</option>
                         </select>
-                        <input name="observacao" class="form-control form-control-sm" placeholder="Obs." value="{{ r.resultado_observacao }}" style="max-width: 180px;">
-                        <button class="btn btn-sm btn-primary" title="Salvar resultado">
+                        <input name="ex-{{ r.pk }}-observacao" class="form-control form-control-sm" placeholder="Obs." value="{{ r.resultado_observacao }}" style="max-width: 180px;">
+                        <button type="submit" class="btn btn-success btn-sm" title="Aplicar apenas esta linha">
                           <i class="bi bi-check2"></i>
                         </button>
-                      </form>
+                      </div>
                       {% endif %}
                     </div>
                   </td>
+                  <td class="text-nowrap">
+                    <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+                  </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center py-3">Sem exames agendados.</td></tr>
+                <tr><td colspan="7" class="text-center py-3">Sem exames agendados.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
-          </div>
+            </div>
+            <div class="d-flex justify-content-end p-2">
+              <button class="btn btn-success btn-sm">
+                <i class="bi bi-check2-circle"></i> Salvar alterações
+              </button>
+            </div>
+          </form>
         </div>
       </div>
       {% if pend_exames %}
