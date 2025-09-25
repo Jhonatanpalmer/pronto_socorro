@@ -4,38 +4,44 @@
 {% block title %}Importar SIGTAP{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="fw-bold"><i class="bi bi-upload"></i> Importar SIGTAP (Tipos de Exame)</h2>
-      <p class="text-muted mb-0">Envie o pacote do SIGTAP (.rar ou .zip) para preencher/atualizar a tabela de tipos de exame.</p>
-    </div>
-    <div>
-      <a href="{% url 'tipo-exame-list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+<div class="container py-4 py-md-5">
+  <!-- Hero -->
+  <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #0dcaf0, #6610f2); box-shadow: 0 8px 24px rgba(102,16,242,.25);">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+      <div class="display-6"><i class="bi bi-upload"></i></div>
+      <div class="flex-grow-1">
+        <h2 class="fw-bold mb-1">Importar SIGTAP</h2>
+        <div class="text-white-50">Envie .rar ou .zip para atualizar os Tipos de Exame</div>
+      </div>
+      <div>
+        <a href="{% url 'tipo-exame-list' %}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar</a>
+      </div>
     </div>
   </div>
 
-  <div class="alert alert-info">
-    <div class="d-flex"> 
-      <div class="me-3"><i class="bi bi-info-circle-fill fs-4"></i></div>
-      <div>
-        <strong>Dicas:</strong>
-        <ul class="mb-0">
-          <li>Você pode enviar .rar (precisa de suporte a extração no servidor) ou .zip.</li>
-          <li>São necessários arquivos <code>tb_procedimento</code> (CSV/TXT com ;). Opcional: <code>tb_procedimento_valor</code> para importar preços.</li>
-          <li>Use os filtros para limitar por grupos (CO_GRUPO) e/ou por termos no nome (NO_PROCEDIMENTO).</li>
+  <div class="alert alert-info shadow-sm">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+      <div class="text-info"><i class="bi bi-info-circle-fill fs-4"></i></div>
+      <div class="flex-grow-1">
+        <strong>Como funciona:</strong>
+        <ul class="mb-0 small">
+          <li>Envie um pacote .zip ou .rar contendo os arquivos do SIGTAP.</li>
+          <li>Obrigatório: arquivo <code>tb_procedimento</code> (CSV/TXT separado por ;) com cabeçalho.</li>
+          <li>Opcional: <code>tb_procedimento_valor</code> para preencher valores.</li>
+          <li>Use filtros para limitar por grupos (CO_GRUPO) e/ou por termos do nome (NO_PROCEDIMENTO).</li>
         </ul>
       </div>
     </div>
   </div>
 
-  <form method="post" enctype="multipart/form-data" class="card shadow-sm">
+  <form method="post" enctype="multipart/form-data" class="card shadow-sm app-card">
+    <div class="app-accent accent-cyan"></div>
     <div class="card-body">
       {% csrf_token %}
       <div class="row g-3">
         <div class="col-12">
           <label class="form-label">{{ form.arquivo.label }} *</label>
-          {{ form.arquivo }}
+          {{ form.arquivo|add_class:"form-control" }}
           <div class="form-text">{{ form.arquivo.help_text }}</div>
           {% if form.arquivo.errors %}
           <div class="text-danger small">{{ form.arquivo.errors|join:', ' }}</div>
@@ -52,10 +58,9 @@
           <div class="form-text">{{ form.name_contains.help_text }}</div>
         </div>
         <div class="col-md-2">
-          <label class="form-label d-block">{{ form.set_valor.label }}</label>
-          <div class="form-check">
+          <div class="form-check mt-4">
             {{ form.set_valor|add_class:"form-check-input" }}
-            <label class="form-check-label">Importar</label>
+            <label class="form-check-label">{{ form.set_valor.label }}</label>
           </div>
         </div>
         <div class="col-md-3">
@@ -70,5 +75,11 @@
       <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Importar</button>
     </div>
   </form>
+
+  <style>
+    .app-card { border: none; border-radius: 1rem; overflow: hidden; }
+    .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #0dcaf0); }
+    .accent-cyan { --accent-grad: linear-gradient(90deg, #0dcaf0, #6610f2); }
+  </style>
 </div>
 {% endblock %}

@@ -154,6 +154,17 @@ class RegulacaoExame(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
+    # Resultado do atendimento (marcado após a data agendada)
+    RESULTADO_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('compareceu', 'Compareceu'),
+        ('faltou', 'Faltou'),
+    ]
+    resultado_atendimento = models.CharField('Resultado do Atendimento', max_length=12, choices=RESULTADO_CHOICES, default='pendente', db_index=True)
+    resultado_observacao = models.TextField('Observação do Resultado', blank=True)
+    resultado_em = models.DateTimeField('Resultado registrado em', null=True, blank=True)
+    resultado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='Resultado registrado por')
+    
     class Meta:
         verbose_name = 'Regulação de Exame'
         verbose_name_plural = 'Regulações de Exames'
@@ -194,6 +205,14 @@ class RegulacaoExame(models.Model):
             'emergencia': 'bg-danger',
         }
         return classes.get(self.prioridade, 'bg-primary')
+
+    def get_resultado_badge_class(self):
+        classes = {
+            'pendente': 'bg-secondary',
+            'compareceu': 'bg-success',
+            'faltou': 'bg-danger',
+        }
+        return classes.get(self.resultado_atendimento or 'pendente', 'bg-secondary')
 
 
 class Especialidade(models.Model):
@@ -284,6 +303,17 @@ class RegulacaoConsulta(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
+    # Resultado do atendimento (marcado após a data agendada)
+    RESULTADO_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('compareceu', 'Compareceu'),
+        ('faltou', 'Faltou'),
+    ]
+    resultado_atendimento = models.CharField('Resultado do Atendimento', max_length=12, choices=RESULTADO_CHOICES, default='pendente', db_index=True)
+    resultado_observacao = models.TextField('Observação do Resultado', blank=True)
+    resultado_em = models.DateTimeField('Resultado registrado em', null=True, blank=True)
+    resultado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='Resultado registrado por')
+
     class Meta:
         verbose_name = 'Regulação de Consulta'
         verbose_name_plural = 'Regulações de Consultas'
@@ -321,3 +351,11 @@ class RegulacaoConsulta(models.Model):
             'emergencia': 'bg-danger',
         }
         return classes.get(self.prioridade, 'bg-primary')
+
+    def get_resultado_badge_class(self):
+        classes = {
+            'pendente': 'bg-secondary',
+            'compareceu': 'bg-success',
+            'faltou': 'bg-danger',
+        }
+        return classes.get(self.resultado_atendimento or 'pendente', 'bg-secondary')

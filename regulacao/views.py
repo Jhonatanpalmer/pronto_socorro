@@ -14,6 +14,7 @@ from django.core.paginator import Paginator
 from .models import UBS, MedicoSolicitante, TipoExame, RegulacaoExame, Especialidade, RegulacaoConsulta
 from pacientes.models import Paciente
 from django.http import JsonResponse
+from django.utils import timezone
 import base64
 from io import BytesIO
 from .forms import (
@@ -181,6 +182,23 @@ class TipoExameListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     template_name = 'regulacao/tipoexame_list.html'
     context_object_name = 'tipoexame_list'
     ordering = ['nome']
+    paginate_by = 20
+
+    def get_queryset(self):
+        qs = super().get_queryset().order_by('nome')
+        q = (self.request.GET.get('q') or '').strip()
+        if q:
+            qs = qs.filter(
+                Q(nome__icontains=q) |
+                Q(codigo__icontains=q) |
+                Q(codigo_sus__icontains=q)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['q'] = (self.request.GET.get('q') or '').strip()
+        return context
 
 
 class TipoExameCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
@@ -283,7 +301,6 @@ class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
         context['current_ubs'] = (self.request.GET.get('ubs') or '').strip()
         context['current_tipo_exame'] = (self.request.GET.get('tipo_exame') or '').strip()
         context['q'] = (self.request.GET.get('q') or '').strip()
-        from django.utils import timezone
         hoje = timezone.localdate()
         context['hoje'] = hoje
 
@@ -1260,6 +1277,80 @@ def comprovantes_consultas(request):
         'qtd': qs.count(),
         'show_details': request.GET.get('detalhes') in ('1','true','True','sim','yes'),
     })
+
+
+# ============ Resultado de Atendimento (Compareceu/Faltou) ============
+
+@login_required
+@require_access('regulacao')
+def registrar_resultado_exame(request, pk: int):
+    if request.method != 'POST':
+        return redirect('regulacao-agenda')
+    reg = get_object_or_404(RegulacaoExame, pk=pk)
+    # somente para autorizados com data agendada
+    if reg.status != 'autorizado' or not reg.data_agendada:
+        messages.error(request, 'Somente itens autorizados e com data agendada podem receber resultado.')
+        return redirect(_back_to_agenda(request))
+    hoje = timezone.localdate()
+    if reg.data_agendada > hoje:
+        messages.error(request, 'Não é possível registrar resultado antes da data agendada.')
+        return redirect(_back_to_agenda(request))
+    val = (request.POST.get('resultado') or '').strip()
+    obs = (request.POST.get('observacao') or '').strip()
+    if val not in ('compareceu', 'faltou', 'pendente'):
+        messages.error(request, 'Resultado inválido.')
+        return redirect(_back_to_agenda(request))
+    reg.resultado_atendimento = val
+    reg.resultado_observacao = obs
+    reg.resultado_por = request.user
+    reg.resultado_em = timezone.now()
+    reg.save(update_fields=['resultado_atendimento','resultado_observacao','resultado_por','resultado_em','atualizado_em'])
+    messages.success(request, 'Resultado do atendimento registrado.')
+    return redirect(_back_to_agenda(request, default_only='ex', default_hash='#exames-pane'))
+
+
+@login_required
+@require_access('regulacao')
+def registrar_resultado_consulta(request, pk: int):
+    if request.method != 'POST':
+        return redirect('regulacao-agenda')
+    reg = get_object_or_404(RegulacaoConsulta, pk=pk)
+    if reg.status != 'autorizado' or not reg.data_agendada:
+        messages.error(request, 'Somente itens autorizados e com data agendada podem receber resultado.')
+        return redirect(_back_to_agenda(request))
+    hoje = timezone.localdate()
+    if reg.data_agendada > hoje:
+        messages.error(request, 'Não é possível registrar resultado antes da data agendada.')
+        return redirect(_back_to_agenda(request))
+    val = (request.POST.get('resultado') or '').strip()
+    obs = (request.POST.get('observacao') or '').strip()
+    if val not in ('compareceu', 'faltou', 'pendente'):
+        messages.error(request, 'Resultado inválido.')
+        return redirect(_back_to_agenda(request))
+    reg.resultado_atendimento = val
+    reg.resultado_observacao = obs
+    reg.resultado_por = request.user
+    reg.resultado_em = timezone.now()
+    reg.save(update_fields=['resultado_atendimento','resultado_observacao','resultado_por','resultado_em','atualizado_em'])
+    messages.success(request, 'Resultado do atendimento registrado.')
+    return redirect(_back_to_agenda(request, default_only='co', default_hash='#consultas-pane'))
+
+
+def _back_to_agenda(request, default_only: str | None = None, default_hash: str = '') -> str:
+    """Monta uma URL de retorno à agenda preservando filtros e aba."""
+    base = '/regulacao/agenda/'
+    from django.utils.http import urlencode
+    params = []
+    for k in request.GET.keys():
+        for v in request.GET.getlist(k):
+            params.append((k, v))
+    # Se não há "only" e foi fornecido um default, usar
+    if default_only and not any(k == 'only' for k, _ in params):
+        params.append(('only', default_only))
+    qs = urlencode(params)
+    if qs:
+        return f"{base}?{qs}{default_hash}"
+    return f"{base}{default_hash}"
 
 @login_required
 @require_access('regulacao')

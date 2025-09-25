@@ -6,7 +6,21 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-4 py-md-5">
+    <!-- Hero -->
+    <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #0d6efd, #20c997); box-shadow: 0 8px 24px rgba(13,110,253,.25);">
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+            <div class="display-6"><i class="bi {% if form.instance.pk %}bi-pencil-square{% else %}bi-plus-circle{% endif %}"></i></div>
+            <div class="flex-grow-1">
+                <h2 class="fw-bold mb-1">{% if form.instance.pk %}Editar Viagem{% else %}Nova Viagem{% endif %}</h2>
+                <div class="text-white-50">Cadastre as informações do deslocamento</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'viagem-list' %}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar</a>
+            </div>
+        </div>
+    </div>
+
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb bg-transparent p-0 mb-4">
             <li class="breadcrumb-item">
@@ -22,19 +36,8 @@
 
     <div class="row justify-content-center">
         <div class="col-12 col-lg-9">
-            <div class="card shadow-lg border-0 rounded-3">
-                <div class="card-header bg-gradient bg-primary text-white rounded-top">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="bi {% if form.instance.pk %}bi-pencil-square{% else %}bi-plus-circle{% endif %} me-2"></i>
-                            {% if form.instance.pk %}Editar Viagem{% else %}Nova Viagem{% endif %}
-                        </h5>
-                        <a href="{% url 'viagem-list' %}" class="btn btn-sm btn-light">
-                            <i class="bi bi-x-circle me-1"></i> Cancelar
-                        </a>
-                    </div>
-                </div>
-
+            <div class="card shadow-sm app-card border-0 rounded-3">
+                <div class="app-accent accent-primary"></div>
                 <div class="card-body p-4">
                     <form method="post" novalidate>
                         {% csrf_token %}
@@ -43,7 +46,7 @@
                                 {{ form.non_field_errors }}
                             </div>
                         {% endif %}
-                        <div class="row g-4">
+                        <div class="row g-3">
 
                             <!-- Paciente -->
                             <div class="col-12 col-md-6">
@@ -153,13 +156,9 @@
                         </div>
 
                         <!-- Botões -->
-                        <div class="d-flex justify-content-end gap-2 mt-5">
-                            <button type="reset" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar
-                            </button>
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-circle me-1"></i> Salvar
-                            </button>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</a>
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check2"></i> Salvar</button>
                         </div>
                     </form>
                 </div>
@@ -236,4 +235,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
+<style>
+    .app-card { border-radius: 1rem; overflow: hidden; }
+    .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #0d6efd); }
+    .accent-primary { --accent-grad: linear-gradient(90deg, #0d6efd, #20c997); }
+</style>
 {% endblock %}

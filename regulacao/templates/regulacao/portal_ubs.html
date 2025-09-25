@@ -1,59 +1,81 @@
 {% extends 'base.html' %}
 {% block title %}Regulação - Portal UBS{% endblock %}
 {% block content %}
-<div class="container py-4">
-  <div class="row mb-3">
-    <div class="col">
-      <h2 class="mb-0">Regulação</h2>
-      <div class="text-muted">Portal UBS{% if ubs_atual %}: {{ ubs_atual.nome }}{% endif %}</div>
+<div class="container py-4 py-md-5">
+  <!-- Hero -->
+  <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #20c997, #0dcaf0); box-shadow: 0 8px 24px rgba(13,110,253,.2);">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-dark">
+      <div class="display-6"><i class="bi bi-hospital"></i></div>
+      <div class="flex-grow-1">
+        <h2 class="fw-bold mb-1">Regulação</h2>
+        <div class="text-dark-50">Portal da UBS{% if ubs_atual %}: {{ ubs_atual.nome }}{% endif %}</div>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'regulacao-agenda' %}" class="btn btn-dark"><i class="bi bi-calendar2-week"></i> Agenda</a>
+      </div>
     </div>
   </div>
-  {% if user.is_authenticated and acc_regulacao and not is_ubs_user %}
-  <div class="alert alert-info d-flex align-items-center" role="alert">
-    <i class="bi bi-info-circle me-2"></i>
-    Você possui acesso de Regulação. Para autorizar/negarem pedidos, acesse o histórico do paciente e use a página "Pedido do Paciente".
-  </div>
+
+  {% if messages %}
+    <div>
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mb-3">{{ message }}</div>
+      {% endfor %}
+    </div>
   {% endif %}
-  <div class="row g-3">
-    <div class="col-md-6">
+
+  <div class="row g-4">
+    <div class="col-12 col-md-6">
       <a class="text-decoration-none" href="{% url 'regulacao-create' %}">
-        <div class="card h-100 shadow-sm">
+        <div class="card h-100 app-card">
+          <div class="app-accent accent-primary"></div>
           <div class="card-body d-flex align-items-center">
-            <i class="bi bi-file-earmark-medical fs-1 text-primary me-3"></i>
+            <div class="display-6 text-primary me-3"><i class="bi bi-file-earmark-medical"></i></div>
             <div>
               <h5 class="card-title mb-1">Solicitar Exame</h5>
-              <p class="card-text text-muted mb-0">Criar um novo pedido de exame</p>
+              <div class="text-muted">Criar um novo pedido de exame</div>
             </div>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6">
+    <div class="col-12 col-md-6">
       <a class="text-decoration-none" href="{% url 'consulta-create' %}">
-        <div class="card h-100 shadow-sm">
+        <div class="card h-100 app-card">
+          <div class="app-accent accent-success"></div>
           <div class="card-body d-flex align-items-center">
-            <i class="bi bi-journal-medical fs-1 text-success me-3"></i>
+            <div class="display-6 text-success me-3"><i class="bi bi-journal-medical"></i></div>
             <div>
               <h5 class="card-title mb-1">Solicitar Consulta</h5>
-              <p class="card-text text-muted mb-0">Criar um novo pedido de consulta</p>
+              <div class="text-muted">Criar um novo pedido de consulta</div>
             </div>
           </div>
         </div>
       </a>
     </div>
-    <div class="col-md-6">
+    <div class="col-12 col-md-6">
       <a class="text-decoration-none" href="{% url 'regulacao-agenda' %}">
-        <div class="card h-100 shadow-sm">
+        <div class="card h-100 app-card">
+          <div class="app-accent accent-warning"></div>
           <div class="card-body d-flex align-items-center">
-            <i class="bi bi-calendar2-week fs-1 text-warning me-3"></i>
+            <div class="display-6 text-warning me-3"><i class="bi bi-calendar2-week"></i></div>
             <div>
               <h5 class="card-title mb-1">Agenda da UBS</h5>
-              <p class="card-text text-muted mb-0">Ver agendamentos da sua unidade</p>
+              <div class="text-muted">Ver agendamentos da sua unidade</div>
             </div>
           </div>
         </div>
       </a>
     </div>
   </div>
+
+  <style>
+    .app-card { border: none; box-shadow: 0 8px 24px rgba(0,0,0,.06); border-radius: 1rem; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+    .app-card:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgba(0,0,0,.12); }
+    .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #0d6efd); }
+    .accent-primary { --accent-grad: linear-gradient(90deg, #0d6efd, #6610f2); }
+    .accent-success { --accent-grad: linear-gradient(90deg, #198754, #20c997); }
+    .accent-warning { --accent-grad: linear-gradient(90deg, #ffc107, #fd7e14); }
+  </style>
 </div>
 {% endblock %}

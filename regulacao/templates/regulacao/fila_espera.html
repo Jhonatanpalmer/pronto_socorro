@@ -1,8 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}Fila de Espera{% endblock %}
 {% block content %}
-<div class="container py-4">
-  <h4 class="mb-3">Fila de Espera</h4>
+<div class="container py-4 py-md-5">
+  <!-- Hero -->
+  <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #ffc107, #fd7e14); box-shadow: 0 8px 24px rgba(253,126,20,.25);">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-dark">
+      <div class="display-6"><i class="bi bi-hourglass-split"></i></div>
+      <div class="flex-grow-1">
+        <h2 class="fw-bold mb-1">Fila de Espera</h2>
+        <div class="text-dark-50">Consultas e Exames aguardando</div>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'regulacao-agenda' %}" class="btn btn-dark"><i class="bi bi-calendar2-week"></i> Ver Agenda</a>
+      </div>
+    </div>
+  </div>
 
   <ul class="nav nav-pills mb-3" id="filaTabs" role="tablist">
     <li class="nav-item" role="presentation">
@@ -15,8 +27,9 @@
 
   <div class="tab-content" id="filaTabsContent">
     <div class="tab-pane fade {% if only != 'ex' %}show active{% endif %}" id="consultas-pane" role="tabpanel" aria-labelledby="consultas-tab" tabindex="0">
-      <div class="card h-100 shadow-sm mb-4" id="fila-consultas">
-        <div class="card-header bg-info text-dark"><strong>Consultas</strong></div>
+      <div class="card h-100 shadow-sm mb-4 app-card" id="fila-consultas">
+        <div class="app-accent accent-warning"></div>
+        <div class="card-header bg-transparent border-0 pt-3 pb-0"><strong>Consultas</strong></div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-center mb-2">
             <div class="col-12 col-md-5">
@@ -36,7 +49,7 @@
             </div>
             <div class="col-12 col-md-2 text-md-end">
               <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}"><i class="bi bi-x"></i></a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}?only=co#consultas-pane" title="Limpar filtros mantendo a aba"><i class="bi bi-x"></i></a>
             </div>
           </form>
           <div class="table-responsive">
@@ -115,8 +128,9 @@
     </div>
 
   <div class="tab-pane fade {% if only == 'ex' %}show active{% endif %}" id="exames-pane" role="tabpanel" aria-labelledby="exames-tab" tabindex="0">
-      <div class="card h-100 shadow-sm" id="fila-exames">
-        <div class="card-header bg-info text-dark"><strong>Exames</strong></div>
+      <div class="card h-100 shadow-sm app-card" id="fila-exames">
+        <div class="app-accent accent-primary"></div>
+        <div class="card-header bg-transparent border-0 pt-3 pb-0"><strong>Exames</strong></div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-center mb-2">
             <div class="col-12 col-md-5">
@@ -136,7 +150,7 @@
             </div>
             <div class="col-12 col-md-2 text-md-end">
               <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}"><i class="bi bi-x"></i></a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'regulacao-fila' %}?only=ex#exames-pane" title="Limpar filtros mantendo a aba"><i class="bi bi-x"></i></a>
             </div>
           </form>
           <div class="table-responsive">
@@ -214,5 +228,25 @@
       </div>
     </div>
   </div>
+  <style>
+    .app-card { border: none; border-radius: 1rem; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+    .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #0d6efd); }
+    .accent-primary { --accent-grad: linear-gradient(90deg, #0d6efd, #6610f2); }
+    .accent-warning { --accent-grad: linear-gradient(90deg, #ffc107, #fd7e14); }
+  </style>
+
+  <script>
+    // Manter URL com parâmetro only ao alternar as abas (para persistir estado em reloads)
+    (function(){
+      const tabs = document.getElementById('filaTabs');
+      if (!tabs) return;
+      tabs.addEventListener('shown.bs.tab', function (e) {
+        const target = e.target?.getAttribute('data-bs-target') || '';
+        const url = new URL(window.location.href);
+        if (target === '#exames-pane') { url.searchParams.set('only', 'ex'); location.replace(url.toString() + '#exames-pane'); }
+        else { url.searchParams.set('only', 'co'); location.replace(url.toString() + '#consultas-pane'); }
+      });
+    })();
+  </script>
 </div>
 {% endblock %}

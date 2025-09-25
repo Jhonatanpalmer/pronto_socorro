@@ -58,6 +58,9 @@ urlpatterns = [
     # Comprovantes (Exames)
     path('regulacao/<int:pk>/comprovante/', views.comprovante_exame, name='comprovante-exame'),
     path('regulacao/comprovantes/', views.comprovantes_exames, name='comprovantes-exames'),
+    # Resultado de atendimento (Compareceu/Faltou)
+    path('regulacao/<int:pk>/resultado/', views.registrar_resultado_exame, name='resultado-exame'),
+    path('consultas/<int:pk>/resultado/', views.registrar_resultado_consulta, name='resultado-consulta'),
     # Auxiliar (AJAX) - alertas de exames por paciente
     path('regulacao/alertas/', views.exame_paciente_alertas, name='exame-alertas'),
 ]

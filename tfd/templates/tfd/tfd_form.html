@@ -5,32 +5,30 @@
 {% block title %}TFD - Formulário{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">{% if form.instance.pk %}Editar{% else %}Novo{% endif %} registro de TFD</h5>
-                <small class="text-light">Preencha os dados do paciente e da viagem</small>
+<div class="container py-4 py-md-5">
+    <!-- Hero -->
+    <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #198754, #20c997); box-shadow: 0 8px 24px rgba(25,135,84,.25);">
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+            <div class="display-6"><i class="bi bi-journal-plus"></i></div>
+            <div class="flex-grow-1">
+                <h2 class="fw-bold mb-1">{% if form.instance.pk %}Editar{% else %}Novo{% endif %} TFD</h2>
+                <div class="text-white-50">Preencha os dados do paciente, viagem e valores</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'tfd-list' %}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar</a>
             </div>
         </div>
+    </div>
+
+    <div class="card shadow-sm app-card">
+        <div class="app-accent accent-success"></div>
         <div class="card-body">
             <style>
-                /* endereço mais compacto */
                 .tf-address textarea.form-control { min-height: 56px; max-height: 120px; resize: vertical; }
             </style>
 
             <script>
-                // calcula total e escuta mudanças — defensivo (checa existência antes de usar)
-                function calcularTotal() {
-                    const diariasEl = document.getElementById('id_numero_diarias');
-                    const valorEl = document.getElementById('id_valor_diaria');
-                    const totalEl = document.getElementById('id_valor_total');
-                    const diarias = diariasEl ? parseFloat(diariasEl.value) || 0 : 0;
-                    const valor = valorEl ? parseFloat(valorEl.value) || 0 : 0;
-                    const total = (diarias * valor).toFixed(2);
-                    if (totalEl) totalEl.value = total;
-                }
-
+                // Atualiza número de diárias a partir do período
                 function calcularDiariasPorPeriodo() {
                     const inicioEl = document.getElementById('id_data_inicio');
                     const fimEl = document.getElementById('id_data_fim');
@@ -44,21 +42,20 @@
                         const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
                         const diasValid = dias > 0 ? dias : 1;
                         const numEl = document.getElementById('id_numero_diarias');
-                        if (numEl) numEl.value = diasValid;
-                        calcularTotal();
+                        if (numEl) {
+                            numEl.value = diasValid;
+                            // dispara evento para recálculo de total em outros listeners
+                            try { numEl.dispatchEvent(new Event('input')); } catch (e) {}
+                        }
                     }
                 }
 
                 document.addEventListener('DOMContentLoaded', function () {
                     const inicioEl = document.getElementById('id_data_inicio');
                     const fimEl = document.getElementById('id_data_fim');
-                    const numEl = document.getElementById('id_numero_diarias');
-                    const valEl = document.getElementById('id_valor_diaria');
 
                     if (inicioEl) inicioEl.addEventListener('change', calcularDiariasPorPeriodo);
                     if (fimEl) fimEl.addEventListener('change', calcularDiariasPorPeriodo);
-                    if (numEl) numEl.addEventListener('input', calcularTotal);
-                    if (valEl) valEl.addEventListener('input', calcularTotal);
 
                     // set default data para hoje no inicio se estiver vazio
                     if (inicioEl && !inicioEl.value) {
@@ -68,66 +65,65 @@
                 });
             </script>
 
-            <form id="tfd-form" method="post" class="row g-3 needs-validation" novalidate>
+            <form id="tfd-form" method="post" class="needs-validation" novalidate>
                 {% csrf_token %}
 
+                <div class="row g-3">
+                    <div class="col-12">
+                        <h6 class="text-uppercase text-muted mb-2">Dados do Paciente</h6>
+                    </div>
                     <div class="col-md-6 position-relative">
                         <label class="form-label">Paciente (vinculado)</label>
-                        <!-- Busca rápida por pacientes -->
                         <input type="text" id="tfd-busca-paciente" class="form-control mb-2" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
                         <div id="tfd-resultado-paciente" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
                         {{ form.paciente|add_class:"form-select" }}
                         <div class="form-text">Selecione um paciente para preencher automaticamente os dados do paciente.</div>
                     </div>
-
                     <div class="col-md-6">
                         <label class="form-label">Acompanhante (se houver)</label>
                         {{ form.paciente_nome|add_class:"form-control" }}
                     </div>
-
                     <div class="col-md-3">
                         <label class="form-label">CPF</label>
                         {{ form.paciente_cpf|add_class:"form-control" }}
                     </div>
-
                     <div class="col-md-3">
                         <label class="form-label">CNS</label>
                         {{ form.paciente_cns|add_class:"form-control" }}
                     </div>
-
                     <div class="col-md-8 tf-address">
                         <label class="form-label">Endereço</label>
                         {{ form.paciente_endereco|add_class:"form-control" }}
                         <div class="form-text">Formato curto: rua, nº, bairro. Máx. 300 caracteres.</div>
                     </div>
-
                     <div class="col-md-4">
                         <label class="form-label">Telefone</label>
                         {{ form.paciente_telefone|add_class:"form-control" }}
                     </div>
 
-
-
+                    <div class="col-12 mt-2">
+                        <h6 class="text-uppercase text-muted mb-2">Viagem</h6>
+                    </div>
                     <div class="col-md-6">
                         <label class="form-label">Cidade de destino</label>
                         {{ form.cidade_destino|add_class:"form-control" }}
                     </div>
-
                     <div class="col-md-3">
                         <label class="form-label">Data início</label>
                         {{ form.data_inicio|add_class:"form-control" }}
                     </div>
-
                     <div class="col-md-3">
                         <label class="form-label">Data fim</label>
                         {{ form.data_fim|add_class:"form-control" }}
                     </div>
 
+                    <div class="col-12 mt-2">
+                        <h6 class="text-uppercase text-muted mb-2">Valores</h6>
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label">Número de diárias</label>
                         {{ form.numero_diarias|add_class:"form-control" }}
                     </div>
-
                     <div class="col-md-4">
                         <label class="form-label">Valor da diária (R$)</label>
                         <div class="input-group">
@@ -135,7 +131,6 @@
                             {{ form.valor_diaria|add_class:"form-control text-end" }}
                         </div>
                     </div>
-
                     <div class="col-md-4">
                         <label class="form-label">Valor do Auxílio Municipal (R$)</label>
                         <div class="input-group">
@@ -143,7 +138,6 @@
                             {{ form.valor_beneficio|add_class:"form-control text-end" }}
                         </div>
                     </div>
-
                     <div class="col-md-6">
                         <label class="form-label">Valor total (R$)</label>
                         <div class="input-group">
@@ -152,18 +146,15 @@
                         </div>
                         <div class="form-text">Calculado automaticamente como <code>valor_beneficio + (valor_diaria × número_diarias)</code> se não informado.</div>
                     </div>
-
                     <div class="col-md-6">
                         <label class="form-label">Observações</label>
                         {{ form.observacoes|add_class:"form-control" }}
                     </div>
-
-                    <!-- assinatura/autoriza    fields removed -->
                 </div>
 
-                <div class="mt-4 d-flex justify-content-end">
-                    <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary me-2">Cancelar</a>
-                    <button type="submit" class="btn btn-success">Salvar registro</button>
+                <div class="card-footer bg-transparent border-0 px-0 mt-4 d-flex justify-content-end gap-2">
+                    <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</a>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check2"></i> Salvar registro</button>
                 </div>
             </form>
         </div>
@@ -283,5 +274,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
+<style>
+    .app-card { border: none; border-radius: 1rem; overflow: hidden; }
+    .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #198754); }
+    .accent-success { --accent-grad: linear-gradient(90deg, #198754, #20c997); }
+</style>
 
 {% endblock %}

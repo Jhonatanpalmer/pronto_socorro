@@ -1,60 +1,182 @@
 {% extends 'base.html' %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
-<h2 class="mb-3">{{ title }}</h2>
-<form method="post" class="card p-3">
-  {% csrf_token %}
-  <div class="row g-3">
-    {% for field in form %}
-      <div class="col-md-6">
-        <label class="form-label">{{ field.label }}</label>
-        {{ field }}
-        {% if field.name == 'ubs' %}
-          <div class="mt-1">
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'ubs-list' %}"><i class="bi bi-building"></i> Gerenciar UBS</a>
-            <a class="btn btn-sm btn-outline-primary" href="{% url 'ubs-create' %}"><i class="bi bi-plus-circle"></i> Nova UBS</a>
-          </div>
-        {% endif %}
-        {% if field.help_text %}<small class="text-muted d-block">{{ field.help_text }}</small>{% endif %}
-        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+<div class="container py-3 py-md-4">
+  <!-- Hero -->
+  <div class="p-4 p-md-4 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #0d6efd, #6610f2); box-shadow: 0 8px 24px rgba(13,110,253,.2);">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+      <div class="display-6"><i class="bi bi-person-plus-fill"></i></div>
+      <div class="flex-grow-1">
+        <h2 class="fw-bold mb-0">{{ title }}</h2>
+        <div class="text-white-50">Crie usuários com grupos e UBS vinculada</div>
       </div>
-    {% endfor %}
-  </div>
-  {% if form.instance.pk %}
-  <hr/>
-  <div class="row g-3">
-    <div class="col-12">
-      <h5 class="mb-2">Resumo de Acesso</h5>
-      <div>
-        {% for g in form.instance.groups.all %}
-          <div class="mb-2 p-2 border rounded">
-            <strong>Grupo:</strong> {{ g.name }}
-            {% if g.access %}
-              <div class="small text-muted mt-1">
-                Pode: 
-                {% if g.access.can_pacientes %}<span class="badge bg-secondary me-1">Pacientes</span>{% endif %}
-                {% if g.access.can_viagens %}<span class="badge bg-secondary me-1">Viagens</span>{% endif %}
-                {% if g.access.can_tfd %}<span class="badge bg-secondary me-1">TFD</span>{% endif %}
-                {% if g.access.can_regulacao %}<span class="badge bg-secondary me-1">Regulação</span>{% endif %}
-                {% if g.access.can_users_admin %}<span class="badge bg-secondary me-1">Admin Usuários</span>{% endif %}
-                {% if not g.access.can_pacientes and not g.access.can_viagens and not g.access.can_tfd and not g.access.can_regulacao and not g.access.can_users_admin %}
-                  <span class="text-muted">Nenhum módulo liberado</span>
-                {% endif %}
-              </div>
-            {% else %}
-              <div class="small text-muted">Sem configurações de acesso (o sistema criará automaticamente ao salvar o grupo).</div>
-            {% endif %}
-          </div>
-        {% empty %}
-          <div class="text-muted">Usuário sem grupos.</div>
-        {% endfor %}
+      <div class="d-flex gap-2">
+        <a class="btn btn-light" href="{% url 'users-list' %}"><i class="bi bi-people"></i> Lista de Usuários</a>
+        <a class="btn btn-outline-light" href="{% url 'groups-list' %}"><i class="bi bi-diagram-3"></i> Gerenciar Grupos</a>
       </div>
     </div>
   </div>
-  {% endif %}
-  <div class="mt-3 d-flex gap-2">
-    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Salvar</button>
-    <a class="btn btn-secondary" href="{% url 'users-list' %}">Cancelar</a>
-  </div>
-</form>
+
+  <form method="post" class="card border-0 shadow-sm rounded-3">
+    {% csrf_token %}
+    <div class="card-body p-3 p-md-4">
+      <!-- Mensagens globais -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="row g-4">
+        <!-- Coluna esquerda: dados pessoais e credenciais -->
+        <div class="col-12 col-lg-6">
+          <div class="mb-3">
+            <h5 class="mb-2">Dados do Usuário</h5>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ form.username.label }}</label>
+                {{ form.username }}
+                {% for e in form.username.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ form.first_name.label }}</label>
+                {{ form.first_name }}
+                {% for e in form.first_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ form.last_name.label }}</label>
+                {{ form.last_name }}
+                {% for e in form.last_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3 form-section">
+            <h5 class="mb-2">Credenciais</h5>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ form.password.label }}</label>
+                <div class="input-group">
+                  {{ form.password }}
+                  <button class="btn btn-outline-secondary" type="button" id="togglePwd"><i class="bi bi-eye"></i></button>
+                </div>
+                {% if form.password.help_text %}<small class="text-muted d-block">{{ form.password.help_text }}</small>{% endif %}
+                {% for e in form.password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                <div class="form-label">Permissões</div>
+                <div class="d-flex flex-column gap-2">
+                  <div class="form-check">
+                    {{ form.is_active }} <label class="form-check-label ms-1" for="id_is_active">Ativo</label>
+                  </div>
+                  <div class="form-check">
+                    {{ form.is_staff }} <label class="form-check-label ms-1" for="id_is_staff">Equipe (Staff)</label>
+                  </div>
+                  <div class="form-check">
+                    {{ form.is_superuser }} <label class="form-check-label ms-1" for="id_is_superuser">Superusuário</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna direita: grupos, UBS e permissões -->
+        <div class="col-12 col-lg-6">
+          <div class="mb-3 form-section">
+            <h5 class="mb-2">Grupos</h5>
+            <div class="border rounded p-3 checkbox-grid">
+              {{ form.groups }}
+            </div>
+            <div class="mt-2 d-flex gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'groups-list' %}"><i class="bi bi-people"></i> Gerenciar Grupos</a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'group-create' %}"><i class="bi bi-plus-circle"></i> Novo Grupo</a>
+            </div>
+            {% for e in form.groups.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3 form-section">
+            <h5 class="mb-2">UBS do Usuário</h5>
+            {{ form.ubs }}
+            <div class="mt-2 d-flex gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'ubs-list' %}"><i class="bi bi-building"></i> Gerenciar UBS</a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'ubs-create' %}"><i class="bi bi-plus-circle"></i> Nova UBS</a>
+            </div>
+            {% for e in form.ubs.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          {% if form.instance.pk %}
+          <div class="mb-2">
+            <h6 class="mb-2 text-muted">Resumo de Acesso</h6>
+            <div>
+              {% for g in form.instance.groups.all %}
+                <div class="mb-2 p-2 border rounded">
+                  <strong>Grupo:</strong> {{ g.name }}
+                  {% if g.access %}
+                    <div class="small text-muted mt-1">
+                      Pode:
+                      {% if g.access.can_pacientes %}<span class="badge bg-secondary me-1">Pacientes</span>{% endif %}
+                      {% if g.access.can_viagens %}<span class="badge bg-secondary me-1">Viagens</span>{% endif %}
+                      {% if g.access.can_tfd %}<span class="badge bg-secondary me-1">TFD</span>{% endif %}
+                      {% if g.access.can_regulacao %}<span class="badge bg-secondary me-1">Regulação</span>{% endif %}
+                      {% if g.access.can_users_admin %}<span class="badge bg-secondary me-1">Admin Usuários</span>{% endif %}
+                      {% if not g.access.can_pacientes and not g.access.can_viagens and not g.access.can_tfd and not g.access.can_regulacao and not g.access.can_users_admin %}
+                        <span class="text-muted">Nenhum módulo liberado</span>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <div class="small text-muted">Sem configurações de acesso (o sistema criará automaticamente ao salvar o grupo).</div>
+                  {% endif %}
+                </div>
+              {% empty %}
+                <div class="text-muted">Usuário sem grupos.</div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer bg-light d-flex justify-content-between align-items-center">
+      <div class="text-muted small">Campos obrigatórios indicados no formulário</div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-secondary" href="{% url 'users-list' %}">Cancelar</a>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Salvar</button>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    (function(){
+      const btn = document.getElementById('togglePwd');
+      if (!btn) return;
+      btn.addEventListener('click', function(){
+        const input = document.getElementById('id_password');
+        if (!input) return;
+        const isPwd = input.getAttribute('type') === 'password';
+        input.setAttribute('type', isPwd ? 'text' : 'password');
+        this.innerHTML = isPwd ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+      });
+    })();
+  </script>
+  <style>
+    /* Ensure full-width fields even if widgets lack .form-control */
+    .form-section input[type="text"],
+    .form-section input[type="email"],
+    .form-section input[type="password"],
+    .form-section select,
+    .form-section textarea { width: 100%; }
+    /* CheckboxSelectMultiple rendered as <ul><li>... */
+    .checkbox-grid ul { list-style: none; margin: 0; padding-left: 0; columns: 2; column-gap: 1.25rem; }
+    @media (max-width: 576px){ .checkbox-grid ul { columns: 1; } }
+    .checkbox-grid li { break-inside: avoid; margin-bottom: .35rem; }
+    .form-check input[type="checkbox"]{ margin-right: .5rem; }
+  </style>
+</div>
 {% endblock %}

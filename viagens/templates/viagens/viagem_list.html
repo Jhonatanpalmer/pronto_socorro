@@ -48,53 +48,54 @@
 }
 </style>
 
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-        <div>
-            <h2 class="fw-bold mb-0">Viagens</h2>
-            <p class="text-muted mb-0">Acompanhe as viagens registradas</p>
-        </div>
-
-        <div class="d-flex gap-2">
-            <a href="{% url 'viagem-create' %}" class="btn btn-success">
-                <i class="bi bi-plus-lg"></i> Nova Viagem
-            </a>
-            <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary">Atualizar</a>
+<div class="container py-4 py-md-5">
+    <!-- Hero -->
+    <div class="p-4 p-md-5 rounded-3 mb-4 no-print" style="background-image: linear-gradient(90deg, #0d6efd 0%, #20c997 100%); box-shadow: 0 8px 24px rgba(13,110,253,.25);">
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+            <div class="display-6"><i class="bi bi-truck"></i></div>
+            <div class="flex-grow-1">
+                <h2 class="fw-bold mb-1">Viagens</h2>
+                <div class="text-white-50">Acompanhe as viagens registradas</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'viagem-create' %}" class="btn btn-light text-primary"><i class="bi bi-plus-lg"></i> Nova Viagem</a>
+                <a href="{% url 'viagem-list' %}" class="btn btn-outline-light">Atualizar</a>
+                <a href="javascript:window.print()" class="btn btn-outline-light"><i class="bi bi-printer-fill"></i> Imprimir</a>
+            </div>
         </div>
     </div>
 
-    <div class="card shadow-sm mb-4 no-print">
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4 no-print border-0">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-funnel me-1"></i> Filtros</h6>
+        </div>
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
-                <div class="col-sm-4 col-md-3">
+                <div class="col-sm-6 col-md-3">
                     <label class="form-label small">Data (única)</label>
                     <input class="form-control form-control-sm" type="date" name="data" value="{{ filter_data }}">
                 </div>
-                <div class="col-sm-4 col-md-3">
+                <div class="col-sm-6 col-md-3">
                     <label class="form-label small">De</label>
                     <input class="form-control form-control-sm" type="date" name="start" value="{{ filter_start }}">
                 </div>
-                <div class="col-sm-4 col-md-3">
+                <div class="col-sm-6 col-md-3">
                     <label class="form-label small">Até</label>
                     <input class="form-control form-control-sm" type="date" name="end" value="{{ filter_end }}">
                 </div>
-                <div class="col-sm-4 col-md-3">
+                <div class="col-sm-6 col-md-3">
                     <label class="form-label small">Cidade</label>
                     <select class="form-select form-select-sm" name="cidade">
                         <option value="">Todas</option>
                         {% for cidade in cidades %}
-                            <option value="{{ cidade }}" {% if cidade == filter_cidade %}selected{% endif %}>
-                                {{ cidade }}
-                            </option>
+                            <option value="{{ cidade }}" {% if cidade == filter_cidade %}selected{% endif %}>{{ cidade }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-auto">
-                    <button type="submit" class="btn btn-primary btn-sm">Pesquisar</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Pesquisar</button>
                     <a href="{% url 'viagem-list' %}" class="btn btn-outline-secondary btn-sm ms-2">Limpar</a>
-                    <a href="javascript:window.print()" class="btn btn-outline-dark btn-sm ms-2">
-                        <i class="bi bi-printer-fill"></i> Imprimir
-                    </a>
                 </div>
             </form>
         </div>

@@ -3,31 +3,38 @@
 {% block title %}Tipos de Exames{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold">
-                <i class="bi bi-clipboard-data text-success"></i>
-                Tipos de Exames
-            </h2>
-            <p class="text-muted mb-0">Gerencie os tipos de exames disponíveis para solicitação</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{% url 'importar-sigtap' %}" class="btn btn-primary">
-                <i class="bi bi-cloud-arrow-up"></i> Importar SIGTAP
-            </a>
-            <a href="{% url 'tipo-exame-create' %}" class="btn btn-success">
-                <i class="bi bi-plus-lg"></i> Novo Tipo
-            </a>
-            <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Voltar
-            </a>
+<div class="container py-4 py-md-5">
+    <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #20c997, #0d6efd); box-shadow: 0 8px 24px rgba(13,110,253,.25);">
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+            <div class="display-6"><i class="bi bi-clipboard-data"></i></div>
+            <div class="flex-grow-1">
+                <h2 class="fw-bold mb-1">Tipos de Exames</h2>
+                <div class="text-white-50">Gerencie e pesquise por código ou nome</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'importar-sigtap' %}" class="btn btn-light text-primary"><i class="bi bi-cloud-arrow-up"></i> Importar SIGTAP</a>
+                <a href="{% url 'tipo-exame-create' %}" class="btn btn-dark"><i class="bi bi-plus-lg"></i> Novo Tipo</a>
+                <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar</a>
+            </div>
         </div>
     </div>
 
-    {% if tipoexame_list %}
-    <div class="card shadow-sm">
+    <div class="card shadow-sm app-card">
+        <div class="app-accent accent-teal"></div>
         <div class="card-body">
+            <form method="get" class="row g-2 align-items-center mb-3">
+                <div class="col-12 col-md-6">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Buscar por código, nome ou código SUS" autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 text-md-end">
+                    <button class="btn btn-sm btn-primary" type="submit">Buscar</button>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'tipo-exame-list' %}">Limpar</a>
+                </div>
+            </form>
+            {% if tipoexame_list %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
@@ -48,6 +55,9 @@
                             </td>
                             <td>
                                 <strong>{{ tipo.nome }}</strong>
+                                {% if tipo.codigo_sus %}
+                                <div class="small text-muted">SUS: {{ tipo.codigo_sus }}</div>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if tipo.descricao %}
@@ -85,14 +95,48 @@
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="alert alert-info shadow-sm text-center">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                Nenhum tipo de exame encontrado.
+            </div>
+            {% endif %}
+
+            {% if is_paginated %}
+            <nav class="mt-3" aria-label="Paginação">
+                <ul class="pagination pagination-sm justify-content-end mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}">Anterior</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                    {% endif %}
+
+                    {% for num in paginator.page_range %}
+                        {% if num == page_obj.number %}
+                        <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}">Próxima</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
-    {% else %}
-    <div class="alert alert-info shadow-sm text-center">
-        <i class="bi bi-info-circle-fill me-2"></i>
-        Nenhum tipo de exame cadastrado. 
-        <a href="{% url 'tipo-exame-create' %}" class="alert-link">Clique aqui para cadastrar o primeiro</a>.
-    </div>
-    {% endif %}
 </div>
+<style>
+  .app-card { border: none; border-radius: 1rem; overflow: hidden; }
+  .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #20c997); }
+  .accent-teal { --accent-grad: linear-gradient(90deg, #20c997, #0d6efd); }
+</style>
 {% endblock %}

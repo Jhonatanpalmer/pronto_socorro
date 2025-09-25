@@ -9,7 +9,7 @@
     <div class="card-body p-0">
       <table class="table mb-0">
         <thead>
-          <tr><th>Protocolo</th><th>Paciente</th><th>Exame</th><th>Status</th><th>Data/Hora</th></tr>
+          <tr><th>Protocolo</th><th>Paciente</th><th>Exame</th><th>Status</th><th>Resultado</th><th>Data/Hora</th></tr>
         </thead>
         <tbody>
           {% for r in exames %}
@@ -25,6 +25,12 @@
             </td>
             <td>{{ r.tipo_exame.nome }}</td>
             <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
+            <td>
+              <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+              {% if r.resultado_observacao %}
+                <i class="bi bi-info-circle text-muted" title="{{ r.resultado_observacao }}"></i>
+              {% endif %}
+            </td>
             <td>
               Solicitado: {{ r.data_solicitacao|date:'d/m/Y H:i' }}<br>
               {% if r.data_agendada %}Agendado: {{ r.data_agendada|date:'d/m/Y' }} {{ r.hora_agendada|time:'H:i' }}{% endif %}
@@ -43,7 +49,7 @@
     <div class="card-body p-0">
       <table class="table mb-0">
         <thead>
-          <tr><th>Protocolo</th><th>Paciente</th><th>Especialidade</th><th>Status</th><th>Data/Hora</th></tr>
+          <tr><th>Protocolo</th><th>Paciente</th><th>Especialidade</th><th>Status</th><th>Resultado</th><th>Data/Hora</th></tr>
         </thead>
         <tbody>
           {% for r in consultas %}
@@ -59,6 +65,12 @@
             </td>
             <td>{{ r.especialidade.nome }}</td>
             <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
+            <td>
+              <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+              {% if r.resultado_observacao %}
+                <i class="bi bi-info-circle text-muted" title="{{ r.resultado_observacao }}"></i>
+              {% endif %}
+            </td>
             <td>
               Solicitado: {{ r.data_solicitacao|date:'d/m/Y H:i' }}<br>
               {% if r.data_agendada %}Agendado: {{ r.data_agendada|date:'d/m/Y' }} {{ r.hora_agendada|time:'H:i' }}{% endif %}

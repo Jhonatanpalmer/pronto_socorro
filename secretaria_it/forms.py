@@ -15,6 +15,35 @@ class UserCreateForm(forms.ModelForm):
         model = User
         fields = ['username', 'first_name', 'last_name', 'email', 'is_active', 'is_staff', 'is_superuser', 'password', 'groups']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Text inputs
+        for name in ['username', 'first_name', 'last_name', 'email']:
+            if name in self.fields:
+                self.fields[name].widget.attrs.setdefault('class', 'form-control')
+        # Placeholders and autocomplete hints
+        if 'username' in self.fields:
+            self.fields['username'].widget.attrs.setdefault('placeholder', 'seu.usuario')
+            self.fields['username'].widget.attrs.setdefault('autocomplete', 'username')
+        if 'email' in self.fields:
+            self.fields['email'].widget.attrs.setdefault('placeholder', 'voce@exemplo.com')
+            self.fields['email'].widget.attrs.setdefault('autocomplete', 'email')
+        if 'first_name' in self.fields:
+            self.fields['first_name'].widget.attrs.setdefault('autocomplete', 'given-name')
+        if 'last_name' in self.fields:
+            self.fields['last_name'].widget.attrs.setdefault('autocomplete', 'family-name')
+        # Password
+        if 'password' in self.fields:
+            self.fields['password'].widget.attrs.setdefault('class', 'form-control')
+            self.fields['password'].widget.attrs.setdefault('autocomplete', 'new-password')
+        # Checkboxes (booleans)
+        for name in ['is_active', 'is_staff', 'is_superuser']:
+            if name in self.fields:
+                self.fields[name].widget.attrs.setdefault('class', 'form-check-input')
+        # Selects
+        if 'ubs' in self.fields:
+            self.fields['ubs'].widget.attrs.setdefault('class', 'form-select')
+
     def save(self, commit=True):
         user = super().save(commit=False)
         pwd = self.cleaned_data['password']
@@ -42,6 +71,36 @@ class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email', 'is_active', 'is_staff', 'is_superuser', 'password', 'groups']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Text inputs
+        for name in ['username', 'first_name', 'last_name', 'email']:
+            if name in self.fields:
+                self.fields[name].widget.attrs.setdefault('class', 'form-control')
+        # Placeholders and autocomplete hints
+        if 'username' in self.fields:
+            self.fields['username'].widget.attrs.setdefault('placeholder', 'seu.usuario')
+            self.fields['username'].widget.attrs.setdefault('autocomplete', 'username')
+        if 'email' in self.fields:
+            self.fields['email'].widget.attrs.setdefault('placeholder', 'voce@exemplo.com')
+            self.fields['email'].widget.attrs.setdefault('autocomplete', 'email')
+        if 'first_name' in self.fields:
+            self.fields['first_name'].widget.attrs.setdefault('autocomplete', 'given-name')
+        if 'last_name' in self.fields:
+            self.fields['last_name'].widget.attrs.setdefault('autocomplete', 'family-name')
+        # Password (optional)
+        if 'password' in self.fields:
+            self.fields['password'].widget.attrs.setdefault('class', 'form-control')
+            self.fields['password'].widget.attrs.setdefault('placeholder', 'Deixe em branco para manter')
+            self.fields['password'].widget.attrs.setdefault('autocomplete', 'new-password')
+        # Checkboxes (booleans)
+        for name in ['is_active', 'is_staff', 'is_superuser']:
+            if name in self.fields:
+                self.fields[name].widget.attrs.setdefault('class', 'form-check-input')
+        # Selects
+        if 'ubs' in self.fields:
+            self.fields['ubs'].widget.attrs.setdefault('class', 'form-select')
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -74,6 +133,13 @@ class GroupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Apply Bootstrap styling
+        if 'name' in self.fields:
+            self.fields['name'].widget.attrs.setdefault('class', 'form-control')
+            self.fields['name'].widget.attrs.setdefault('placeholder', 'Nome do grupo')
+        for name in ['can_pacientes','can_viagens','can_tfd','can_regulacao','can_users_admin']:
+            if name in self.fields:
+                self.fields[name].widget.attrs.setdefault('class', 'form-check-input')
         instance: Group = kwargs.get('instance')
         if instance and instance.pk:
             access, _ = GroupAccess.objects.get_or_create(group=instance)

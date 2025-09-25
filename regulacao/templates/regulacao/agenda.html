@@ -55,6 +55,7 @@
                   <th>Especialidade</th>
                   <th>UBS</th>
                   <th class="text-end d-print-none">Ações</th>
+                  <th class="text-nowrap">Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -66,11 +67,14 @@
                     <div class="fw-semibold">{{ r.paciente.nome }}</div>
                   </td>
                   <td>{{ r.especialidade.nome }}</td>
+                  <td class="text-nowrap">
+                    <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+                  </td>
                   <td>
                     <span class="d-inline-block text-truncate" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
                   </td>
                   <td class="text-end d-print-none">
-                    <div class="btn-group btn-group-sm" role="group">
+                    <div class="btn-group btn-group-sm align-items-stretch" role="group">
                       {% if not ubs_atual %}
                       <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-outline-secondary" title="Ver pedido do paciente">
                         <i class="bi bi-box-arrow-up-right"></i>
@@ -82,6 +86,21 @@
                       <a href="{% url 'comprovante-consulta' r.pk %}" class="btn btn-outline-success" title="Imprimir comprovante">
                         <i class="bi bi-printer"></i>
                       </a>
+                      {% if r.data_agendada and r.data_agendada <= hoje %}
+                      <form method="post" action="{% url 'resultado-consulta' r.pk %}" class="d-flex gap-1 ms-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="only" value="co">
+                        <select name="resultado" class="form-select form-select-sm">
+                          <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>—</option>
+                          <option value="compareceu" {% if r.resultado_atendimento == 'compareceu' %}selected{% endif %}>Compareceu</option>
+                          <option value="faltou" {% if r.resultado_atendimento == 'faltou' %}selected{% endif %}>Faltou</option>
+                        </select>
+                        <input name="observacao" class="form-control form-control-sm" placeholder="Obs." value="{{ r.resultado_observacao }}" style="max-width: 180px;">
+                        <button class="btn btn-sm btn-primary" title="Salvar resultado">
+                          <i class="bi bi-check2"></i>
+                        </button>
+                      </form>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>
@@ -153,16 +172,16 @@
           <nav class="mt-2">
             <ul class="pagination pagination-sm justify-content-end mb-0">
               {% if pend_co_page.has_previous %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco=1">«</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.previous_page_number }}">‹</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco=1#consultas-pane">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.previous_page_number }}#consultas-pane">‹</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">«</span></li>
               <li class="page-item disabled"><span class="page-link">‹</span></li>
               {% endif %}
               <li class="page-item disabled"><span class="page-link">Página {{ pend_co_page.number }} de {{ pend_co_page.paginator.num_pages }}</span></li>
               {% if pend_co_page.has_next %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.next_page_number }}">›</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.paginator.num_pages }}">»</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.next_page_number }}#consultas-pane">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.paginator.num_pages }}#consultas-pane">»</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">›</span></li>
               <li class="page-item disabled"><span class="page-link">»</span></li>
@@ -188,6 +207,7 @@
                   <th>Exame</th>
                   <th>UBS</th>
                   <th class="text-end d-print-none">Ações</th>
+                  <th class="text-nowrap">Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -199,11 +219,14 @@
                     <div class="fw-semibold">{{ r.paciente.nome }}</div>
                   </td>
                   <td>{{ r.tipo_exame.nome }}</td>
+                  <td class="text-nowrap">
+                    <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+                  </td>
                   <td>
                     <span class="d-inline-block text-truncate" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
                   </td>
                   <td class="text-end d-print-none">
-                    <div class="btn-group btn-group-sm" role="group">
+                    <div class="btn-group btn-group-sm align-items-stretch" role="group">
                       {% if not ubs_atual %}
                       <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-outline-secondary" title="Ver pedido do paciente">
                         <i class="bi bi-box-arrow-up-right"></i>
@@ -215,6 +238,21 @@
                       <a href="{% url 'comprovante-exame' r.pk %}" class="btn btn-outline-success" title="Imprimir comprovante">
                         <i class="bi bi-printer"></i>
                       </a>
+                      {% if r.data_agendada and r.data_agendada <= hoje %}
+                      <form method="post" action="{% url 'resultado-exame' r.pk %}" class="d-flex gap-1 ms-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="only" value="ex">
+                        <select name="resultado" class="form-select form-select-sm">
+                          <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>—</option>
+                          <option value="compareceu" {% if r.resultado_atendimento == 'compareceu' %}selected{% endif %}>Compareceu</option>
+                          <option value="faltou" {% if r.resultado_atendimento == 'faltou' %}selected{% endif %}>Faltou</option>
+                        </select>
+                        <input name="observacao" class="form-control form-control-sm" placeholder="Obs." value="{{ r.resultado_observacao }}" style="max-width: 180px;">
+                        <button class="btn btn-sm btn-primary" title="Salvar resultado">
+                          <i class="bi bi-check2"></i>
+                        </button>
+                      </form>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>
@@ -286,16 +324,16 @@
           <nav class="mt-2">
             <ul class="pagination pagination-sm justify-content-end mb-0">
               {% if pend_ex_page.has_previous %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex=1">«</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.previous_page_number }}">‹</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex=1#exames-pane">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.previous_page_number }}#exames-pane">‹</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">«</span></li>
               <li class="page-item disabled"><span class="page-link">‹</span></li>
               {% endif %}
               <li class="page-item disabled"><span class="page-link">Página {{ pend_ex_page.number }} de {{ pend_ex_page.paginator.num_pages }}</span></li>
               {% if pend_ex_page.has_next %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.next_page_number }}">›</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.paginator.num_pages }}">»</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.next_page_number }}#exames-pane">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.paginator.num_pages }}#exames-pane">»</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">›</span></li>
               <li class="page-item disabled"><span class="page-link">»</span></li>
@@ -373,16 +411,16 @@
           <nav class="mt-2">
             <ul class="pagination pagination-sm justify-content-end mb-0">
               {% if neg_ex_page.has_previous %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex=1">«</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.previous_page_number }}">‹</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex=1#exames-pane">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.previous_page_number }}#exames-pane">‹</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">«</span></li>
               <li class="page-item disabled"><span class="page-link">‹</span></li>
               {% endif %}
               <li class="page-item disabled"><span class="page-link">Página {{ neg_ex_page.number }} de {{ neg_ex_page.paginator.num_pages }}</span></li>
               {% if neg_ex_page.has_next %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.next_page_number }}">›</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.paginator.num_pages }}">»</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.next_page_number }}#exames-pane">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.paginator.num_pages }}#exames-pane">»</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">›</span></li>
               <li class="page-item disabled"><span class="page-link">»</span></li>
@@ -397,19 +435,31 @@
   </div>
 </div>
 <script>
-// Mantém o parâmetro 'only' de acordo com a aba ativa quando enviar o filtro superior
+// Mantém o parâmetro 'only' de acordo com a aba ativa e persiste na URL
 document.addEventListener('DOMContentLoaded', function () {
   var onlyInput = document.querySelector('form.agenda-filter input[name="only"]');
   function setOnly(val) { if (onlyInput) onlyInput.value = val; }
+  function persistUrl(val) {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('only', val);
+      var hash = (val === 'ex') ? '#exames-pane' : '#consultas-pane';
+      window.history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString() + hash);
+    } catch (e) { /* ignore */ }
+  }
   // Inicializa conforme aba ativa atual
   var isExamesActive = document.getElementById('exames-tab').classList.contains('active') || document.getElementById('exames-pane').classList.contains('show');
-  setOnly(isExamesActive ? 'ex' : 'co');
+  var initial = isExamesActive ? 'ex' : 'co';
+  setOnly(initial);
+  persistUrl(initial);
   // Atualiza quando trocar de aba
   var tabButtons = document.querySelectorAll('#agendaTabs button[data-bs-toggle="pill"]');
   tabButtons.forEach(function(btn){
     btn.addEventListener('shown.bs.tab', function(e){
       var target = e.target.getAttribute('data-bs-target');
-      setOnly(target === '#exames-pane' ? 'ex' : 'co');
+      var val = (target === '#exames-pane') ? 'ex' : 'co';
+      setOnly(val);
+      persistUrl(val);
     });
   });
 });

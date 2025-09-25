@@ -101,6 +101,7 @@ DATABASES['esus'] = {
     'PASSWORD': os.getenv('ESUS_DB_PASSWORD', ''),
     'HOST': os.getenv('ESUS_DB_HOST', 'localhost'),
     'PORT': os.getenv('ESUS_DB_PORT', '5432'),
+    
 }
 
 

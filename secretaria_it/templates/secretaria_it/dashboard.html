@@ -3,46 +3,82 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <!-- Boas-vindas -->
-    <div class="text-center mb-5">
-        <h1 class="fw-bold">Bem-vindo, {{ user.get_full_name|default:user.username }}!</h1>
-        <p class="text-muted">Selecione o aplicativo que deseja acessar:</p>
+<div class="container py-4 py-md-5">
+    <!-- Hero / Boas-vindas -->
+    <div class="p-4 p-md-5 rounded-3 text-white mb-4 mb-md-5" style="background-image: linear-gradient(90deg, #0d6efd 0%, #6610f2 100%); box-shadow: 0 8px 24px rgba(13,110,253,.25);">
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+            <div class="display-5"><i class="bi bi-speedometer2"></i></div>
+            <div class="flex-grow-1">
+                <h1 class="h2 h1-md fw-bold mb-1">Bem-vindo, {{ user.get_full_name|default:user.username }}!</h1>
+                <div class="text-white-50">Acesse os módulos do sistema de forma rápida e segura.</div>
+            </div>
+            <div class="ms-md-auto" style="min-width: 260px;">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-0"><i class="bi bi-search"></i></span>
+                    <input id="dashboardSearch" type="text" class="form-control border-0" placeholder="Buscar módulos...">
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Grid de apps -->
-    <div class="row g-4 justify-content-center">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="appsGrid">
         {% for app in apps %}
-        <div class="col-12 col-md-6 col-lg-4">
-            <div class="card shadow-sm border-0 h-100 hover-scale">
-                <div class="card-body text-center">
-                    <!-- Ícone -->
-                    <i class="bi {{ app.icone }} display-4 text-{{ app.cor }} mb-3"></i>
-
-                    <!-- Nome do app -->
-                    <h5 class="card-title fw-bold">{{ app.nome }}</h5>
-
-                    <!-- Descrição -->
-                    <p class="card-text text-muted">{{ app.descricao }}</p>
-
-                    <!-- Botão de acesso -->
-                    <a href="{% url app.url %}" class="btn btn-{{ app.cor }} mt-2">
-                        Acessar <i class="bi bi-arrow-right-circle ms-1"></i>
-                    </a>
+        <div class="col app-card-wrapper" data-app-name="{{ app.nome|lower }} {{ app.descricao|lower }}">
+            <div class="card app-card h-100">
+                <div class="app-accent accent-{{ app.cor }}"></div>
+                <div class="card-body text-center d-flex flex-column">
+                    <div class="mb-3">
+                        <i class="bi {{ app.icone }} display-5 text-{{ app.cor }}"></i>
+                    </div>
+                    <h5 class="card-title fw-semibold">{{ app.nome }}</h5>
+                    <p class="card-text text-muted small flex-grow-1">{{ app.descricao }}</p>
+                    <div class="mt-2">
+                        <a href="{% url app.url %}" class="btn btn-{{ app.cor }}">
+                            Acessar <i class="bi bi-arrow-right-circle ms-1"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
         {% empty %}
-        <p class="text-center text-muted">Você não possui aplicativos disponíveis.</p>
+        <div class="col-12">
+            <div class="alert alert-warning text-center">Você não possui aplicativos disponíveis.</div>
+        </div>
         {% endfor %}
     </div>
 </div>
 
-<!-- Estilo hover para os cards -->
 <style>
-.hover-scale:hover {
-    transform: translateY(-5px);
-    transition: all 0.3s ease-in-out;
-}
+/* App cards with accent bar and hover */
+.app-card { border: none; box-shadow: 0 8px 24px rgba(0,0,0,.06); border-radius: 1rem; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+.app-card:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgba(0,0,0,.12); }
+.app-accent { height: 6px; width: 100%; background: var(--accent-grad, #0d6efd); }
+
+/* Accent color mappings */
+.accent-primary { --accent-grad: linear-gradient(90deg, #0d6efd, #6610f2); }
+.accent-success { --accent-grad: linear-gradient(90deg, #198754, #20c997); }
+.accent-info    { --accent-grad: linear-gradient(90deg, #0dcaf0, #0d6efd); }
+.accent-warning { --accent-grad: linear-gradient(90deg, #ffc107, #fd7e14); }
+
+/* Search input polish */
+#dashboardSearch::placeholder { color: rgba(0,0,0,.45); }
+.input-group .form-control:focus { box-shadow: none; }
 </style>
+
+<script>
+// Filter apps by search
+document.addEventListener('DOMContentLoaded', function(){
+    var input = document.getElementById('dashboardSearch');
+    var cards = Array.from(document.querySelectorAll('#appsGrid .app-card-wrapper'));
+    if (!input) return;
+    input.addEventListener('input', function(){
+        var q = (input.value || '').toLowerCase().trim();
+        cards.forEach(function(c){
+            var hay = c.getAttribute('data-app-name') || '';
+            c.style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
+        });
+    });
+});
+</script>
 {% endblock %}
