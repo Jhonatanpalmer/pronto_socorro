@@ -2,23 +2,46 @@
 {% block title %}Agenda de Regulação{% endblock %}
 {% block content %}
 <div class="container py-4">
-  <h4 class="mb-3">Agenda de Atendimentos</h4>
+  <h4 class="mb-1">Agenda de Atendimentos</h4>
+  {% if ubs_atual %}
+    <div class="text-muted mb-3">UBS: {{ ubs_atual.nome }}</div>
+  {% else %}
+    <div class="text-muted mb-3">Todas as UBS</div>
+  {% endif %}
+
+  <!-- Filtros de Data da Agenda -->
+  <form method="get" class="row g-2 align-items-end mb-3 d-print-none agenda-filter">
+    <div class="col-md-3">
+      <label class="form-label">Início</label>
+      <input type="date" name="di" value="{{ di|default:hoje }}" class="form-control" min="{{ hoje }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Fim</label>
+      <input type="date" name="df" value="{{ df|default:hoje }}" class="form-control" min="{{ hoje }}">
+    </div>
+    <input type="hidden" name="only" value="{{ only|default:'co' }}">
+    <div class="col-md-6 d-flex justify-content-start gap-2">
+      <button class="btn btn-primary mt-4"><i class="bi bi-funnel"></i> Filtrar</button>
+      <a href="?di={{ hoje }}{% if df %}&df={{ df }}{% endif %}{% if only %}&only={{ only }}{% endif %}" class="btn btn-outline-secondary mt-4" title="Hoje">Hoje</a>
+      <a href="?{% if only %}only={{ only }}{% endif %}" class="btn btn-outline-secondary mt-4" title="Limpar">Limpar</a>
+    </div>
+  </form>
 
   <ul class="nav nav-pills mb-3" id="agendaTabs" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="consultas-tab" data-bs-toggle="pill" data-bs-target="#consultas-pane" type="button" role="tab" aria-controls="consultas-pane" aria-selected="true">
+      <button class="nav-link {% if only != 'ex' %}active{% endif %}" id="consultas-tab" data-bs-toggle="pill" data-bs-target="#consultas-pane" type="button" role="tab" aria-controls="consultas-pane" aria-selected="{% if only != 'ex' %}true{% else %}false{% endif %}">
         Consultas
       </button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="exames-tab" data-bs-toggle="pill" data-bs-target="#exames-pane" type="button" role="tab" aria-controls="exames-pane" aria-selected="false">
+      <button class="nav-link {% if only == 'ex' %}active{% endif %}" id="exames-tab" data-bs-toggle="pill" data-bs-target="#exames-pane" type="button" role="tab" aria-controls="exames-pane" aria-selected="{% if only == 'ex' %}true{% else %}false{% endif %}">
         Exames
       </button>
     </li>
   </ul>
 
   <div class="tab-content" id="agendaTabsContent">
-    <div class="tab-pane fade show active" id="consultas-pane" role="tabpanel" aria-labelledby="consultas-tab" tabindex="0">
+    <div class="tab-pane fade {% if only != 'ex' %}show active{% endif %}" id="consultas-pane" role="tabpanel" aria-labelledby="consultas-tab" tabindex="0">
       <div class="card h-100 shadow-sm mb-4">
         <div class="card-header bg-success text-white"><strong>Consultas Agendadas</strong></div>
         <div class="card-body p-0">
@@ -48,9 +71,11 @@
                   </td>
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm" role="group">
+                      {% if not ubs_atual %}
                       <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-outline-secondary" title="Ver pedido do paciente">
                         <i class="bi bi-box-arrow-up-right"></i>
                       </a>
+                      {% endif %}
                       <a href="{% url 'paciente_historico' r.paciente_id %}" class="btn btn-outline-primary" title="Ver histórico do paciente">
                         <i class="bi bi-clock-history"></i>
                       </a>
@@ -68,8 +93,88 @@
           </div>
         </div>
       </div>
+      {% if pend_consultas %}
+      <div class="card h-100 shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark"><strong>Consultas Pendentes (sua UBS)</strong></div>
+        <div class="card-body">
+          <form method="get" class="row g-2 align-items-end mb-2">
+            <div class="col-md-3">
+              <label class="form-label">Início</label>
+              <input type="date" name="di_pco" value="{{ di_pco }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Fim</label>
+              <input type="date" name="df_pco" value="{{ df_pco }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Buscar</label>
+              <input type="text" name="q_pco" value="{{ q_pco }}" class="form-control" placeholder="Paciente ou especialidade">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Por página</label>
+              <select name="per_pco" class="form-select">
+                <option value="10" {% if per_pco|stringformat:"s" == '10' %}selected{% endif %}>10</option>
+                <option value="25" {% if per_pco|stringformat:"s" == '25' %}selected{% endif %}>25</option>
+                <option value="50" {% if per_pco|stringformat:"s" == '50' %}selected{% endif %}>50</option>
+              </select>
+            </div>
+            <input type="hidden" name="only" value="co">
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-outline-primary">
+                <i class="bi bi-funnel"></i> Filtrar
+              </button>
+            </div>
+          </form>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-nowrap">Solicitado em</th>
+                  <th>Paciente</th>
+                  <th>Especialidade</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in pend_co_page %}
+                <tr>
+                  <td class="text-nowrap">{{ c.data_solicitacao|date:'d/m/Y H:i' }}</td>
+                  <td><div class="fw-semibold">{{ c.paciente.nome }}</div></td>
+                  <td>{{ c.especialidade.nome }}</td>
+                  <td><span class="badge {{ c.get_status_badge_class }}">{{ c.get_status_display }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center py-3">Sem pendências.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if pend_co_page %}
+          <nav class="mt-2">
+            <ul class="pagination pagination-sm justify-content-end mb-0">
+              {% if pend_co_page.has_previous %}
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco=1">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.previous_page_number }}">‹</a></li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">«</span></li>
+              <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+              <li class="page-item disabled"><span class="page-link">Página {{ pend_co_page.number }} de {{ pend_co_page.paginator.num_pages }}</span></li>
+              {% if pend_co_page.has_next %}
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.next_page_number }}">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.paginator.num_pages }}">»</a></li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">›</span></li>
+              <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
     </div>
-    <div class="tab-pane fade" id="exames-pane" role="tabpanel" aria-labelledby="exames-tab" tabindex="0">
+  <div class="tab-pane fade {% if only == 'ex' %}show active{% endif %}" id="exames-pane" role="tabpanel" aria-labelledby="exames-tab" tabindex="0">
       <div class="card h-100 shadow-sm">
         <div class="card-header bg-success text-white"><strong>Exames Agendados</strong></div>
         <div class="card-body p-0">
@@ -99,9 +204,11 @@
                   </td>
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm" role="group">
+                      {% if not ubs_atual %}
                       <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-outline-secondary" title="Ver pedido do paciente">
                         <i class="bi bi-box-arrow-up-right"></i>
                       </a>
+                      {% endif %}
                       <a href="{% url 'paciente_historico' r.paciente_id %}" class="btn btn-outline-primary" title="Ver histórico do paciente">
                         <i class="bi bi-clock-history"></i>
                       </a>
@@ -119,7 +226,192 @@
           </div>
         </div>
       </div>
+      {% if pend_exames %}
+      <div class="card h-100 shadow-sm mt-4">
+        <div class="card-header bg-warning text-dark"><strong>Exames Pendentes (sua UBS)</strong></div>
+        <div class="card-body">
+          <form method="get" class="row g-2 align-items-end mb-2">
+            <div class="col-md-3">
+              <label class="form-label">Início</label>
+              <input type="date" name="di_pex" value="{{ di_pex }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Fim</label>
+              <input type="date" name="df_pex" value="{{ df_pex }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Buscar</label>
+              <input type="text" name="q_pex" value="{{ q_pex }}" class="form-control" placeholder="Paciente ou exame">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Por página</label>
+              <select name="per_pex" class="form-select">
+                <option value="10" {% if per_pex|stringformat:"s" == '10' %}selected{% endif %}>10</option>
+                <option value="25" {% if per_pex|stringformat:"s" == '25' %}selected{% endif %}>25</option>
+                <option value="50" {% if per_pex|stringformat:"s" == '50' %}selected{% endif %}>50</option>
+              </select>
+            </div>
+            <input type="hidden" name="only" value="ex">
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-outline-primary">
+                <i class="bi bi-funnel"></i> Filtrar
+              </button>
+            </div>
+          </form>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-nowrap">Solicitado em</th>
+                  <th>Paciente</th>
+                  <th>Exame</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in pend_ex_page %}
+                <tr>
+                  <td class="text-nowrap">{{ e.data_solicitacao|date:'d/m/Y H:i' }}</td>
+                  <td><div class="fw-semibold">{{ e.paciente.nome }}</div></td>
+                  <td>{{ e.tipo_exame.nome }}</td>
+                  <td><span class="badge {{ e.get_status_badge_class }}">{{ e.get_status_display }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center py-3">Sem pendências.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if pend_ex_page %}
+          <nav class="mt-2">
+            <ul class="pagination pagination-sm justify-content-end mb-0">
+              {% if pend_ex_page.has_previous %}
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex=1">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.previous_page_number }}">‹</a></li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">«</span></li>
+              <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+              <li class="page-item disabled"><span class="page-link">Página {{ pend_ex_page.number }} de {{ pend_ex_page.paginator.num_pages }}</span></li>
+              {% if pend_ex_page.has_next %}
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.next_page_number }}">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.paginator.num_pages }}">»</a></li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">›</span></li>
+              <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if neg_ex_page %}
+      <div class="card h-100 shadow-sm mt-4">
+        <div class="card-header bg-danger text-white"><strong>Exames Negados (sua UBS)</strong></div>
+        <div class="card-body">
+          <form method="get" class="row g-2 align-items-end mb-2">
+            <div class="col-md-3">
+              <label class="form-label">Início</label>
+              <input type="date" name="di_nex" value="{{ di_nex }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Fim</label>
+              <input type="date" name="df_nex" value="{{ df_nex }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Buscar</label>
+              <input type="text" name="q_nex" value="{{ q_nex }}" class="form-control" placeholder="Paciente, exame ou motivo">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Por página</label>
+              <select name="per_nex" class="form-select">
+                <option value="10" {% if per_nex|stringformat:"s" == '10' %}selected{% endif %}>10</option>
+                <option value="25" {% if per_nex|stringformat:"s" == '25' %}selected{% endif %}>25</option>
+                <option value="50" {% if per_nex|stringformat:"s" == '50' %}selected{% endif %}>50</option>
+              </select>
+            </div>
+            <input type="hidden" name="only" value="ex">
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-outline-primary">
+                <i class="bi bi-funnel"></i> Filtrar
+              </button>
+            </div>
+          </form>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-nowrap">Solicitado em</th>
+                  <th>Paciente</th>
+                  <th>Exame</th>
+                  <th>Motivo da decisão</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in neg_ex_page %}
+                <tr>
+                  <td class="text-nowrap">{{ e.data_solicitacao|date:'d/m/Y H:i' }}</td>
+                  <td><div class="fw-semibold">{{ e.paciente.nome }}</div></td>
+                  <td>{{ e.tipo_exame.nome }}</td>
+                  <td>
+                    {% if e.motivo_decisao %}
+                      <span class="d-inline-block" style="max-width: 520px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ e.motivo_decisao }}">{{ e.motivo_decisao }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center py-3">Sem exames negados.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if neg_ex_page %}
+          <nav class="mt-2">
+            <ul class="pagination pagination-sm justify-content-end mb-0">
+              {% if neg_ex_page.has_previous %}
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex=1">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.previous_page_number }}">‹</a></li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">«</span></li>
+              <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+              <li class="page-item disabled"><span class="page-link">Página {{ neg_ex_page.number }} de {{ neg_ex_page.paginator.num_pages }}</span></li>
+              {% if neg_ex_page.has_next %}
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.next_page_number }}">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_nex }}{% if qs_nex %}&{% endif %}page_nex={{ neg_ex_page.paginator.num_pages }}">»</a></li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">›</span></li>
+              <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
+<script>
+// Mantém o parâmetro 'only' de acordo com a aba ativa quando enviar o filtro superior
+document.addEventListener('DOMContentLoaded', function () {
+  var onlyInput = document.querySelector('form.agenda-filter input[name="only"]');
+  function setOnly(val) { if (onlyInput) onlyInput.value = val; }
+  // Inicializa conforme aba ativa atual
+  var isExamesActive = document.getElementById('exames-tab').classList.contains('active') || document.getElementById('exames-pane').classList.contains('show');
+  setOnly(isExamesActive ? 'ex' : 'co');
+  // Atualiza quando trocar de aba
+  var tabButtons = document.querySelectorAll('#agendaTabs button[data-bs-toggle="pill"]');
+  tabButtons.forEach(function(btn){
+    btn.addEventListener('shown.bs.tab', function(e){
+      var target = e.target.getAttribute('data-bs-target');
+      setOnly(target === '#exames-pane' ? 'ex' : 'co');
+    });
+  });
+});
+</script>
 {% endblock %}

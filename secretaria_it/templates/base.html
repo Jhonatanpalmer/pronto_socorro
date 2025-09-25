@@ -12,8 +12,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
 
     <style>
+        /* Base layout tweaks */
         body {
             padding-top: 70px;
+            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
         }
         footer {
             background-color: #f8f9fa;
@@ -22,15 +24,54 @@
             margin-top: 3rem;
             border-top: 1px solid #dee2e6;
         }
-        /* Esconder elementos marcados como no-print ao imprimir */
+        
+        /* Vivid Navbar */
+        .navbar-gradient {
+            background-image: linear-gradient(90deg, #0d6efd 0%, #6610f2 100%);
+            box-shadow: 0 6px 18px rgba(13, 110, 253, 0.25);
+        }
+        .navbar-gradient .navbar-brand {
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+        .navbar .nav-link {
+            transition: color .15s ease, opacity .15s ease;
+        }
+        .navbar .nav-link:hover { opacity: 0.9; }
+        
+        /* Dropdown polish */
+        .dropdown-menu {
+            border-radius: .75rem;
+            box-shadow: 0 10px 24px rgba(0,0,0,.12);
+            overflow: hidden;
+        }
+        .dropdown-item i { width: 1.25rem; }
+        .dropdown-item:active { background-color: #e7f1ff; color: #0d6efd; }
+        
+        /* Cards and tables */
+        .card { border: none; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+        .table thead th { border-top: none; }
+        
+        /* Vivid primary button */
+        .btn-primary {
+            background-image: linear-gradient(180deg, #0d6efd 0%, #0b5ed7 100%);
+            border: none;
+            box-shadow: 0 8px 16px rgba(13,110,253,.25);
+        }
+        .btn-primary:hover { filter: brightness(1.03); }
+        .btn-outline-light.btn-sm { border-color: rgba(255,255,255,.8); }
+        
+        /* Print: hide non-essential */
         @media print {
             .no-print { display: none !important; }
+            .navbar, .footer, .sidebar, .btn, .d-print-none { display: none !important; }
+            .container { max-width: 100% !important; }
         }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top navbar-gradient">
         <div class="container">
             <a class="navbar-brand" href="{% url 'dashboard' %}">
                 <i class="bi bi-truck-front-fill"></i>Secretaria Municipal de Saúde
@@ -65,10 +106,12 @@
                                                         {% endif %}
 
                                                         <!-- Pacientes -->
-                                                        {% if acc_pacientes %}
+                                                        {% if acc_pacientes or acc_regulacao or is_ubs_user %}
                                                             <li><a class="dropdown-item" href="{% url 'paciente_list' %}"><i class="bi bi-people"></i> Pacientes</a></li>
                                                             <li><a class="dropdown-item" href="{% url 'paciente_create' %}"><i class="bi bi-person-plus"></i> Novo Paciente</a></li>
-                                                            <li><a class="dropdown-item" href="{% url 'paciente_list' %}"><i class="bi bi-clock-history"></i> Histórico do Paciente</a></li>
+                                                            {% if acc_pacientes %}
+                                                                <li><a class="dropdown-item" href="{% url 'paciente_list' %}"><i class="bi bi-clock-history"></i> Histórico do Paciente</a></li>
+                                                            {% endif %}
                                                             <li><hr class="dropdown-divider"></li>
                                                         {% endif %}
 
@@ -82,19 +125,21 @@
                                                         <!-- Regulação -->
                                                         {% if acc_regulacao %}
                                                             {% if is_ubs_user %}
+                                                                <!-- UBS pode solicitar -->
                                                                 <li><a class="dropdown-item" href="{% url 'regulacao-create' %}"><i class="bi bi-file-earmark-medical"></i> Solicitar Exame</a></li>
                                                                 <li><a class="dropdown-item" href="{% url 'consulta-create' %}"><i class="bi bi-journal-medical"></i> Solicitar Consulta</a></li>
+                                                                <li><a class="dropdown-item" href="{% url 'regulacao-agenda' %}"><i class="bi bi-calendar2-week"></i> Agenda da UBS</a></li>
                                                             {% else %}
-                                                                <li><a class="dropdown-item" href="{% url 'regulacao-dashboard' %}"><i class="bi bi-clipboard-check"></i> Regulação</a></li>
+                                                                <!-- Regulação: apenas fila e agenda (sem criar pedidos) -->
                                                                 <li><a class="dropdown-item" href="{% url 'regulacao-fila' %}"><i class="bi bi-hourglass-split"></i> Fila de Espera</a></li>
                                                                 <li><a class="dropdown-item" href="{% url 'regulacao-agenda' %}"><i class="bi bi-calendar2-week"></i> Agenda</a></li>
-                                                                <li><hr class="dropdown-divider"></li>
-                                                                <li><a class="dropdown-item" href="{% url 'ubs-create' %}"><i class="bi bi-building-add"></i> Cadastrar UBS</a></li>
-                                                                <li><a class="dropdown-item" href="{% url 'medico-create' %}"><i class="bi bi-person-plus"></i> Cadastrar Médico</a></li>
-                                                                <li><hr class="dropdown-divider"></li>
-                                                                <li><a class="dropdown-item" href="{% url 'tipo-exame-list' %}"><i class="bi bi-clipboard-data"></i> Tipos de Exames</a></li>
-                                                                <li><a class="dropdown-item" href="{% url 'importar-sigtap' %}"><i class="bi bi-cloud-arrow-up"></i> Importar SIGTAP</a></li>
                                                             {% endif %}
+                                                        {% endif %}
+
+                                                        {% if user.is_superuser %}
+                                                            <li><hr class="dropdown-divider"></li>
+                                                            <li><a class="dropdown-item" href="{% url 'tipo-exame-list' %}"><i class="bi bi-table"></i> Tabela de Exames</a></li>
+                                                            <li><a class="dropdown-item" href="{% url 'importar-sigtap' %}"><i class="bi bi-cloud-arrow-down"></i> Importar SIGTAP</a></li>
                                                         {% endif %}
 
                             {% if acc_users_admin or user.is_superuser %}

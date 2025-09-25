@@ -419,6 +419,8 @@ class RegulacaoCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
         messages.error(self.request, 'Por favor, corrija os erros no formulário.')
         return super().form_invalid(form)
 
+    # Observação: Regulação também pode criar solicitações se necessário pelo fluxo
+
 
 class RegulacaoDetailView(AccessRequiredMixin, LoginRequiredMixin, DetailView):
     login_url = '/accounts/login/'
@@ -473,75 +475,49 @@ def dashboard_regulacao(request):
     - Para usuários de UBS: exibe um portal simplificado com apenas as ações de solicitação.
     - Para demais perfis: exibe o dashboard completo com estatísticas.
     """
-    # Rota enxuta para usuários de UBS
+    # Superadmin: ver dashboard completo (sem restrições)
+    if request.user.is_superuser:
+        # Métricas principais
+        total_consultas_autorizadas = RegulacaoConsulta.objects.filter(status='autorizado').count()
+        total_autorizados = RegulacaoExame.objects.filter(status='autorizado').count()
+        total_pendentes = RegulacaoExame.objects.filter(status='pendente').count()
+        total_negados = RegulacaoExame.objects.filter(status='negado').count()
+
+        # Quantidade de pacientes distintos na fila (exames e consultas)
+        exames_fila_pacientes = RegulacaoExame.objects.filter(status='fila').values_list('paciente_id', flat=True).distinct()
+        consultas_fila_pacientes = RegulacaoConsulta.objects.filter(status='fila').values_list('paciente_id', flat=True).distinct()
+        pacientes_fila_exames_count = exames_fila_pacientes.count()
+        pacientes_fila_consultas_count = consultas_fila_pacientes.count()
+
+        return render(request, 'regulacao/dashboard_full.html', {
+            'total_consultas_autorizadas': total_consultas_autorizadas,
+            'total_autorizados': total_autorizados,
+            'total_pendentes': total_pendentes,
+            'total_negados': total_negados,
+            'pacientes_fila_exames_count': pacientes_fila_exames_count,
+            'pacientes_fila_consultas_count': pacientes_fila_consultas_count,
+        })
+
+    # Rota enxuta para usuários de UBS (apenas se não for superadmin)
     ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
     if ubs_user:
         return render(request, 'regulacao/portal_ubs.html', {
             'ubs_atual': ubs_user,
         })
 
-    # Filtros rápidos de período para listas recentes
-    period_ex = (request.GET.get('period_ex') or '7').lower()
-    period_co = (request.GET.get('period_co') or '7').lower()
-    from django.utils import timezone
-    from datetime import timedelta
-    today = timezone.localdate()
-
-    def get_cutoff(period: str):
-        if period in ('todos', 'all', 'tudo'):
-            return None
-        if period in ('hoje', 'today'):
-            return today
-        try:
-            days = int(period)
-            if days <= 1:
-                return today
-            return today - timedelta(days=days-1)
-        except Exception:
-            return today - timedelta(days=6)  # padrão 7 dias
-
-    cutoff_ex = get_cutoff(period_ex)
-    cutoff_co = get_cutoff(period_co)
-
-    # Métricas para consultas autorizadas
-    total_consultas_autorizadas = RegulacaoConsulta.objects.filter(status='autorizado').count()
-    consultas_autorizadas_qs = RegulacaoConsulta.objects.select_related(
-        'paciente', 'ubs_solicitante', 'especialidade'
-    ).filter(status='autorizado')
-    if cutoff_co:
-        consultas_autorizadas_qs = consultas_autorizadas_qs.filter(data_regulacao__date__gte=cutoff_co)
-    consultas_autorizadas_recentes = consultas_autorizadas_qs.order_by('-data_regulacao', '-data_solicitacao')[:10]
-
-    # Quantidade de pacientes distintos na fila (exames e consultas)
+    # Quantidade de pacientes distintos na fila (exames e consultas) — usado no dashboard enxuto
     exames_fila_pacientes = RegulacaoExame.objects.filter(status='fila').values_list('paciente_id', flat=True).distinct()
     consultas_fila_pacientes = RegulacaoConsulta.objects.filter(status='fila').values_list('paciente_id', flat=True).distinct()
     pacientes_fila_exames_count = exames_fila_pacientes.count()
     pacientes_fila_consultas_count = consultas_fila_pacientes.count()
-    pacientes_fila_count = len(set(list(exames_fila_pacientes) + list(consultas_fila_pacientes)))
 
-    context = {
-        'total_pendentes': RegulacaoExame.objects.filter(status='pendente').count(),
-        'total_autorizados': RegulacaoExame.objects.filter(status='autorizado').count(),
-        'total_negados': RegulacaoExame.objects.filter(status='negado').count(),
-        'total_ubs': UBS.objects.filter(ativa=True).count(),
-        'total_medicos': MedicoSolicitante.objects.filter(ativo=True).count(),
-        'total_tipos_exame': TipoExame.objects.filter(ativo=True).count(),
-        'total_consultas_fila': RegulacaoConsulta.objects.filter(status='fila').count(),
-        'regulacoes_recentes': (lambda: (
-            RegulacaoExame.objects.select_related('paciente', 'ubs_solicitante', 'tipo_exame')
-            .filter(status='autorizado')
-            .filter(**({'data_regulacao__date__gte': cutoff_ex} if cutoff_ex else {}))
-            .order_by('-data_regulacao', '-data_solicitacao')[:10]
-        ))(),
-        'total_consultas_autorizadas': total_consultas_autorizadas,
-        'consultas_autorizadas_recentes': consultas_autorizadas_recentes,
-    'pacientes_fila_count': pacientes_fila_count,
-    'pacientes_fila_exames_count': pacientes_fila_exames_count,
-    'pacientes_fila_consultas_count': pacientes_fila_consultas_count,
-        'period_ex': period_ex,
-        'period_co': period_co,
-    }
-    return render(request, 'regulacao/dashboard.html', context)
+    return render(request, 'regulacao/dashboard.html', {
+        'pacientes_fila_exames_count': pacientes_fila_exames_count,
+        'pacientes_fila_consultas_count': pacientes_fila_consultas_count,
+    })
+
+
+ 
 
 
 # ============ CONSULTAS (Especialidades) ============
@@ -730,6 +706,8 @@ class RegulacaoConsultaCreateView(LoginRequiredMixin, CreateView):
                         )
                     )
         return super().form_valid(form)
+
+    # Observação: Regulação também pode criar solicitações se necessário pelo fluxo
 
 
 @login_required
@@ -961,12 +939,16 @@ def fila_espera(request):
                 'total': 0,
                 'nomes': [],  # nomes de exames únicos
                 'desde': r.data_solicitacao,
+                'ubs': [],   # nomes de UBS solicitantes únicos
             }
         g = grupos_ex[pid]
         g['total'] += 1
         nome = r.tipo_exame.nome if r.tipo_exame else ''
         if nome and nome not in g['nomes']:
             g['nomes'].append(nome)
+        ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else ''
+        if ubs_nome and ubs_nome not in g['ubs']:
+            g['ubs'].append(ubs_nome)
         if r.data_solicitacao < g['desde']:
             g['desde'] = r.data_solicitacao
 
@@ -983,12 +965,16 @@ def fila_espera(request):
                 'total': 0,
                 'nomes': [],  # nomes de especialidades únicos
                 'desde': r.data_solicitacao,
+                'ubs': [],   # nomes de UBS solicitantes únicos
             }
         g = grupos_co[pid]
         g['total'] += 1
         nome = r.especialidade.nome if r.especialidade else ''
         if nome and nome not in g['nomes']:
             g['nomes'].append(nome)
+        ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else ''
+        if ubs_nome and ubs_nome not in g['ubs']:
+            g['ubs'].append(ubs_nome)
         if r.data_solicitacao < g['desde']:
             g['desde'] = r.data_solicitacao
 
@@ -1031,15 +1017,161 @@ def fila_espera(request):
 @require_access('regulacao')
 def agenda_regulacao(request):
     """Agenda da regulação: itens autorizados com data/hora agendadas."""
-    # UBS users não devem acessar a agenda completa
-    if is_ubs_user(request.user):
-        return redirect('regulacao-dashboard')
-    exames = RegulacaoExame.objects.select_related('paciente', 'tipo_exame', 'ubs_solicitante').filter(status='autorizado', data_agendada__isnull=False).order_by('data_agendada', 'hora_agendada')
-    consultas = RegulacaoConsulta.objects.select_related('paciente', 'especialidade', 'ubs_solicitante').filter(status='autorizado', data_agendada__isnull=False).order_by('data_agendada', 'hora_agendada')
-    return render(request, 'regulacao/agenda.html', {
+    # Utilitário local para parse de datas em filtros
+    from django.utils.dateparse import parse_date
+    from django.utils import timezone
+    # Se usuário for UBS, restringir agenda à sua própria UBS
+    ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
+    exames_qs = RegulacaoExame.objects.select_related('paciente', 'tipo_exame', 'ubs_solicitante').filter(
+        status='autorizado', data_agendada__isnull=False
+    )
+    consultas_qs = RegulacaoConsulta.objects.select_related('paciente', 'especialidade', 'ubs_solicitante').filter(
+        status='autorizado', data_agendada__isnull=False
+    )
+
+    # Filtros de data (agenda principal)
+    hoje = timezone.localdate()
+    di = (request.GET.get('di') or '').strip()
+    df = (request.GET.get('df') or '').strip()
+    di_d = parse_date(di) if di else None
+    df_d = parse_date(df) if df else None
+    # Se não houver data inicial, usar hoje como padrão
+    if not di_d:
+        di_d = hoje
+        di = hoje.isoformat()
+    # Se não houver data final, usar hoje como padrão
+    if not df_d:
+        df_d = hoje
+        df = hoje.isoformat()
+    if di_d:
+        exames_qs = exames_qs.filter(data_agendada__gte=di_d)
+        consultas_qs = consultas_qs.filter(data_agendada__gte=di_d)
+    if df_d:
+        exames_qs = exames_qs.filter(data_agendada__lte=df_d)
+        consultas_qs = consultas_qs.filter(data_agendada__lte=df_d)
+    if ubs_user:
+        exames_qs = exames_qs.filter(ubs_solicitante=ubs_user)
+        consultas_qs = consultas_qs.filter(ubs_solicitante=ubs_user)
+    exames = exames_qs.order_by('data_agendada', 'hora_agendada')
+    consultas = consultas_qs.order_by('data_agendada', 'hora_agendada')
+    only = (request.GET.get('only') or '').strip()
+    context = {
         'exames': exames,
         'consultas': consultas,
-    })
+        'ubs_atual': ubs_user,
+        # filtros agenda
+        'di': di,
+        'df': df,
+        'hoje': hoje,
+        'only': only,
+    }
+    # Para usuários de UBS, incluir também itens pendentes (fila/pendente) apenas para visualização
+    if ubs_user:
+        pend_ex = RegulacaoExame.objects.select_related('paciente','tipo_exame').filter(
+            ubs_solicitante=ubs_user, status__in=['fila','pendente']
+        ).order_by('-data_solicitacao')
+        pend_co = RegulacaoConsulta.objects.select_related('paciente','especialidade').filter(
+            ubs_solicitante=ubs_user, status__in=['fila','pendente']
+        ).order_by('-data_solicitacao')
+
+        # Filtros Consultas pendentes (pco)
+        q_pco = (request.GET.get('q_pco') or '').strip()
+        di_pco = (request.GET.get('di_pco') or '').strip()
+        df_pco = (request.GET.get('df_pco') or '').strip()
+        s_pco = parse_date(di_pco) if di_pco else None
+        e_pco = parse_date(df_pco) if df_pco else None
+        if q_pco:
+            pend_co = pend_co.filter(
+                Q(paciente__nome__icontains=q_pco) |
+                Q(especialidade__nome__icontains=q_pco)
+            )
+        if s_pco:
+            pend_co = pend_co.filter(data_solicitacao__date__gte=s_pco)
+        if e_pco:
+            pend_co = pend_co.filter(data_solicitacao__date__lte=e_pco)
+
+        # Filtros Exames pendentes (pex)
+        q_pex = (request.GET.get('q_pex') or '').strip()
+        di_pex = (request.GET.get('di_pex') or '').strip()
+        df_pex = (request.GET.get('df_pex') or '').strip()
+        s_pex = parse_date(di_pex) if di_pex else None
+        e_pex = parse_date(df_pex) if df_pex else None
+        if q_pex:
+            pend_ex = pend_ex.filter(
+                Q(paciente__nome__icontains=q_pex) |
+                Q(tipo_exame__nome__icontains=q_pex)
+            )
+        if s_pex:
+            pend_ex = pend_ex.filter(data_solicitacao__date__gte=s_pex)
+        if e_pex:
+            pend_ex = pend_ex.filter(data_solicitacao__date__lte=e_pex)
+
+        # Paginação
+        def _to_int(val, default, min_v=1, max_v=200):
+            try:
+                n = int(val)
+                return max(min_v, min(n, max_v))
+            except (TypeError, ValueError):
+                return default
+        per_pco = _to_int(request.GET.get('per_pco'), 10)
+        per_pex = _to_int(request.GET.get('per_pex'), 10)
+        page_pco = request.GET.get('page_pco') or 1
+        page_pex = request.GET.get('page_pex') or 1
+        p_pco = Paginator(pend_co, per_pco)
+        p_pex = Paginator(pend_ex, per_pex)
+        pend_co_page = p_pco.get_page(page_pco)
+        pend_ex_page = p_pex.get_page(page_pex)
+
+        # Helper para montar querystring sem certos parâmetros
+        from django.utils.http import urlencode
+        def build_qs_without(exclude_keys: set):
+            params = []
+            for k in request.GET.keys():
+                if k in exclude_keys:
+                    continue
+                for v in request.GET.getlist(k):
+                    params.append((k, v))
+            return urlencode(params)
+
+        # Exames Negados (UBS): permitir ver e entender o motivo
+        neg_ex = RegulacaoExame.objects.select_related('paciente','tipo_exame').filter(
+            ubs_solicitante=ubs_user, status='negado'
+        ).order_by('-data_solicitacao')
+        q_nex = (request.GET.get('q_nex') or '').strip()
+        di_nex = (request.GET.get('di_nex') or '').strip()
+        df_nex = (request.GET.get('df_nex') or '').strip()
+        s_nex = parse_date(di_nex) if di_nex else None
+        e_nex = parse_date(df_nex) if df_nex else None
+        if q_nex:
+            neg_ex = neg_ex.filter(
+                Q(paciente__nome__icontains=q_nex) |
+                Q(tipo_exame__nome__icontains=q_nex) |
+                Q(motivo_decisao__icontains=q_nex)
+            )
+        if s_nex:
+            neg_ex = neg_ex.filter(data_solicitacao__date__gte=s_nex)
+        if e_nex:
+            neg_ex = neg_ex.filter(data_solicitacao__date__lte=e_nex)
+        per_nex = _to_int(request.GET.get('per_nex'), 10)
+        page_nex = request.GET.get('page_nex') or 1
+        p_nex = Paginator(neg_ex, per_nex)
+        neg_ex_page = p_nex.get_page(page_nex)
+
+        context.update({
+            'pend_co_page': pend_co_page,
+            'pend_ex_page': pend_ex_page,
+            'qs_pco': build_qs_without({'page_pco'}),
+            'qs_pex': build_qs_without({'page_pex'}),
+            'q_pco': q_pco, 'di_pco': di_pco, 'df_pco': df_pco, 'per_pco': per_pco,
+            'q_pex': q_pex, 'di_pex': di_pex, 'df_pex': df_pex, 'per_pex': per_pex,
+            'pend_exames': pend_ex,  # ainda disponível se necessário
+            'pend_consultas': pend_co,
+            # Negados
+            'neg_ex_page': neg_ex_page,
+            'q_nex': q_nex, 'di_nex': di_nex, 'df_nex': df_nex, 'per_nex': per_nex,
+            'qs_nex': build_qs_without({'page_nex'}),
+        })
+    return render(request, 'regulacao/agenda.html', context)
 
 
 @login_required
@@ -1134,6 +1266,8 @@ def comprovantes_consultas(request):
 def paciente_pedido(request, paciente_id):
     """Página única por paciente para listar todas as solicitações e autorizar/agendar seleções."""
     paciente = get_object_or_404(Paciente, pk=paciente_id)
+    # UBS: somente visualização; não pode autorizar/
+    read_only = is_ubs_user(request.user)
     # Exames do paciente (todos para contexto; foco em fila/pendente para autorizar)
     exames_qs = RegulacaoExame.objects.select_related('tipo_exame', 'ubs_solicitante', 'medico_solicitante').filter(paciente=paciente).order_by('-data_solicitacao')
     exames_pendentes_qs = exames_qs.filter(status__in=['fila', 'pendente'])
@@ -1146,13 +1280,16 @@ def paciente_pedido(request, paciente_id):
     ConsultaFormSet = modelformset_factory(RegulacaoConsulta, form=RegulacaoConsultaBatchForm, extra=0, can_delete=False)
 
     if request.method == 'POST':
+        if read_only:
+            messages.error(request, 'Usuários de UBS não podem autorizar ou negar solicitações. Acesso somente para visualização.')
+            return redirect('paciente-pedido', paciente_id=paciente.id)
         submitted_exames = 'submit_exames' in request.POST or 'deny_exames' in request.POST
         submitted_consultas = 'submit_consultas' in request.POST or 'deny_consultas' in request.POST
         exame_fs = ExameFormSet(request.POST if submitted_exames else None, queryset=exames_pendentes_qs, prefix='ex')
         consulta_fs = ConsultaFormSet(request.POST if submitted_consultas else None, queryset=consultas_pendentes_qs, prefix='co')
-        # ajustar querysets (se necessário)
+        # Anexar request aos forms (para validação contextual)
         for f in list(exame_fs.forms) + list(consulta_fs.forms):
-            pass
+            setattr(f, 'request', request)
 
         # Processar apenas o formset submetido
         from django.utils import timezone
@@ -1183,6 +1320,7 @@ def paciente_pedido(request, paciente_id):
                             inst.status = 'autorizado'
                             inst.regulador = request.user
                             inst.data_regulacao = timezone.now()
+                            # Ambos os perfis podem agendar ao autorizar
                             inst.local_realizacao = form.cleaned_data.get('local_realizacao')
                             inst.data_agendada = form.cleaned_data.get('data_agendada')
                             inst.hora_agendada = form.cleaned_data.get('hora_agendada')
@@ -1247,10 +1385,12 @@ def paciente_pedido(request, paciente_id):
                             inst.status = 'autorizado'
                             inst.regulador = request.user
                             inst.data_regulacao = timezone.now()
+                            # Ambos os perfis podem agendar ao autorizar
                             inst.local_atendimento = form.cleaned_data.get('local_atendimento')
                             inst.data_agendada = form.cleaned_data.get('data_agendada')
                             inst.hora_agendada = form.cleaned_data.get('hora_agendada')
                             # médico atendente permanece para consultas
+                            inst.medico_atendente = form.cleaned_data.get('medico_atendente')
                             inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
                             inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
                             inst.save()
@@ -1287,6 +1427,10 @@ def paciente_pedido(request, paciente_id):
         exame_fs = ExameFormSet(queryset=exames_pendentes_qs, prefix='ex')
         consulta_fs = ConsultaFormSet(queryset=consultas_pendentes_qs, prefix='co')
         for f in list(exame_fs.forms) + list(consulta_fs.forms):
+            setattr(f, 'request', request)
+        if 'medico_atendente' in consulta_fs.empty_form.fields:
+            consulta_fs.empty_form.fields['medico_atendente'].queryset = MedicoSolicitante.objects.filter(ativo=True).order_by('nome')
+        for f in consulta_fs.forms:
             if 'medico_atendente' in f.fields:
                 f.fields['medico_atendente'].queryset = MedicoSolicitante.objects.filter(ativo=True).order_by('nome')
 
@@ -1308,6 +1452,7 @@ def paciente_pedido(request, paciente_id):
         'consultas_aut_ids_csv': consultas_aut_ids_csv,
         'exames_aut_count': len(exames_aut_ids),
         'consultas_aut_count': len(consultas_aut_ids),
+        'read_only': read_only,
     })
 
 

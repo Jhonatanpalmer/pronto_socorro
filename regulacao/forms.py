@@ -119,6 +119,24 @@ class RegulacaoForm(forms.ModelForm):
             ('autorizado', 'Autorizado'),
             ('negado', 'Negado'),
         ]
+        # UX: impedir escolha de datas passadas no input (validação real é no clean)
+        try:
+            from django.utils import timezone
+            self.fields['data_agendada'].widget.attrs['min'] = timezone.localdate().isoformat()
+        except Exception:
+            pass
+
+    def clean(self):
+        cleaned = super().clean()
+        # Se for autorizar, garantir que a data não é passada
+        status = cleaned.get('status')
+        data = cleaned.get('data_agendada')
+        if status == 'autorizado' and data:
+            from django.utils import timezone
+            hoje = timezone.localdate()
+            if data < hoje:
+                self.add_error('data_agendada', 'A data do agendamento deve ser hoje ou futura.')
+        return cleaned
 
 
 class EspecialidadeForm(forms.ModelForm):
@@ -361,6 +379,15 @@ class RegulacaoExameBatchForm(forms.ModelForm):
             'motivo_decisao': forms.Textarea(attrs={'class': 'form-control form-control-sm', 'rows': 2, 'placeholder': 'Descreva o motivo da negação'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # UX: impedir escolha de datas passadas no input (validação real é no clean)
+        try:
+            from django.utils import timezone
+            self.fields['data_agendada'].widget.attrs['min'] = timezone.localdate().isoformat()
+        except Exception:
+            pass
+
     def clean(self):
         cleaned = super().clean()
         autorizar = self.cleaned_data.get('autorizar')
@@ -371,7 +398,7 @@ class RegulacaoExameBatchForm(forms.ModelForm):
             raise forms.ValidationError('Selecione apenas uma ação: Autorizar ou Negar.')
 
         if autorizar:
-            # exigir campos ao autorizar
+            # exigir campos ao autorizar para todos os perfis
             faltando = []
             if not cleaned.get('local_realizacao'):
                 faltando.append('Local')
@@ -381,11 +408,21 @@ class RegulacaoExameBatchForm(forms.ModelForm):
                 faltando.append('Hora')
             if faltando:
                 raise forms.ValidationError(f"Para autorizar, preencha: {', '.join(faltando)}.")
+            # Não permitir datas passadas
+            from django.utils import timezone
+            hoje = timezone.localdate()
+            data = cleaned.get('data_agendada')
+            if data and data < hoje:
+                self.add_error('data_agendada', 'A data do agendamento deve ser hoje ou futura.')
         if negar:
             # exigir motivo ao negar
             if not (cleaned.get('motivo_decisao') or '').strip():
                 raise forms.ValidationError('Para negar, informe o motivo da decisão.')
         return cleaned
+
+    def apply_regulacao_role(self):
+        # Sem diferenciação: ambos os perfis podem agendar; manter campos habilitados
+        return None
 
 
 class RegulacaoConsultaBatchForm(forms.ModelForm):
@@ -408,6 +445,15 @@ class RegulacaoConsultaBatchForm(forms.ModelForm):
             'motivo_decisao': forms.Textarea(attrs={'class': 'form-control form-control-sm', 'rows': 2, 'placeholder': 'Descreva o motivo da negação'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # UX: impedir escolha de datas passadas no input (validação real é no clean)
+        try:
+            from django.utils import timezone
+            self.fields['data_agendada'].widget.attrs['min'] = timezone.localdate().isoformat()
+        except Exception:
+            pass
+
     def clean(self):
         cleaned = super().clean()
         autorizar = self.cleaned_data.get('autorizar')
@@ -429,10 +475,20 @@ class RegulacaoConsultaBatchForm(forms.ModelForm):
                 faltando.append('Médico Atendente')
             if faltando:
                 raise forms.ValidationError(f"Para autorizar, preencha: {', '.join(faltando)}.")
+            # Não permitir datas passadas
+            from django.utils import timezone
+            hoje = timezone.localdate()
+            data = cleaned.get('data_agendada')
+            if data and data < hoje:
+                self.add_error('data_agendada', 'A data do agendamento deve ser hoje ou futura.')
         if negar:
             if not (cleaned.get('motivo_decisao') or '').strip():
                 raise forms.ValidationError('Para negar, informe o motivo da decisão.')
         return cleaned
+
+    def apply_regulacao_role(self):
+        # Sem diferenciação: ambos os perfis podem agendar; manter campos habilitados
+        return None
 
 
 class SIGTAPImportForm(forms.Form):

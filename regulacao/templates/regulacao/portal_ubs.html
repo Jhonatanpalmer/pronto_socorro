@@ -8,6 +8,12 @@
       <div class="text-muted">Portal UBS{% if ubs_atual %}: {{ ubs_atual.nome }}{% endif %}</div>
     </div>
   </div>
+  {% if user.is_authenticated and acc_regulacao and not is_ubs_user %}
+  <div class="alert alert-info d-flex align-items-center" role="alert">
+    <i class="bi bi-info-circle me-2"></i>
+    Você possui acesso de Regulação. Para autorizar/negarem pedidos, acesse o histórico do paciente e use a página "Pedido do Paciente".
+  </div>
+  {% endif %}
   <div class="row g-3">
     <div class="col-md-6">
       <a class="text-decoration-none" href="{% url 'regulacao-create' %}">
@@ -30,6 +36,19 @@
             <div>
               <h5 class="card-title mb-1">Solicitar Consulta</h5>
               <p class="card-text text-muted mb-0">Criar um novo pedido de consulta</p>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a class="text-decoration-none" href="{% url 'regulacao-agenda' %}">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex align-items-center">
+            <i class="bi bi-calendar2-week fs-1 text-warning me-3"></i>
+            <div>
+              <h5 class="card-title mb-1">Agenda da UBS</h5>
+              <p class="card-text text-muted mb-0">Ver agendamentos da sua unidade</p>
             </div>
           </div>
         </div>

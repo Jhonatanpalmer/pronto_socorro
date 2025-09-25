@@ -35,6 +35,7 @@
         <div class="alert alert-info">Não há exames em fila/pendente para este paciente.</div>
         {% else %}
         {{ exame_formset.management_form }}
+        {% if read_only %}<fieldset disabled>{% endif %}
         <div class="table-responsive">
           <table class="table table-sm align-middle">
             <thead class="table-light">
@@ -96,14 +97,16 @@
             </tbody>
           </table>
         </div>
+        {% if read_only %}</fieldset>{% endif %}
         {% endif %}
       </div>
     </div>
-
+    {% if not read_only %}
     <div class="d-flex justify-content-end gap-2 mt-3">
       <button type="submit" name="submit_exames" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar exames selecionados</button>
       <button type="submit" name="deny_exames" class="btn btn-danger"><i class="bi bi-x-octagon"></i> Negar exames selecionados</button>
     </div>
+    {% endif %}
   </form>
 
   <!-- Form de Consultas -->
@@ -119,6 +122,7 @@
           <div class="alert alert-info">Não há consultas em fila/pendente para este paciente.</div>
         {% else %}
           {{ consulta_formset.management_form }}
+          {% if read_only %}<fieldset disabled>{% endif %}
           <div class="table-responsive">
             <table class="table table-sm align-middle">
             <thead class="table-light">
@@ -180,13 +184,16 @@
             </tbody>
           </table>
           </div>
+          {% if read_only %}</fieldset>{% endif %}
         {% endif %}
       </div>
     </div>
+    {% if not read_only %}
     <div class="d-flex justify-content-end gap-2 mt-3">
       <button type="submit" name="submit_consultas" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar consultas selecionadas</button>
       <button type="submit" name="deny_consultas" class="btn btn-danger"><i class="bi bi-x-octagon"></i> Negar consultas selecionadas</button>
     </div>
+    {% endif %}
   </form>
 
   <div class="card shadow-sm mt-4">
@@ -257,7 +264,8 @@
   </div>
 </div>
 <script>
-// Toggle required attributes when 'autorizar' is checked
+// Toggle required attributes when 'autorizar' is checked (somente quando não for read_only)
+{% if not read_only %}
 document.addEventListener('DOMContentLoaded', function() {
   try {
     const examRows = document.querySelectorAll('table tbody tr');
@@ -315,5 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   } catch (e) { /* noop */ }
 });
+{% endif %}
 </script>
 {% endblock %}

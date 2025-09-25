@@ -1,54 +1,114 @@
 {% extends "base.html" %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Entrar · Secretaria de Saúde{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <!-- Mensagens Django -->
-            {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
-            {% endif %}
-            
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white text-center">
-                    <h4>Login</h4>
+<div class="container-fluid d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 140px);">
+    <div class="row w-100 g-0 shadow rounded overflow-hidden" style="max-width: 980px;">
+        <!-- Branding / Hero -->
+        <div class="col-lg-6 d-none d-lg-block bg-primary text-white position-relative">
+            <div class="p-4 p-xl-5 h-100 d-flex flex-column">
+                <div class="mb-4">
+                    <span class="badge bg-light text-primary mb-2">Sistema Municipal</span>
+                    <h2 class="fw-bold">Secretaria Municipal de Saúde</h2>
+                    <p class="text-white-50 mb-0">Acesse para gerenciar solicitações, agenda e pacientes com segurança.</p>
                 </div>
-                <div class="card-body">
-                    {% if form.errors %}
+                <div class="mt-auto small text-white-50">
+                    <i class="bi bi-shield-lock me-1"></i> Seus dados estão protegidos.
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Card -->
+        <div class="col-lg-6 bg-white">
+            <div class="p-4 p-xl-5">
+                <!-- Mensagens -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="text-center mb-4">
+                    <div class="display-6 mb-1"><i class="bi bi-hospital"></i></div>
+                    <h3 class="fw-semibold mb-1">Bem-vindo</h3>
+                    <div class="text-muted">Use suas credenciais para entrar</div>
+                </div>
+
+                {% if form.errors %}
                     <div class="alert alert-danger">
                         {% for field in form %}
                             {% for error in field.errors %}
-                                <div>{{ error }}</div>
+                                <div><i class="bi bi-exclamation-triangle"></i> {{ error }}</div>
                             {% endfor %}
                         {% endfor %}
                         {% for error in form.non_field_errors %}
-                            <div>{{ error }}</div>
+                            <div><i class="bi bi-exclamation-triangle"></i> {{ error }}</div>
                         {% endfor %}
                     </div>
-                    {% endif %}
-                    
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="id_username" class="form-label">Usuário</label>
-                            <input type="text" name="username" class="form-control" id="id_username" required>
+                {% endif %}
+
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Usuário</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" name="username" class="form-control" id="id_username" placeholder="seu.usuario" required autofocus>
+                            <div class="invalid-feedback">Informe o usuário.</div>
                         </div>
-                        <div class="mb-3">
-                            <label for="id_password" class="form-label">Senha</label>
-                            <input type="password" name="password" class="form-control" id="id_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">Senha</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input type="password" name="password" class="form-control" id="id_password" placeholder="••••••••" required>
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <div class="invalid-feedback">Informe a senha.</div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Entrar</button>
-                    </form>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Entrar
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4 small text-muted">
+                    <i class="bi bi-info-circle"></i> Precisa de acesso? Procure o administrador do sistema.
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Validação Bootstrap
+(function(){
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+// Mostrar/ocultar senha
+document.getElementById('togglePassword')?.addEventListener('click', function(){
+    const input = document.getElementById('id_password');
+    const icon = this.querySelector('i');
+    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+    input.setAttribute('type', type);
+    icon.classList.toggle('bi-eye');
+    icon.classList.toggle('bi-eye-slash');
+});
+</script>
 {% endblock %}

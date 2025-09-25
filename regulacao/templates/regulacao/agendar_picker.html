@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Agendar {{ tipo|title }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row mb-3">
+    <div class="col">
+      <h4 class="mb-1">Agendar {{ tipo|title }}</h4>
+      <div class="text-muted">Selecione um paciente para ir direto ao agendamento</div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label"><strong>Paciente</strong></label>
+        <div class="position-relative">
+          <input type="text" id="busca-paciente-agendar" class="form-control" placeholder="Digite nome, CPF ou CNS..." autocomplete="off" />
+          <div id="resultado-paciente-agendar" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
+        </div>
+        <div class="form-text">Digite ao menos 2 letras e clique no paciente para continuar</div>
+      </div>
+
+      <div class="alert alert-info d-flex align-items-center" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        Você será direcionado(a) para a página "Pedido do Paciente". Lá você poderá autorizar e agendar as {{ tipo }} pendentes.
+      </div>
+
+      <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">Voltar</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const input = document.getElementById('busca-paciente-agendar');
+  const list = document.getElementById('resultado-paciente-agendar');
+  if (!input || !list) return;
+
+  let timer = null;
+  function clearList(){ list.innerHTML = ''; list.style.display = 'none'; }
+  function render(items){
+    list.innerHTML = '';
+    (items || []).forEach(item => {
+      const a = document.createElement('a');
+      a.href = '#';
+      a.className = 'list-group-item list-group-item-action';
+      a.textContent = item.label || item.nome;
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = new URL('{% url "paciente-pedido" 0 %}'.replace('/0/', '/' + item.id + '/'), window.location.origin);
+        window.location.href = url.toString();
+      });
+      list.appendChild(a);
+    });
+    list.style.display = items && items.length ? 'block' : 'none';
+  }
+  function buscar(q){
+    const url = new URL('{% url "paciente_autocomplete" %}', window.location.origin);
+    url.searchParams.set('q', q);
+    url.searchParams.set('limit', '20');
+    fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => render((data && data.results) || []))
+      .catch(() => clearList());
+  }
+  input.addEventListener('input', function() {
+    const q = (input.value || '').trim();
+    clearTimeout(timer);
+    if (q.length < 2) { clearList(); return; }
+    timer = setTimeout(() => buscar(q), 250);
+  });
+  document.addEventListener('click', function(e){ if (!list.contains(e.target) && e.target !== input) clearList(); });
+})();
+</script>
+{% endblock %}

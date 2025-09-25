@@ -1,9 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from secretaria_it.access import AccessRequiredMixin, user_has_access
+from secretaria_it.access import AccessRequiredMixin, user_has_access, is_ubs_user
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from .models import Paciente
@@ -16,14 +16,25 @@ from django.utils.http import urlencode
 from .forms import PacienteForm
 from collections import defaultdict
 
-class PacienteListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
+class PacienteListView(LoginRequiredMixin, ListView):
     login_url = '/accounts/login/'
-    access_key = 'pacientes'
+    # Ampliar permissão: permitir lista para 'pacientes' OU 'regulacao' OU usuário UBS
     model = Paciente
     template_name = "pacientes/paciente_list.html"
     context_object_name = "pacientes"
     ordering = ["nome"]
     paginate_by = 50
+
+    def dispatch(self, request, *args, **kwargs):  # type: ignore[override]
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not (
+            user_has_access(request.user, 'pacientes') or
+            user_has_access(request.user, 'regulacao') or
+            is_ubs_user(request.user)
+        ):
+            return HttpResponseForbidden('Acesso negado para visualizar pacientes.')
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -76,13 +87,23 @@ def paciente_autocomplete(request):
         })
     return JsonResponse({"results": results})
 
-class PacienteCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
+class PacienteCreateView(LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
-    access_key = 'pacientes'
+    # Permitir criar paciente para quem tem acesso a 'pacientes' OU 'regulacao' OU for usuário UBS
     model = Paciente
     form_class = PacienteForm
     template_name = "pacientes/paciente_form.html"
     success_url = reverse_lazy("paciente_list")
+
+    def dispatch(self, request, *args, **kwargs):  # type: ignore[override]
+        # LoginRequiredMixin já garante autenticação; aqui garantimos permissão ampliada
+        if not (
+            user_has_access(request.user, 'pacientes') or
+            user_has_access(request.user, 'regulacao') or
+            is_ubs_user(request.user)
+        ):
+            return HttpResponseForbidden('Acesso negado para criar paciente.')
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         response = super().form_valid(form)

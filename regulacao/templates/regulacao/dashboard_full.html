@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Regulação - Dashboard Completo{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row mb-3">
+    <div class="col">
+      <h2 class="mb-0">Regulação</h2>
+      <div class="text-muted">Visão completa (superadmin)</div>
+    </div>
+  </div>
+
+  <div class="row mb-4 g-3">
+    <div class="col-md-3">
+      <a href="{% url 'consulta-list' %}?status=autorizado" class="text-decoration-none">
+        <div class="card border-info text-center h-100">
+          <div class="card-body">
+            <h5 class="card-title text-info"><i class="bi bi-person-check-fill"></i> Consultas Autorizadas</h5>
+            <h2 class="text-info">{{ total_consultas_autorizadas }}</h2>
+            <small class="text-muted">Total de consultas com status autorizado</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{% url 'regulacao-list' %}?status=autorizado" class="text-decoration-none">
+        <div class="card border-success text-center h-100">
+          <div class="card-body">
+            <h5 class="card-title text-success"><i class="bi bi-check-circle-fill"></i> Exames autorizados</h5>
+            <h2 class="text-success">{{ total_autorizados }}</h2>
+            <small class="text-muted">Total de exames com status autorizado</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{% url 'regulacao-list' %}?status=pendente" class="text-decoration-none">
+        <div class="card border-warning text-center h-100">
+          <div class="card-body">
+            <h5 class="card-title text-warning"><i class="bi bi-clock-fill"></i> Pendentes</h5>
+            <h2 class="text-warning">{{ total_pendentes }}</h2>
+            <small class="text-muted">Aguardando regulação</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{% url 'regulacao-list' %}?status=negado" class="text-decoration-none">
+        <div class="card border-danger text-center h-100">
+          <div class="card-body">
+            <h5 class="card-title text-danger"><i class="bi bi-x-circle-fill"></i> Negados</h5>
+            <h2 class="text-danger">{{ total_negados }}</h2>
+            <small class="text-muted">Exames negados</small>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="row mb-4 g-3">
+    <div class="col-md-4">
+      <a href="{% url 'regulacao-fila' %}?only=ex#fila-exames" class="text-decoration-none">
+        <div class="card border-primary h-100">
+          <div class="card-body text-center">
+            <h5 class="card-title text-primary"><i class="bi bi-people-fill"></i> Pacientes na Fila (Exames)</h5>
+            <h2 class="text-primary">{{ pacientes_fila_exames_count }}</h2>
+            <small class="text-muted">Pacientes com exames na fila</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="{% url 'regulacao-fila' %}?only=co#fila-consultas" class="text-decoration-none">
+        <div class="card border-warning h-100">
+          <div class="card-body text-center">
+            <h5 class="card-title text-warning"><i class="bi bi-people-fill"></i> Pacientes na Fila (Consultas)</h5>
+            <h2 class="text-warning">{{ pacientes_fila_consultas_count }}</h2>
+            <small class="text-muted">Pacientes com consultas na fila</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body text-center">
+          <i class="bi bi-calendar2-week fs-1 text-success mb-3"></i>
+          <h5 class="card-title">Agenda</h5>
+          <p class="card-text">Exames e consultas autorizados e agendados</p>
+          <a href="{% url 'regulacao-agenda' %}" class="btn btn-outline-success">Ver Agenda</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4 g-3">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center justify-content-between">
+          <div>
+            <h5 class="card-title mb-1"><i class="bi bi-calendar-plus text-success"></i> Solicitar/Autorizar Exames</h5>
+            <p class="card-text text-muted mb-0">Abrir a tela de nova solicitação para autorizar e agendar</p>
+          </div>
+          <a href="{% url 'regulacao-create' %}" class="btn btn-success">Nova Solicitação de Exame</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center justify-content-between">
+          <div>
+            <h5 class="card-title mb-1"><i class="bi bi-calendar-plus text-primary"></i> Solicitar/Autorizar Consultas</h5>
+            <p class="card-text text-muted mb-0">Abrir a tela de nova solicitação para autorizar e agendar</p>
+          </div>
+          <a href="{% url 'consulta-create' %}" class="btn btn-primary">Nova Solicitação de Consulta</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
