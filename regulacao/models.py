@@ -156,7 +156,7 @@ class RegulacaoExame(models.Model):
     
     # Resultado do atendimento (marcado após a data agendada)
     RESULTADO_CHOICES = [
-        ('pendente', 'Pendente'),
+        ('pendente', 'Aguardando'),
         ('compareceu', 'Compareceu'),
         ('faltou', 'Faltou'),
     ]
@@ -305,7 +305,7 @@ class RegulacaoConsulta(models.Model):
 
     # Resultado do atendimento (marcado após a data agendada)
     RESULTADO_CHOICES = [
-        ('pendente', 'Pendente'),
+        ('pendente', 'Aguardando'),
         ('compareceu', 'Compareceu'),
         ('faltou', 'Faltou'),
     ]

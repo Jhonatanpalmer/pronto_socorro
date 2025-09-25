@@ -67,11 +67,9 @@
                     <div class="fw-semibold">{{ r.paciente.nome }}</div>
                   </td>
                   <td>{{ r.especialidade.nome }}</td>
-                  <td class="text-nowrap">
-                    <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
-                  </td>
                   <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
+                    <span class="d-inline-block text-truncate align-middle" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
+                    <span class="badge {{ r.get_resultado_badge_class }} ms-2 align-middle">{{ r.get_resultado_atendimento_display }}</span>
                   </td>
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm align-items-stretch" role="group">
@@ -91,7 +89,7 @@
                         {% csrf_token %}
                         <input type="hidden" name="only" value="co">
                         <select name="resultado" class="form-select form-select-sm">
-                          <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>—</option>
+                          <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>Aguardando</option>
                           <option value="compareceu" {% if r.resultado_atendimento == 'compareceu' %}selected{% endif %}>Compareceu</option>
                           <option value="faltou" {% if r.resultado_atendimento == 'faltou' %}selected{% endif %}>Faltou</option>
                         </select>
@@ -219,11 +217,9 @@
                     <div class="fw-semibold">{{ r.paciente.nome }}</div>
                   </td>
                   <td>{{ r.tipo_exame.nome }}</td>
-                  <td class="text-nowrap">
-                    <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
-                  </td>
                   <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
+                    <span class="d-inline-block text-truncate align-middle" style="max-width: 220px;" title="{{ r.ubs_solicitante.nome }}">{{ r.ubs_solicitante.nome }}</span>
+                    <span class="badge {{ r.get_resultado_badge_class }} ms-2 align-middle">{{ r.get_resultado_atendimento_display }}</span>
                   </td>
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm align-items-stretch" role="group">
@@ -243,7 +239,7 @@
                         {% csrf_token %}
                         <input type="hidden" name="only" value="ex">
                         <select name="resultado" class="form-select form-select-sm">
-                          <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>—</option>
+                          <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>Aguardando</option>
                           <option value="compareceu" {% if r.resultado_atendimento == 'compareceu' %}selected{% endif %}>Compareceu</option>
                           <option value="faltou" {% if r.resultado_atendimento == 'faltou' %}selected{% endif %}>Faltou</option>
                         </select>
