@@ -53,8 +53,8 @@
         <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
           <tr>
             <th>Protocolo</th>
-            <th>Paciente</th>
-            <th>Especialidade</th>
+            <th class="truncate-col">Paciente</th>
+            <th class="truncate-col">Especialidade</th>
             <th>UBS</th>
             <th>Status</th>
             <th>Situação</th>
@@ -66,8 +66,8 @@
           {% for r in solicitacoes %}
           <tr>
             <td>{{ r.numero_protocolo }}</td>
-            <td>{{ r.paciente.nome }}</td>
-            <td>{{ r.especialidade.nome }}</td>
+            <td class="truncate-col"><div class="text-truncate" title="{{ r.paciente.nome }}">{{ r.paciente.nome }}</div></td>
+            <td class="truncate-col"><div class="text-truncate" title="{{ r.especialidade.nome }}">{{ r.especialidade.nome }}</div></td>
             <td>{{ r.ubs_solicitante.nome }}</td>
             <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
             <td>

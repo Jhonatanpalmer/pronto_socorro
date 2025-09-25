@@ -93,8 +93,8 @@
                     <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
                             <th>Paciente</th>
-                            <th>Quantidade de exames</th>
-                            <th>Exames</th>
+                            <th>Qtd. exames</th>
+                            <th class="truncate-col">Exames</th>
                             <th>Situação</th>
                             <th>Primeiro registro</th>
                             <th class="text-end">Ações</th>
@@ -112,9 +112,11 @@
                             <td>
                                 <span class="badge bg-primary">{{ item.total_exames }}</span>
                             </td>
-                            <td>
-                                <small class="text-muted">{{ item.exames_nomes|join:", " }}</small>
-                            </td>
+                                                        <td class="truncate-col">
+                                                                <div class="text-truncate" title="{{ item.exames_nomes|join:', ' }}">
+                                                                    <small class="text-muted">{{ item.exames_nomes|join:", " }}</small>
+                                                                </div>
+                                                        </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-1">
                                     {% if item.fila_count %}
