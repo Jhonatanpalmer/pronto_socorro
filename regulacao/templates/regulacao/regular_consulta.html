@@ -2,74 +2,132 @@
 {% block title %}Regular Consulta{% endblock %}
 {% block content %}
 <div class="container py-4">
-  <div class="card">
-    <div class="card-header bg-warning text-dark">
-      <strong>Regular Consulta — Protocolo {{ regulacao.numero_protocolo }}</strong>
-    </div>
-    <div class="card-body">
-      <dl class="row">
-        <dt class="col-sm-3">Paciente</dt><dd class="col-sm-9">{{ regulacao.paciente.nome }}</dd>
-        <dt class="col-sm-3">Especialidade</dt><dd class="col-sm-9">{{ regulacao.especialidade.nome }}</dd>
-        <dt class="col-sm-3">UBS</dt><dd class="col-sm-9">{{ regulacao.ubs_solicitante.nome }}</dd>
-        <dt class="col-sm-3">Status atual</dt><dd class="col-sm-9"><span class="badge {{ regulacao.get_status_badge_class }}">{{ regulacao.get_status_display }}</span></dd>
-      </dl>
+  <div class="row justify-content-center">
+    <div class="col-md-11 col-lg-10">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <strong>Regular Consulta — Protocolo {{ regulacao.numero_protocolo }}</strong>
+          <span class="badge {{ regulacao.get_status_badge_class }}">{{ regulacao.get_status_display }}</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-4 small">
+            <div class="col-md-6">
+              <h6 class="text-muted">Paciente</h6>
+              <div><strong>Nome:</strong> {{ regulacao.paciente.nome }}</div>
+              <div><strong>UBS:</strong> {{ regulacao.ubs_solicitante.nome }}</div>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-muted">Consulta</h6>
+              <div><strong>Especialidade:</strong> {{ regulacao.especialidade.nome }}</div>
+              <div><strong>Solicitado em:</strong> {{ regulacao.data_solicitacao|date:'d/m/Y H:i' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <form method="post">{% csrf_token %}
-        <div class="mb-3">
-          <label class="form-label">Decisão</label>
-          <select id="decisao" name="decisao" class="form-select" required>
-            <option value="">Selecione...</option>
-            <option value="autorizado" {% if decisao == 'autorizado' %}selected{% endif %}>Autorizar</option>
-            <option value="negado" {% if decisao == 'negado' %}selected{% endif %}>Negar</option>
-          </select>
+      <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-gear-fill"></i> Realizar Regulação</h5>
         </div>
-        <div id="campos-autorizacao" style="display:none;">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Local de Atendimento</label>
-              <input type="text" class="form-control" name="local_atendimento" value="{{ request.POST.local_atendimento|default:regulacao.local_atendimento }}" />
+        <div class="card-body">
+          <form method="post" id="form-regular-consulta">{% csrf_token %}
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Decisão <span class="text-danger">*</span></label>
+              <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                  <input type="radio" class="btn-check" name="decisao" id="autorizar" value="autorizado" required {% if decisao == 'autorizado' %}checked{% endif %}>
+                  <label class="btn w-100 p-3 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-success" for="autorizar">
+                    <span class="display-6"><i class="bi bi-check-circle-fill text-success"></i></span>
+                    <span>
+                      <span class="h5 mb-1 d-block">Autorizar</span>
+                      <small class="text-muted">Defina local, data e médico da consulta.</small>
+                    </span>
+                  </label>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <input type="radio" class="btn-check" name="decisao" id="negar" value="negado" required {% if decisao == 'negado' %}checked{% endif %}>
+                  <label class="btn w-100 p-3 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-danger" for="negar">
+                    <span class="display-6"><i class="bi bi-x-circle-fill text-danger"></i></span>
+                    <span>
+                      <span class="h5 mb-1 d-block">Negar</span>
+                      <small class="text-muted">Será solicitado o motivo da negação.</small>
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Data do Agendamento</label>
-              <input type="date" class="form-control" name="data_agendada" value="{{ request.POST.data_agendada|default:regulacao.data_agendada|date:'Y-m-d' }}" />
+
+            <div id="campos-autorizacao" class="border rounded-3 p-3 mb-4" style="display:none;">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Local de Atendimento <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="local_atendimento" value="{{ request.POST.local_atendimento|default:regulacao.local_atendimento }}" />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Data do Agendamento <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" name="data_agendada" value="{{ request.POST.data_agendada|default:regulacao.data_agendada|date:'Y-m-d' }}" />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Hora <span class="text-danger">*</span></label>
+                  <input type="time" class="form-control" name="hora_agendada" value="{{ request.POST.hora_agendada|default:regulacao.hora_agendada|time:'H:i' }}" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Médico Atendente <span class="text-danger">*</span></label>
+                  <select class="form-select" name="medico_atendente">
+                    <option value="">Selecione...</option>
+                    {% for m in medicos %}
+                      <option value="{{ m.id }}" {% if request.POST.medico_atendente == m.id|stringformat:'s' or regulacao.medico_atendente_id == m.id %}selected{% endif %}>{{ m.nome }} (CRM {{ m.crm }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Observações da Regulação</label>
+                  <textarea class="form-control" name="observacoes_regulacao" rows="2">{{ request.POST.observacoes_regulacao|default:regulacao.observacoes_regulacao }}</textarea>
+                </div>
+              </div>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Hora</label>
-              <input type="time" class="form-control" name="hora_agendada" value="{{ request.POST.hora_agendada|default:regulacao.hora_agendada|time:'H:i' }}" />
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Justificativa <span class="text-danger">*</span></label>
+              <textarea name="justificativa" class="form-control" rows="4" required placeholder="Descreva os motivos da decisão">{{ request.POST.justificativa }}</textarea>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Médico Atendente</label>
-              <select class="form-select" name="medico_atendente">
-                <option value="">Selecione...</option>
-                {% for m in medicos %}
-                <option value="{{ m.id }}" {% if request.POST.medico_atendente == m.id|stringformat:'s' or regulacao.medico_atendente_id == m.id %}selected{% endif %}>{{ m.nome }} (CRM {{ m.crm }})</option>
-                {% endfor %}
-              </select>
+
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+              <a class="btn btn-outline-secondary" href="{% url 'consulta-list' %}"><i class="bi bi-arrow-left"></i> Voltar</a>
+              <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> Confirmar</button>
             </div>
-          </div>
-          <div class="mt-3">
-            <label class="form-label">Observações da Regulação</label>
-            <textarea class="form-control" name="observacoes_regulacao" rows="2">{{ request.POST.observacoes_regulacao|default:regulacao.observacoes_regulacao }}</textarea>
-          </div>
+          </form>
         </div>
-        <div class="mb-3 mt-3">
-          <label class="form-label">Justificativa</label>
-          <textarea name="justificativa" class="form-control" rows="3" required>{{ request.POST.justificativa }}</textarea>
-        </div>
-        <div class="d-flex justify-content-end gap-2 mt-3">
-          <a class="btn btn-secondary" href="{% url 'consulta-list' %}">Cancelar</a>
-          <button type="submit" class="btn btn-success">Salvar</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
+<!-- Modal para confirmar negação -->
+<div class="modal fade" id="modalNegarConsulta" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar negação</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">Tem certeza que deseja negar esta consulta? Preencha a justificativa com os motivos.</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+        <button type="button" class="btn btn-danger" id="confirmNegarBtnConsulta">Negar consulta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  const decisao = document.getElementById('decisao');
+  const decisaoAutorizar = document.getElementById('autorizar');
+  const decisaoNegar = document.getElementById('negar');
   const bloco = document.getElementById('campos-autorizacao');
+  const form = document.getElementById('form-regular-consulta');
   const reqFields = [
     'input[name="local_atendimento"]',
     'input[name="data_agendada"]',
@@ -77,15 +135,35 @@ document.addEventListener('DOMContentLoaded', function(){
     'select[name="medico_atendente"]'
   ].map(s => document.querySelector(s));
   function toggle(){
-    const on = decisao && decisao.value === 'autorizado';
-    bloco.style.display = on ? 'block' : 'none';
+    const on = decisaoAutorizar && decisaoAutorizar.checked;
+    if (bloco) bloco.style.display = on ? 'block' : 'none';
     reqFields.forEach(el => { if (el){ el.required = on; el.disabled = !on; }});
   }
-  if (decisao) decisao.addEventListener('change', toggle);
-  // se houve POST e a decisão foi 'autorizado', garantir exibição
+  if (decisaoAutorizar) decisaoAutorizar.addEventListener('change', toggle);
+  if (decisaoNegar) decisaoNegar.addEventListener('change', toggle);
   {% if decisao == 'autorizado' %}
-    decisao.value = 'autorizado';
+    if (decisaoAutorizar) decisaoAutorizar.checked = true;
   {% endif %}
   toggle();
+
+  if (form) {
+    form.addEventListener('submit', function(e){
+      if (decisaoNegar && decisaoNegar.checked) {
+        e.preventDefault();
+        const modalEl = document.getElementById('modalNegarConsulta');
+        if (modalEl) {
+          const modal = new bootstrap.Modal(modalEl);
+          modal.show();
+          const confirmBtn = document.getElementById('confirmNegarBtnConsulta');
+          const onConfirm = () => {
+            confirmBtn.removeEventListener('click', onConfirm);
+            modal.hide();
+            form.submit();
+          };
+          confirmBtn.addEventListener('click', onConfirm);
+        }
+      }
+    });
+  }
 });
 </script>

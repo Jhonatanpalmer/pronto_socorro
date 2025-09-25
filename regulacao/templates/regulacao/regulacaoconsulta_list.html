@@ -49,8 +49,8 @@
 
   <div class="card">
     <div class="card-body p-0">
-      <table class="table mb-0">
-        <thead>
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
           <tr>
             <th>Protocolo</th>
             <th>Paciente</th>
@@ -87,12 +87,14 @@
             </td>
             <td>{{ r.data_solicitacao|date:'d/m/Y H:i' }}</td>
             <td class="text-end">
-              {% if r.status == 'fila' or r.status == 'pendente' %}
-                <a class="btn btn-sm btn-warning" href="{% url 'regular-consulta' r.pk %}">Regular</a>
-              {% endif %}
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'consulta-update' r.pk %}">Editar</a>
-              <a class="btn btn-sm btn-outline-danger" href="{% url 'consulta-delete' r.pk %}">Excluir</a>
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'paciente_historico' r.paciente_id %}"><i class="bi bi-clock-history"></i> Histórico</a>
+              <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
+                {% if r.status == 'fila' or r.status == 'pendente' %}
+                  <a class="btn btn-sm btn-warning" href="{% url 'regular-consulta' r.pk %}">Regular</a>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'consulta-update' r.pk %}">Editar</a>
+                <a class="btn btn-sm btn-outline-danger" href="{% url 'consulta-delete' r.pk %}">Excluir</a>
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'paciente_historico' r.paciente_id %}"><i class="bi bi-clock-history"></i> Histórico</a>
+              </div>
             </td>
           </tr>
           {% empty %}

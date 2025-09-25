@@ -5,180 +5,177 @@
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8">
-            <!-- Informações da Solicitação -->
+        <div class="col-md-11 col-lg-10">
+            <!-- Cabeçalho / Resumo -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-info text-white">
-                    <h4 class="card-title mb-0">
-                        <i class="bi bi-clipboard-data"></i>
-                        Protocolo #{{ regulacao.numero_protocolo }}
-                        <span class="badge {{ regulacao.get_status_badge_class }} ms-2">
-                            {{ regulacao.get_status_display }}
-                        </span>
-                    </h4>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <h4 class="card-title mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-clipboard-data"></i>
+                            Protocolo #{{ regulacao.numero_protocolo }}
+                        </h4>
+                        <span class="badge {{ regulacao.get_status_badge_class }}">{{ regulacao.get_status_display }}</span>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <h6 class="text-muted">INFORMAÇÕES DO PACIENTE</h6>
-                            <p class="mb-1"><strong>Nome:</strong> {{ regulacao.paciente.nome }}</p>
-                            <p class="mb-1"><strong>CPF:</strong> {{ regulacao.paciente.cpf }}</p>
-                            {% if regulacao.paciente.telefone %}
-                            <p class="mb-1"><strong>Telefone:</strong> {{ regulacao.paciente.telefone }}</p>
-                            {% endif %}
-                            <p class="mb-3"><strong>Data Nascimento:</strong> {{ regulacao.paciente.data_nascimento|date:"d/m/Y" }}</p>
+                            <h6 class="text-muted">Paciente</h6>
+                            <div class="d-flex flex-column small">
+                                <span><strong>Nome:</strong> {{ regulacao.paciente.nome }}</span>
+                                <span><strong>CPF:</strong> {{ regulacao.paciente.cpf }}</span>
+                                {% if regulacao.paciente.telefone %}
+                                    <span><strong>Telefone:</strong> {{ regulacao.paciente.telefone }}</span>
+                                {% endif %}
+                                <span><strong>Nascimento:</strong> {{ regulacao.paciente.data_nascimento|date:"d/m/Y" }}</span>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <h6 class="text-muted">INFORMAÇÕES DA SOLICITAÇÃO</h6>
-                            <p class="mb-1"><strong>UBS:</strong> {{ regulacao.ubs_solicitante.nome }}</p>
-                            <p class="mb-1"><strong>Médico:</strong> {{ regulacao.medico_solicitante.nome }}</p>
-                            <p class="mb-1"><strong>CRM:</strong> {{ regulacao.medico_solicitante.crm }}</p>
-                            <p class="mb-3"><strong>Data Solicitação:</strong> {{ regulacao.data_solicitacao|date:"d/m/Y H:i" }}</p>
+                            <h6 class="text-muted">Solicitação</h6>
+                            <div class="d-flex flex-column small">
+                                <span><strong>UBS:</strong> {{ regulacao.ubs_solicitante.nome }}</span>
+                                <span><strong>Médico:</strong> {{ regulacao.medico_solicitante.nome }} (CRM {{ regulacao.medico_solicitante.crm }})</span>
+                                <span><strong>Solicitado em:</strong> {{ regulacao.data_solicitacao|date:"d/m/Y H:i" }}</span>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="row">
                         <div class="col-12">
-                            <h6 class="text-muted">EXAME SOLICITADO</h6>
-                            <div class="alert alert-light">
-                                <h5 class="mb-1">{{ regulacao.tipo_exame.nome }}</h5>
-                                {% if regulacao.tipo_exame.codigo %}
-                                <p class="mb-1"><strong>Código:</strong> {{ regulacao.tipo_exame.codigo }}</p>
-                                {% endif %}
+                            <h6 class="text-muted">Exame solicitado</h6>
+                            <div class="alert alert-light mb-0">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                    <h5 class="mb-0">{{ regulacao.tipo_exame.nome }}</h5>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% if regulacao.prioridade == 'alta' %}
+                                            <span class="badge bg-danger">Alta</span>
+                                        {% elif regulacao.prioridade == 'media' %}
+                                            <span class="badge bg-warning text-dark">Média</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Normal</span>
+                                        {% endif %}
+                                        {% if regulacao.tipo_exame.codigo %}
+                                            <span class="badge bg-light text-secondary border">Cód: {{ regulacao.tipo_exame.codigo }}</span>
+                                        {% endif %}
+                                        {% if regulacao.tipo_exame.valor %}
+                                            <span class="badge bg-light text-secondary border">R$ {{ regulacao.tipo_exame.valor|floatformat:2 }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
                                 {% if regulacao.tipo_exame.descricao %}
-                                <p class="mb-1"><strong>Descrição:</strong> {{ regulacao.tipo_exame.descricao }}</p>
+                                    <div class="mt-2 small text-muted">{{ regulacao.tipo_exame.descricao }}</div>
                                 {% endif %}
-                                {% if regulacao.tipo_exame.valor %}
-                                <p class="mb-0"><strong>Valor:</strong> R$ {{ regulacao.tipo_exame.valor|floatformat:2 }}</p>
+                                {% if regulacao.observacoes_solicitacao %}
+                                    <div class="mt-2"><strong>Observações:</strong> {{ regulacao.observacoes_solicitacao }}</div>
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-muted">PRIORIDADE</h6>
-                            <p>
-                                {% if regulacao.prioridade == 'alta' %}
-                                <span class="badge bg-danger">Alta Prioridade</span>
-                                {% elif regulacao.prioridade == 'media' %}
-                                <span class="badge bg-warning">Média Prioridade</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Prioridade Normal</span>
+                        {% if regulacao.status in 'autorizado,negado,cancelado' or regulacao.regulador or regulacao.data_regulacao %}
+                        <div class="col-12">
+                            <hr class="my-2">
+                            <h6 class="text-muted">Regulação</h6>
+                            <div class="small">
+                                {% if regulacao.regulador %}
+                                    <div><strong>Regulado por:</strong> {% firstof regulacao.regulador.get_full_name regulacao.regulador.username %}</div>
                                 {% endif %}
-                            </p>
-                        </div>
-                        {% if regulacao.observacoes_solicitacao %}
-                        <div class="col-md-6">
-                            <h6 class="text-muted">OBSERVAÇÕES DA SOLICITAÇÃO</h6>
-                            <p>{{ regulacao.observacoes_solicitacao }}</p>
+                                <div><strong>Data:</strong> {{ regulacao.data_regulacao|date:"d/m/Y H:i" }}</div>
+                                {% if regulacao.motivo_decisao %}
+                                    <div><strong>Motivo:</strong> {{ regulacao.motivo_decisao }}</div>
+                                {% endif %}
+                            </div>
                         </div>
                         {% endif %}
                     </div>
-
-                    {# Mostrar informações da regulação apenas quando já houve decisão #}
-                    {% if regulacao.status == 'autorizado' or regulacao.status == 'negado' or regulacao.status == 'cancelado' or regulacao.regulador or regulacao.data_regulacao %}
-                    <hr>
-                    <div class="row">
-                        <div class="col-12">
-                            <h6 class="text-muted">INFORMAÇÕES DA REGULAÇÃO</h6>
-                            {% if regulacao.regulador %}
-                            <p class="mb-1"><strong>Regulado por:</strong> {% firstof regulacao.regulador.get_full_name regulacao.regulador.username %}</p>
-                            {% endif %}
-                            <p class="mb-1"><strong>Data da Regulação:</strong> {{ regulacao.data_regulacao|date:"d/m/Y H:i" }}</p>
-                            {% if regulacao.motivo_decisao %}
-                            <p class="mb-0"><strong>Motivo da Decisão:</strong> {{ regulacao.motivo_decisao }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
 
-            <!-- Formulário de Regulação -->
             {% if regulacao.status == 'pendente' or regulacao.status == 'fila' %}
+            <!-- Formulário de Regulação -->
             <div class="card shadow-sm">
                 <div class="card-header bg-warning text-dark">
-                    <h5 class="card-title mb-0">
+                    <h5 class="card-title mb-0 d-flex align-items-center gap-2">
                         <i class="bi bi-gear-fill"></i>
                         Realizar Regulação
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" id="form-regular-exame">
                         {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="decisao" class="form-label">
-                                <strong>Decisão <span class="text-danger">*</span></strong>
-                            </label>
-                            <div class="btn-group w-100" role="group" aria-label="Decisão de regulação">
-                                <input type="radio" class="btn-check" name="decisao" id="autorizar" value="autorizado" required {% if decisao == 'autorizado' %}checked{% endif %}>
-                                <label class="btn btn-outline-success" for="autorizar">
-                                    <i class="bi bi-check-circle-fill"></i> Autorizar
-                                </label>
-                                
-                                <input type="radio" class="btn-check" name="decisao" id="negar" value="negado" required {% if decisao == 'negado' %}checked{% endif %}>
-                                <label class="btn btn-outline-danger" for="negar">
-                                    <i class="bi bi-x-circle-fill"></i> Negar
-                                </label>
+
+                        <!-- Decisão destacada em cartões grandes -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Decisão <span class="text-danger">*</span></label>
+                            <div class="row g-3">
+                                <div class="col-12 col-lg-6">
+                                    <input type="radio" class="btn-check" name="decisao" id="autorizar" value="autorizado" required {% if decisao == 'autorizado' %}checked{% endif %}>
+                                    <label class="btn w-100 p-3 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-success" for="autorizar">
+                                        <span class="display-6"><i class="bi bi-check-circle-fill text-success"></i></span>
+                                        <span>
+                                            <span class="h5 mb-1 d-block">Autorizar</span>
+                                            <small class="text-muted">Abrirá os campos para definir local, data e médico.</small>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                    <input type="radio" class="btn-check" name="decisao" id="negar" value="negado" required {% if decisao == 'negado' %}checked{% endif %}>
+                                    <label class="btn w-100 p-3 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-danger" for="negar">
+                                        <span class="display-6"><i class="bi bi-x-circle-fill text-danger"></i></span>
+                                        <span>
+                                            <span class="h5 mb-1 d-block">Negar</span>
+                                            <small class="text-muted">Será solicitado o motivo da negação.</small>
+                                        </span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
-                        <div id="campos-autorizacao" style="display:none;">
+                        <!-- Campos quando autorizado -->
+                        <div id="campos-autorizacao" class="border rounded-3 p-3 mb-4" style="display:none;">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">Local de Realização</label>
-                                    <input type="text" class="form-control" name="local_realizacao" value="{{ request.POST.local_realizacao|default:regulacao.local_realizacao }}" />
+                                    <label class="form-label">Local de Realização <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="local_realizacao" placeholder="Ex.: Clínica ABC" value="{{ request.POST.local_realizacao|default:regulacao.local_realizacao }}" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Data do Agendamento</label>
+                                    <label class="form-label">Data do Agendamento <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" name="data_agendada" value="{{ request.POST.data_agendada|default:regulacao.data_agendada|date:'Y-m-d' }}" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Hora</label>
+                                    <label class="form-label">Hora <span class="text-danger">*</span></label>
                                     <input type="time" class="form-control" name="hora_agendada" value="{{ request.POST.hora_agendada|default:regulacao.hora_agendada|time:'H:i' }}" />
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Médico Atendente</label>
+                                    <label class="form-label">Médico Atendente <span class="text-danger">*</span></label>
                                     <select class="form-select" name="medico_atendente">
                                         <option value="">Selecione...</option>
                                         {% for m in medicos %}
-                                        <option value="{{ m.id }}" {% if request.POST.medico_atendente == m.id|stringformat:'s' or regulacao.medico_atendente_id == m.id %}selected{% endif %}>{{ m.nome }} (CRM {{ m.crm }})</option>
+                                            <option value="{{ m.id }}" {% if request.POST.medico_atendente == m.id|stringformat:'s' or regulacao.medico_atendente_id == m.id %}selected{% endif %}>{{ m.nome }} (CRM {{ m.crm }})</option>
                                         {% endfor %}
                                     </select>
                                 </div>
-                            </div>
-                            <div class="mt-3">
-                                <label class="form-label">Observações da Regulação</label>
-                                <textarea class="form-control" name="observacoes_regulacao" rows="2">{{ regulacao.observacoes_regulacao }}</textarea>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="justificativa" class="form-label">
-                                <strong>Justificativa <span class="text-danger">*</span></strong>
-                            </label>
-                            <textarea name="justificativa" id="justificativa" rows="4" class="form-control" 
-                                      placeholder="Digite a justificativa para sua decisão..." required>{{ request.POST.justificativa }}</textarea>
-                            <div class="form-text">
-                                Explique os motivos que levaram à sua decisão de autorizar ou negar o exame.
+                                <div class="col-12">
+                                    <label class="form-label">Observações da Regulação</label>
+                                    <textarea class="form-control" name="observacoes_regulacao" rows="2" placeholder="Informações adicionais">{{ regulacao.observacoes_regulacao }}</textarea>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'regulacao-list' %}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Voltar à Lista
+                        <!-- Justificativa -->
+                        <div class="mb-4">
+                            <label for="justificativa" class="form-label fw-semibold">Justificativa <span class="text-danger">*</span></label>
+                            <textarea name="justificativa" id="justificativa" rows="4" class="form-control" placeholder="Descreva os motivos da decisão" required>{{ request.POST.justificativa }}</textarea>
+                            <div class="form-text">Explique os motivos que levaram à sua decisão.</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+                            <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Voltar à lista
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-lg"></i> Confirmar Regulação
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check2-circle"></i> Confirmar regulação
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
             {% else %}
-            <!-- Se já foi regulado, mostrar apenas botão de voltar -->
             <div class="text-center">
                 <a href="{% url 'regulacao-list' %}" class="btn btn-primary">
                     <i class="bi bi-arrow-left"></i> Voltar à Lista
@@ -190,29 +187,69 @@
 </div>
 {% endblock %}
 
+<!-- Modal de confirmação para negação -->
+<div class="modal fade" id="modalNegar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar negação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja negar este exame? Certifique-se de preencher a justificativa com os motivos.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                <button type="button" class="btn btn-danger" id="confirmNegarBtn">Negar exame</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// Mostra os campos de autorização quando a decisão é 'autorizado'
 document.addEventListener('DOMContentLoaded', function(){
     const autorizar = document.getElementById('autorizar');
     const negar = document.getElementById('negar');
     const bloco = document.getElementById('campos-autorizacao');
+    const form = document.getElementById('form-regular-exame');
     const reqFields = [
         'input[name="local_realizacao"]',
         'input[name="data_agendada"]',
         'input[name="hora_agendada"]',
         'select[name="medico_atendente"]'
     ].map(s => document.querySelector(s));
-        function toggle(){
-            const on = autorizar && autorizar.checked;
-        bloco.style.display = on ? 'block' : 'none';
+
+    function toggle(){
+        const on = autorizar && autorizar.checked;
+        if (bloco) bloco.style.display = on ? 'block' : 'none';
         reqFields.forEach(el => { if (el){ el.required = on; el.disabled = !on; }});
     }
     if (autorizar) autorizar.addEventListener('change', toggle);
     if (negar) negar.addEventListener('change', toggle);
-        // se houve POST e a decisão foi 'autorizado', garantir exibição
-        {% if decisao == 'autorizado' %}
-            if (autorizar) autorizar.checked = true;
-        {% endif %}
-        toggle();
+    {% if decisao == 'autorizado' %}
+        if (autorizar) autorizar.checked = true;
+    {% endif %}
+    toggle();
+
+    // Confirmação ao negar
+    if (form) {
+        form.addEventListener('submit', function(e){
+            if (negar && negar.checked) {
+                e.preventDefault();
+                const modalEl = document.getElementById('modalNegar');
+                if (modalEl) {
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                    const confirmBtn = document.getElementById('confirmNegarBtn');
+                    const onConfirm = () => {
+                        confirmBtn.removeEventListener('click', onConfirm);
+                        modal.hide();
+                        form.submit();
+                    };
+                    confirmBtn.addEventListener('click', onConfirm);
+                }
+            }
+        });
+    }
 });
 </script>
