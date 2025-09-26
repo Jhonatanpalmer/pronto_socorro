@@ -19,7 +19,7 @@
               <div id="resultado-paciente-regconsulta" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
               <div class="form-text">Digite ao menos 2 letras e selecione o paciente; o campo abaixo será preenchido.</div>
             </div>
-            {{ form.paciente|add_class:'form-select' }}
+            <div class="d-none">{{ form.paciente|add_class:'form-select' }}</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">Especialidade</label>

@@ -48,8 +48,8 @@ def dashboard_view(request):
     # App Regulação
     if 'regulacao' in settings.INSTALLED_APPS and user_has_access(request.user, 'regulacao'):
         apps.append({
-            'nome': 'Regulação de Exames',
-            'descricao': 'Gerencie solicitações e autorizações de exames.',
+            'nome': 'Regulação',
+            'descricao': 'Gerencie solicitações de exames e consultas',
             'url': 'regulacao-dashboard',
             'icone': 'bi-clipboard-check-fill',
             'cor': 'warning'
