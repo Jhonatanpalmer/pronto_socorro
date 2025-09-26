@@ -104,6 +104,7 @@ def selecionar_malote(request):
     ubs_list = UBS.objects.filter(ativa=True).order_by('nome')
     return render(request, 'regulacao/malote_select.html', {
         'ubs_list': ubs_list,
+        'current_malote_id': request.session.get('malote_ubs_id'),
     })
 
 

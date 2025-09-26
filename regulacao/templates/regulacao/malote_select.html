@@ -2,37 +2,110 @@
 {% block title %}Abrir Malote - Regulação{% endblock %}
 {% block content %}
 <div class="container py-4 py-md-5">
-  <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-          <strong>Qual Unidade Básica de Saúde você deseja abrir o malote?</strong>
-        </div>
-        <div class="card-body">
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-          <form method="post" class="vstack gap-3">
-            {% csrf_token %}
-            <div>
-              <label class="form-label">Unidade Básica de Saúde</label>
-              <select name="ubs_id" class="form-select" required>
-                <option value="">Selecione...</option>
-                {% for u in ubs_list %}
-                  <option value="{{ u.id }}">{{ u.nome }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-              <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">Cancelar</a>
-              <button class="btn btn-primary">Abrir malote</button>
-            </div>
-          </form>
-        </div>
+  <!-- Hero -->
+  <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #0d6efd, #20c997); box-shadow: 0 8px 24px rgba(13,110,253,.18);">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+      <div class="display-6"><i class="bi bi-building-check"></i></div>
+      <div class="flex-grow-1">
+        <h2 class="fw-bold mb-1">Abrir Malote</h2>
+        <div class="opacity-75">Qual Unidade Básica de Saúde você deseja atender agora?</div>
       </div>
+      <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar ao Dashboard</a>
     </div>
   </div>
+
+  {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mb-2">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" id="malote-form">
+    {% csrf_token %}
+    <div class="row g-3 align-items-end mb-3">
+      <div class="col-12 col-md-6">
+        <label class="form-label">Buscar UBS</label>
+        <input type="text" id="ubs-search" class="form-control" placeholder="Digite o nome da UBS para filtrar...">
+      </div>
+      <div class="col-12 col-md-6 text-md-end">
+        <small class="text-muted d-block mb-1">Selecione uma UBS abaixo para abrir o malote</small>
+        <button id="submit-btn" class="btn btn-primary" disabled>
+          <i class="bi bi-folder2-open"></i> Abrir malote
+        </button>
+      </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3" id="ubs-grid">
+      {% for u in ubs_list %}
+      <div class="col ubs-item" data-name="{{ u.nome|lower }}">
+        <input class="btn-check" type="radio" name="ubs_id" value="{{ u.id }}" id="ubs-{{ u.id }}" {% if current_malote_id and current_malote_id == u.id %}checked{% endif %}>
+        <label class="btn w-100 text-start p-3 border rounded-3 h-100 d-flex align-items-center gap-3 ubs-card" for="ubs-{{ u.id }}">
+          <div class="flex-shrink-0 display-6 text-primary"><i class="bi bi-hospital"></i></div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold">{{ u.nome }}</div>
+            {% if u.endereco %}<div class="text-muted small text-truncate">{{ u.endereco }}</div>{% endif %}
+          </div>
+          <div class="flex-shrink-0">
+            <span class="badge bg-light text-dark border">Selecionar</span>
+          </div>
+        </label>
+      </div>
+      {% empty %}
+      <div class="col">
+        <div class="alert alert-warning">Nenhuma UBS cadastrada.</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</a>
+      <button id="submit-btn-bottom" class="btn btn-primary" disabled>
+        <i class="bi bi-folder2-open"></i> Abrir malote
+      </button>
+    </div>
+  </form>
+
+  <style>
+    .ubs-card { background-color: #fff; border-color: rgba(0,0,0,.1) !important; box-shadow: 0 6px 18px rgba(0,0,0,.05); transition: transform .15s ease, box-shadow .15s ease; }
+    .ubs-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,.12); }
+    .btn-check:checked + .ubs-card { border-color: #0d6efd !important; box-shadow: 0 0 0 .2rem rgba(13,110,253,.15); }
+  </style>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    var search = document.getElementById('ubs-search');
+    var items = Array.from(document.querySelectorAll('#ubs-grid .ubs-item'));
+    var topBtn = document.getElementById('submit-btn');
+    var bottomBtn = document.getElementById('submit-btn-bottom');
+    var radios = Array.from(document.querySelectorAll('input[name="ubs_id"]'));
+
+    function updateButtons(){
+      var selected = document.querySelector('input[name="ubs_id"]:checked');
+      var enabled = !!selected;
+      [topBtn, bottomBtn].forEach(function(b){ if(b) b.disabled = !enabled; });
+    }
+
+    function filter(){
+      var q = (search.value || '').toLowerCase().trim();
+      items.forEach(function(el){
+        var name = el.getAttribute('data-name') || '';
+        if(!q || name.indexOf(q) !== -1){
+          el.classList.remove('d-none');
+        } else {
+          el.classList.add('d-none');
+        }
+      });
+    }
+
+    if(search){ search.addEventListener('input', filter); }
+    radios.forEach(function(r){ r.addEventListener('change', updateButtons); });
+
+    // Initialize states
+    filter();
+    updateButtons();
+  });
+  </script>
 </div>
 {% endblock %}
