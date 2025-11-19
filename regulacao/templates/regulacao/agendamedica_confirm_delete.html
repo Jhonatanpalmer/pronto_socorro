@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Excluir Agenda{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card">
+    <div class="card-body">
+      <h5>Confirmar exclusão</h5>
+      <p>Tem certeza que deseja excluir a agenda de <strong>{{ object.medico.nome }}</strong> — <strong>{{ object.especialidade.nome }}</strong> ({{ object.get_dia_semana_display }})?</p>
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'agendamedica-list' %}" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-danger">Excluir</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

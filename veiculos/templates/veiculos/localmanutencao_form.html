@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}{% if obj %}Editar Local de Manutenção{% else %}Novo Local de Manutenção{% endif %}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-geo-alt"></i> {% if obj %}Editar Local{% else %}Cadastrar Local{% endif %}</h6>
+      <a href="{% url 'local-manutencao-list' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-list-ul"></i> Lista</a>
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Nome</label>
+            {{ form.nome|add_class:'form-control' }}
+            {% if form.nome.errors %}<div class="text-danger small mt-1">{{ form.nome.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Cidade</label>
+            {{ form.cidade|add_class:'form-control' }}
+            {% if form.cidade.errors %}<div class="text-danger small mt-1">{{ form.cidade.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Responsável</label>
+            {{ form.responsavel|add_class:'form-control' }}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Telefone</label>
+            {{ form.telefone|add_class:'form-control' }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Observações</label>
+            {{ form.observacoes|add_class:'form-control' }}
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a href="{% url 'local-manutencao-list' %}" class="btn btn-outline-secondary btn-icon"><i class="bi bi-arrow-left"></i> Voltar</a>
+          <button type="submit" class="btn btn-success btn-icon"><i class="bi bi-check2-circle"></i> {% if obj %}Atualizar{% else %}Salvar{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

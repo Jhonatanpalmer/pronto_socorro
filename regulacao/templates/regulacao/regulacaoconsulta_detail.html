@@ -10,28 +10,19 @@
       Solicitação de Consulta — Protocolo #{{ regulacao.numero_protocolo }}
     </h4>
     <div class="d-print-none">
-      <button type="button" class="btn btn-outline-secondary me-2" onclick="window.print()">
-        <i class="bi bi-printer"></i> Imprimir
-      </button>
-      {% if regulacao.status == 'autorizado' %}
-      <a class="btn btn-success me-2" href="{% url 'comprovante-consulta' regulacao.pk %}">
-        <i class="bi bi-ticket-perforated"></i> Imprimir comprovante
-      </a>
-      {% endif %}
       <a class="btn btn-outline-secondary" href="{% url 'consulta-list' %}">
         <i class="bi bi-arrow-left"></i> Voltar
       </a>
-      {% if regulacao.status == 'fila' or regulacao.status == 'pendente' %}
+      {% if (regulacao.status == 'fila' or regulacao.status == 'pendente') and not is_ubs_user %}
       <a class="btn btn-warning" href="{% url 'regular-consulta' regulacao.pk %}">
         <i class="bi bi-gear-fill"></i> Regular
       </a>
       {% endif %}
-      <a class="btn btn-outline-primary" href="{% url 'consulta-update' regulacao.pk %}">
-        <i class="bi bi-pencil"></i> Editar
+      {% if regulacao.status == 'autorizado' %}
+      <a class="btn btn-primary" href="{% url 'impressao-consulta' regulacao.pk %}" target="_blank">
+        <i class="bi bi-printer"></i> Imprimir
       </a>
-      <a class="btn btn-outline-danger" href="{% url 'consulta-delete' regulacao.pk %}">
-        <i class="bi bi-trash"></i> Excluir
-      </a>
+      {% endif %}
     </div>
   </div>
 
@@ -109,4 +100,5 @@
     </div>
   </div>
 </div>
+ 
 {% endblock %}

@@ -30,33 +30,50 @@
         <input type="text" id="ubs-search" class="form-control" placeholder="Digite o nome da UBS para filtrar...">
       </div>
       <div class="col-12 col-md-6 text-md-end">
-        <small class="text-muted d-block mb-1">Selecione uma UBS abaixo para abrir o malote</small>
-        <button id="submit-btn" class="btn btn-primary" disabled>
-          <i class="bi bi-folder2-open"></i> Abrir malote
-        </button>
+        <small class="text-muted d-block">Selecione uma UBS abaixo para abrir o malote</small>
       </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3" id="ubs-grid">
-      {% for u in ubs_list %}
-      <div class="col ubs-item" data-name="{{ u.nome|lower }}">
-        <input class="btn-check" type="radio" name="ubs_id" value="{{ u.id }}" id="ubs-{{ u.id }}" {% if current_malote_id and current_malote_id == u.id %}checked{% endif %}>
-        <label class="btn w-100 text-start p-3 border rounded-3 h-100 d-flex align-items-center gap-3 ubs-card" for="ubs-{{ u.id }}">
-          <div class="flex-shrink-0 display-6 text-primary"><i class="bi bi-hospital"></i></div>
-          <div class="flex-grow-1">
-            <div class="fw-semibold">{{ u.nome }}</div>
-            {% if u.endereco %}<div class="text-muted small text-truncate">{{ u.endereco }}</div>{% endif %}
-          </div>
-          <div class="flex-shrink-0">
-            <span class="badge bg-light text-dark border">Selecionar</span>
-          </div>
-        </label>
-      </div>
-      {% empty %}
-      <div class="col">
-        <div class="alert alert-warning">Nenhuma UBS cadastrada.</div>
-      </div>
-      {% endfor %}
+    <div class="table-responsive" id="ubs-grid">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>UBS</th>
+            <th>Endereço</th>
+            <th class="text-center" style="width: 120px;">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in ubs_list %}
+          <tr class="ubs-item" data-name="{{ u.nome|lower }}">
+            <td>
+              <div class="form-check">
+                <input class="form-check-input me-2" type="radio" name="ubs_id" value="{{ u.id }}" id="ubs-{{ u.id }}" {% if current_malote_id and current_malote_id == u.id %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="ubs-{{ u.id }}">{{ u.nome }}</label>
+              </div>
+            </td>
+            <td>
+              {% if u.endereco %}
+                {{ u.endereco }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <label for="ubs-{{ u.id }}" class="btn btn-sm btn-outline-primary">
+                Selecionar
+              </label>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">
+              <div class="alert alert-warning mb-0">Nenhuma UBS cadastrada.</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -77,14 +94,13 @@
   document.addEventListener('DOMContentLoaded', function(){
     var search = document.getElementById('ubs-search');
     var items = Array.from(document.querySelectorAll('#ubs-grid .ubs-item'));
-    var topBtn = document.getElementById('submit-btn');
     var bottomBtn = document.getElementById('submit-btn-bottom');
     var radios = Array.from(document.querySelectorAll('input[name="ubs_id"]'));
 
     function updateButtons(){
       var selected = document.querySelector('input[name="ubs_id"]:checked');
       var enabled = !!selected;
-      [topBtn, bottomBtn].forEach(function(b){ if(b) b.disabled = !enabled; });
+      if (bottomBtn) bottomBtn.disabled = !enabled;
     }
 
     function filter(){

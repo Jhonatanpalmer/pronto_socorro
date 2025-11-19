@@ -20,10 +20,17 @@ def validate_cpf(value):
 
 class Paciente(models.Model):
     nome = models.CharField(max_length=150, db_index=True)
-    cpf = models.CharField(max_length=11, blank=True, null=True, unique=True, validators=[validate_cpf])
+    cpf = models.CharField(max_length=14, blank=True, null=True, unique=True, validators=[validate_cpf])
     cns = models.CharField(max_length=15, blank=True, null=True, db_index=True)
-    data_nascimento = models.DateField()
-    endereco = models.TextField(max_length=30)
+    data_nascimento = models.DateField(null=True, blank=True)
+    # Endereço estruturado
+    logradouro = models.CharField(max_length=120, blank=True, help_text='Rua/Avenida/Travessa')
+    numero = models.CharField(max_length=20, blank=True)
+    bairro = models.CharField(max_length=80, blank=True)
+    cep = models.CharField(max_length=10, blank=True)
+    # Filiação
+    nome_mae = models.CharField(max_length=150, blank=True)
+    nome_pai = models.CharField(max_length=150, blank=True)
     telefone = models.CharField(max_length=20, blank=True)
 
     def __str__(self):

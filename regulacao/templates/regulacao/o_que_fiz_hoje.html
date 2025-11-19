@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meu Resumo do Dia - Regulação{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho Principal -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-header bg-primary text-white text-center py-5" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-check fa-4x mb-3" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);"></i>
+                    </div>
+                    <h1 class="display-3 font-weight-bold mb-3" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.7); letter-spacing: 2px;">
+                        MEU RESUMO DO DIA
+                    </h1>
+                    <h2 class="h2 mb-0 font-weight-normal" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                        <i class="fas fa-calendar-alt mr-2"></i>{{ hoje|date:"d/m/Y" }}
+                    </h2>
+                </div>
+            </div>
+
+            {% if total_exames == 0 and total_consultas == 0 %}
+                <!-- Nenhuma ação realizada hoje -->
+                <div class="card shadow border-0">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-coffee fa-4x text-muted mb-4"></i>
+                        <h3 class="text-muted mb-3">Dia tranquilo por aqui!</h3>
+                        <p class="lead text-muted">Você ainda não processou nenhum exame ou consulta hoje.</p>
+                        <a href="{% url 'regulacao-dashboard' %}" class="btn btn-primary btn-lg mt-3">
+                            <i class="fas fa-play"></i> Começar a trabalhar
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+
+            <!-- RESUMO GERAL - DESTAQUE -->
+            <div class="row mb-5">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm bg-light">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-vial fa-3x text-primary mb-3"></i>
+                            <h2 class="display-4 font-weight-bold text-primary">{{ total_exames }}</h2>
+                            <h5 class="text-muted">EXAMES PROCESSADOS</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm bg-light">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-user-md fa-3x text-info mb-3"></i>
+                            <h2 class="display-4 font-weight-bold text-info">{{ total_consultas }}</h2>
+                            <h5 class="text-muted">CONSULTAS PROCESSADAS</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO EXAMES -->
+            {% if total_exames > 0 %}
+            <div class="card shadow border-0 mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-vial"></i> EXAMES - O que você fez
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Estatísticas dos Exames -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-success h-100">
+                                <div class="card-body text-center bg-light-success">
+                                    <i class="fas fa-thumbs-up fa-3x text-success mb-3"></i>
+                                    <h2 class="text-success font-weight-bold">{{ exames_autorizados }}</h2>
+                                    <h5 class="text-success">APROVADOS</h5>
+                                    <p class="text-muted small">Exames que você autorizou</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-danger h-100">
+                                <div class="card-body text-center bg-light-danger">
+                                    <i class="fas fa-thumbs-down fa-3x text-danger mb-3"></i>
+                                    <h2 class="text-danger font-weight-bold">{{ exames_negados }}</h2>
+                                    <h5 class="text-danger">NEGADOS</h5>
+                                    <p class="text-muted small">Exames que você recusou</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-warning h-100">
+                                <div class="card-body text-center bg-light-warning">
+                                    <i class="fas fa-hourglass-half fa-3x text-warning mb-3"></i>
+                                    <h2 class="text-warning font-weight-bold">{{ exames_pendenciados }}</h2>
+                                    <h5 class="text-warning">AGUARDANDO</h5>
+                                    <p class="text-muted small">Pediu mais informações</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Pacientes - Exames -->
+                    {% if exames_autorizados_list or exames_negados_list or exames_pendenciados_list %}
+                    <hr class="my-4">
+                    <h4 class="mb-4"><i class="fas fa-users"></i> Lista dos Pacientes</h4>
+                    
+                    <div class="row">
+                        {% if exames_autorizados_list %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white text-center">
+                                    <h6 class="mb-0"><i class="fas fa-check"></i> APROVADOS</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                    {% for exame in exames_autorizados_list %}
+                                    <div class="border-bottom py-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="font-weight-bold text-dark">{{ exame.paciente.nome }}</div>
+                                                <small class="text-muted d-block">{{ exame.tipo_exame.nome }}</small>
+                                                {% if exame.data_agendada %}
+                                                <small class="text-info d-block">
+                                                    <i class="fas fa-calendar-alt"></i> Agendado: {{ exame.data_agendada|date:"d/m/Y" }}
+                                                    {% if exame.hora_agendada %} às {{ exame.hora_agendada|time:"H:i" }}{% endif %}
+                                                </small>
+                                                {% endif %}
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-hospital"></i> UBS: {{ exame.ubs_solicitante.nome }}
+                                                </small>
+                                            </div>
+                                            <div class="ml-2">
+                                                <a href="{% url 'regulacao-update' exame.pk %}" class="btn btn-sm btn-outline-primary" title="Editar exame">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if exames_negados_list %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-danger">
+                                <div class="card-header bg-danger text-white text-center">
+                                    <h6 class="mb-0"><i class="fas fa-times"></i> NEGADOS</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                    {% for exame in exames_negados_list %}
+                                    <div class="border-bottom py-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="font-weight-bold text-dark">{{ exame.paciente.nome }}</div>
+                                                <small class="text-muted">{{ exame.tipo_exame.nome }}</small>
+                                            </div>
+                                            <div class="ml-2">
+                                                <a href="{% url 'regulacao-update' exame.pk %}" class="btn btn-sm btn-outline-primary" title="Editar exame">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if exames_pendenciados_list %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-white text-center">
+                                    <h6 class="mb-0"><i class="fas fa-clock"></i> AGUARDANDO</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                    {% for exame in exames_pendenciados_list %}
+                                    <div class="border-bottom py-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="font-weight-bold text-dark">{{ exame.paciente.nome }}</div>
+                                                <small class="text-muted">{{ exame.tipo_exame.nome }}</small>
+                                            </div>
+                                            <div class="ml-2">
+                                                <a href="{% url 'regulacao-update' exame.pk %}" class="btn btn-sm btn-outline-primary" title="Editar exame">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- SEÇÃO CONSULTAS -->
+            {% if total_consultas > 0 %}
+            <div class="card shadow border-0 mb-5">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-md"></i> CONSULTAS - O que você fez
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Estatísticas das Consultas -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-success h-100">
+                                <div class="card-body text-center bg-light-success">
+                                    <i class="fas fa-thumbs-up fa-3x text-success mb-3"></i>
+                                    <h2 class="text-success font-weight-bold">{{ consultas_autorizadas }}</h2>
+                                    <h5 class="text-success">APROVADAS</h5>
+                                    <p class="text-muted small">Consultas que você autorizou</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-danger h-100">
+                                <div class="card-body text-center bg-light-danger">
+                                    <i class="fas fa-thumbs-down fa-3x text-danger mb-3"></i>
+                                    <h2 class="text-danger font-weight-bold">{{ consultas_negadas }}</h2>
+                                    <h5 class="text-danger">NEGADAS</h5>
+                                    <p class="text-muted small">Consultas que você recusou</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-warning h-100">
+                                <div class="card-body text-center bg-light-warning">
+                                    <i class="fas fa-hourglass-half fa-3x text-warning mb-3"></i>
+                                    <h2 class="text-warning font-weight-bold">{{ consultas_pendenciadas }}</h2>
+                                    <h5 class="text-warning">AGUARDANDO</h5>
+                                    <p class="text-muted small">Pediu mais informações</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Pacientes - Consultas -->
+                    {% if consultas_autorizadas_list or consultas_negadas_list or consultas_pendenciadas_list %}
+                    <hr class="my-4">
+                    <h4 class="mb-4"><i class="fas fa-users"></i> Lista dos Pacientes</h4>
+                    
+                    <div class="row">
+                        {% if consultas_autorizadas_list %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white text-center">
+                                    <h6 class="mb-0"><i class="fas fa-check"></i> APROVADAS</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                    {% for consulta in consultas_autorizadas_list %}
+                                    <div class="border-bottom py-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="font-weight-bold text-dark">{{ consulta.paciente.nome }}</div>
+                                                <small class="text-muted d-block">{{ consulta.especialidade.nome }}</small>
+                                                {% if consulta.medico_atendente %}
+                                                <small class="text-primary d-block">
+                                                    <i class="fas fa-user-md"></i> Dr(a). {{ consulta.medico_atendente.nome }}
+                                                </small>
+                                                {% endif %}
+                                                {% if consulta.data_agendada %}
+                                                <small class="text-info d-block">
+                                                    <i class="fas fa-calendar-alt"></i> Agendado: {{ consulta.data_agendada|date:"d/m/Y" }}
+                                                    {% if consulta.hora_agendada %} às {{ consulta.hora_agendada|time:"H:i" }}{% endif %}
+                                                </small>
+                                                {% endif %}
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-hospital"></i> UBS: {{ consulta.ubs_solicitante.nome }}
+                                                </small>
+                                            </div>
+                                            <div class="ml-2">
+                                                <a href="{% url 'consulta-update' consulta.pk %}" class="btn btn-sm btn-outline-primary" title="Editar consulta">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if consultas_negadas_list %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-danger">
+                                <div class="card-header bg-danger text-white text-center">
+                                    <h6 class="mb-0"><i class="fas fa-times"></i> NEGADAS</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                    {% for consulta in consultas_negadas_list %}
+                                    <div class="border-bottom py-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="font-weight-bold text-dark">{{ consulta.paciente.nome }}</div>
+                                                <small class="text-muted">{{ consulta.especialidade.nome }}</small>
+                                            </div>
+                                            <div class="ml-2">
+                                                <a href="{% url 'consulta-update' consulta.pk %}" class="btn btn-sm btn-outline-primary" title="Editar consulta">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if consultas_pendenciadas_list %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-white text-center">
+                                    <h6 class="mb-0"><i class="fas fa-clock"></i> AGUARDANDO</h6>
+                                </div>
+                                <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                    {% for consulta in consultas_pendenciadas_list %}
+                                    <div class="border-bottom py-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="font-weight-bold text-dark">{{ consulta.paciente.nome }}</div>
+                                                <small class="text-muted">{{ consulta.especialidade.nome }}</small>
+                                            </div>
+                                            <div class="ml-2">
+                                                <a href="{% url 'consulta-update' consulta.pk %}" class="btn btn-sm btn-outline-primary" title="Editar consulta">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% endif %}
+
+            <!-- Botão de Voltar -->
+            <div class="text-center mb-4">
+                <a href="{% url 'regulacao-dashboard' %}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-arrow-left"></i> Voltar para Agenda
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-light-success {
+    background-color: #f8fff9 !important;
+}
+.bg-light-danger {
+    background-color: #fff8f8 !important;
+}
+.bg-light-warning {
+    background-color: #fffdf8 !important;
+}
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3) !important;
+}
+.display-4 {
+    font-size: 3.5rem;
+}
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

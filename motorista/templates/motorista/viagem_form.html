@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}{% if obj %}Editar Viagem{% else %}Nova Viagem{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .mv-shell { max-width: 1100px; }
+  .mv-hero {
+    border: none;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    background: radial-gradient(circle at 0 0, rgba(13,110,253,.12), rgba(13,110,253,.02));
+  }
+  .mv-hero .card-body { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; }
+  .mv-hero h1 { font-size: 1.6rem; margin-bottom: .3rem; }
+  .mv-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    border-radius: 999px;
+    font-size: .85rem;
+    background: rgba(25,135,84,.12);
+    color: #0a6847;
+    font-weight: 600;
+  }
+  .mv-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #6c757d;
+  }
+  .mv-steps span { display: inline-flex; align-items: center; gap: .35rem; }
+  .mv-steps span::before {
+    content: '';
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    opacity: .35;
+  }
+  .mv-section {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.6rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #edf1f7;
+    box-shadow: 0 5px 20px rgba(15,23,42,.04);
+  }
+  .mv-section-error {
+    border-color: #f1aeb5;
+    box-shadow: 0 8px 24px rgba(220,53,69,.15);
+  }
+  .mv-section-title {
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+  .mv-section-title i { font-size: 1.25rem; color: #0d6efd; }
+  .mv-helper { font-size: .9rem; color: #6c757d; margin-bottom: 1.2rem; }
+  .mv-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1rem;
+  }
+  .mv-summary-card {
+    border: 1px dashed rgba(13,110,253,.3);
+    border-radius: .9rem;
+    padding: 1rem;
+    background: rgba(13,110,253,.04);
+  }
+  .mv-summary-card small {
+    display: block;
+    text-transform: uppercase;
+    font-size: .75rem;
+    letter-spacing: .08em;
+    color: #0d6efd;
+    font-weight: 700;
+  }
+  .mv-summary-card .value { font-size: 1.4rem; font-weight: 700; color: #0b1f44; }
+  .mv-chip-muted {
+    font-size: .82rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: .75rem;
+    padding: .25rem .65rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+  }
+  .mv-error-summary {
+    border-left: 4px solid #dc3545;
+    background: #fff5f5;
+    border-radius: .9rem;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  .mv-error-summary h6 { font-weight: 700; color: #842029; }
+  .mv-error-summary li { margin-bottom: .35rem; }
+  .mv-form-actions {
+    position: sticky;
+    bottom: 0;
+    background: rgba(255,255,255,.96);
+    border-top: 1px solid #e9ecef;
+    padding: 1rem 0 0;
+    margin-top: 1rem;
+  }
+  @media (max-width: 768px) {
+    .mv-hero .card-body { flex-direction: column; text-align: center; }
+    .mv-steps { justify-content: center; }
+    .mv-section { padding: 1.25rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-lg-5 mv-shell">
+  <div class="card mv-hero mb-4">
+    <div class="card-body">
+      <div>
+        <div class="mv-chip-muted mb-2"><i class="bi bi-geo-alt"></i> Fluxo de Viagens</div>
+        <h1 class="fw-bold mb-1">{% if obj %}Atualizar viagem{% else %}Nova viagem de motorista{% endif %}</h1>
+        <p class="text-muted mb-0">Preencha os dados essenciais para liberar a rota, diárias e relatório operacional.</p>
+      </div>
+      <div class="d-flex flex-column gap-2">
+        <span class="mv-status-chip"><i class="bi bi-check-circle"></i> Pré-validação ativa</span>
+        <div class="mv-steps">
+          <span>1. Motorista & veículo</span>
+          <span>2. Itinerário</span>
+          <span>3. Financeiro</span>
+          <span>4. Notas finais</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" novalidate class="mv-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+    {% endif %}
+    {% if form.errors %}
+      <div class="mv-error-summary">
+        <h6 class="mb-2"><i class="bi bi-exclamation-octagon me-2"></i>Não foi possível salvar a viagem</h6>
+        <p class="mb-2 text-muted">Revise os campos destacados. Clique diretamente no campo citado para corrigi-lo.</p>
+        <ul class="mb-0 ps-3">
+          {% for field in form.visible_fields %}
+            {% if field.errors %}
+              <li><strong>{{ field.label }}</strong>: {{ field.errors|striptags }}</li>
+            {% endif %}
+          {% endfor %}
+          {% for hidden in form.hidden_fields %}
+            {% if hidden.errors %}
+              <li><strong>{{ hidden.name|capfirst }}</strong>: {{ hidden.errors|striptags }}</li>
+            {% endif %}
+          {% endfor %}
+          {% if form.non_field_errors %}
+            <li>{{ form.non_field_errors|striptags }}</li>
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <section class="mv-section {% if form.motorista.errors or form.veiculo.errors %}mv-section-error{% endif %}" id="mv-basics">
+      <div class="mv-section-title"><i class="bi bi-people"></i> Motorista e veículo</div>
+      <div class="mv-helper">Selecione quem irá conduzir e qual veículo será utilizado. Apenas itens ativos aparecem na lista.</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Motorista <span class="text-danger">*</span></label>
+          {% if form.motorista.errors %}
+            {% render_field form.motorista class+="form-select form-select-lg is-invalid" %}
+          {% else %}
+            {% render_field form.motorista class+="form-select form-select-lg" %}
+          {% endif %}
+          {% if form.motorista.errors %}<div class="invalid-feedback d-block">{{ form.motorista.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Veículo <span class="text-danger">*</span></label>
+          {% if form.veiculo.errors %}
+            {% render_field form.veiculo class+="form-select form-select-lg is-invalid" %}
+          {% else %}
+            {% render_field form.veiculo class+="form-select form-select-lg" %}
+          {% endif %}
+          {% if form.veiculo.errors %}<div class="invalid-feedback d-block">{{ form.veiculo.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="mv-section {% if form.origem.errors or form.destino.errors %}mv-section-error{% endif %}" id="mv-itinerary">
+      <div class="mv-section-title"><i class="bi bi-signpost"></i> Itinerário</div>
+      <div class="mv-helper">Informe a origem (preenchida automaticamente como Iturama) e escolha o destino cadastrado.</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Origem <span class="text-danger">*</span></label>
+          {% if form.origem.errors %}
+            {% render_field form.origem class+="form-control form-control-lg is-invalid" %}
+          {% else %}
+            {% render_field form.origem class+="form-control form-control-lg" %}
+          {% endif %}
+          {% if form.origem.errors %}<div class="invalid-feedback d-block">{{ form.origem.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Destino <span class="text-danger">*</span></label>
+          {% if form.destino.errors %}
+            {% render_field form.destino class+="form-select form-select-lg is-invalid" %}
+          {% else %}
+            {% render_field form.destino class+="form-select form-select-lg" %}
+          {% endif %}
+          {% if form.destino.errors %}<div class="invalid-feedback d-block">{{ form.destino.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="mv-section {% if form.data_inicio.errors or form.data_fim.errors or form.dias_viagem.errors or form.quantidade_diarias.errors %}mv-section-error{% endif %}" id="mv-dates">
+      <div class="mv-section-title"><i class="bi bi-calendar2-week"></i> Período</div>
+      <div class="mv-helper">Datas passadas são bloqueadas automaticamente. Os campos de dias e diárias são calculados, mas podem ser ajustados.</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Data de início <span class="text-danger">*</span></label>
+          {% if form.data_inicio.errors %}
+            {% render_field form.data_inicio class+="form-control form-control-lg is-invalid" %}
+          {% else %}
+            {% render_field form.data_inicio class+="form-control form-control-lg" %}
+          {% endif %}
+          {% if form.data_inicio.errors %}<div class="invalid-feedback d-block">{{ form.data_inicio.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Data de fim <span class="text-danger">*</span></label>
+          {% if form.data_fim.errors %}
+            {% render_field form.data_fim class+="form-control form-control-lg is-invalid" %}
+          {% else %}
+            {% render_field form.data_fim class+="form-control form-control-lg" %}
+          {% endif %}
+          {% if form.data_fim.errors %}<div class="invalid-feedback d-block">{{ form.data_fim.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="mv-summary-grid mt-3">
+        <div class="mv-summary-card">
+          <small><i class="bi bi-clock-history me-1"></i> Dias previstos</small>
+          {% if form.dias_viagem.errors %}
+            {% render_field form.dias_viagem class+="form-control form-control-lg mt-2 text-center fw-bold is-invalid" %}
+          {% else %}
+            {% render_field form.dias_viagem class+="form-control form-control-lg mt-2 text-center fw-bold" %}
+          {% endif %}
+          {% if form.dias_viagem.errors %}<div class="invalid-feedback d-block">{{ form.dias_viagem.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="mv-summary-card">
+          <small><i class="bi bi-sunrise me-1"></i> Quantidade de diárias</small>
+          {% if form.quantidade_diarias.errors %}
+            {% render_field form.quantidade_diarias class+="form-control form-control-lg mt-2 text-center fw-bold is-invalid" %}
+          {% else %}
+            {% render_field form.quantidade_diarias class+="form-control form-control-lg mt-2 text-center fw-bold" %}
+          {% endif %}
+          {% if form.quantidade_diarias.errors %}<div class="invalid-feedback d-block">{{ form.quantidade_diarias.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="mv-section {% if form.valor_unitario_diaria.errors %}mv-section-error{% endif %}" id="mv-finance">
+      <div class="mv-section-title"><i class="bi bi-cash"></i> Valores</div>
+      <div class="mv-helper">Defina o valor base de diárias. O total é recalculado conforme o número de diárias e exibido em tempo real.</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Valor unitário da diária (R$) <span class="text-danger">*</span></label>
+          {% if form.valor_unitario_diaria.errors %}
+            {% render_field form.valor_unitario_diaria class+="form-control form-control-lg is-invalid" %}
+          {% else %}
+            {% render_field form.valor_unitario_diaria class+="form-control form-control-lg" %}
+          {% endif %}
+          {% if form.valor_unitario_diaria.errors %}<div class="invalid-feedback d-block">{{ form.valor_unitario_diaria.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Total estimado das diárias (R$)</label>
+          <div class="input-group input-group-lg">
+            <span class="input-group-text"><i class="bi bi-calculator"></i></span>
+            <input type="text" id="total_diarias_display" class="form-control fw-bold" readonly>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="alert alert-light border d-flex align-items-center gap-2 mb-0">
+            <i class="bi bi-info-circle text-secondary"></i>
+            <div><strong>Horas extras desativadas.</strong> Este fluxo não solicita valores adicionais; qualquer ajuste deve ser tratado no relatório financeiro.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mv-section {% if form.motivo_viagem.errors or form.observacoes.errors %}mv-section-error{% endif %}" id="mv-notes">
+      <div class="mv-section-title"><i class="bi bi-journal-text"></i> Motivo e observações</div>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Motivo da viagem <span class="text-danger">*</span></label>
+          {% if form.motivo_viagem.errors %}
+            {% render_field form.motivo_viagem class+="form-control form-control-lg is-invalid" %}
+          {% else %}
+            {% render_field form.motivo_viagem class+="form-control form-control-lg" %}
+          {% endif %}
+          <small class="text-muted">Descreva o objetivo principal do deslocamento.</small>
+          {% if form.motivo_viagem.errors %}<div class="invalid-feedback d-block">{{ form.motivo_viagem.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label">Observações adicionais</label>
+          {% if form.observacoes.errors %}
+            {% render_field form.observacoes class+="form-control form-control-lg is-invalid" %}
+          {% else %}
+            {% render_field form.observacoes class+="form-control form-control-lg" %}
+          {% endif %}
+          <small class="text-muted">Detalhes operacionais, contatos ou instruções especiais.</small>
+          {% if form.observacoes.errors %}<div class="invalid-feedback d-block">{{ form.observacoes.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <div class="mv-form-actions">
+      <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+        <a href="{% url 'motorista-viagem-list' %}" class="btn btn-outline-secondary btn-lg"><i class="bi bi-arrow-left"></i> Cancelar</a>
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="bi bi-check2-circle me-1"></i> {% if obj %}Atualizar viagem{% else %}Salvar viagem{% endif %}
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const vDiaria = document.querySelector('input[name="valor_unitario_diaria"]');
+  const form = document.querySelector('form');
+  const di = document.querySelector('input[name="data_inicio"]');
+  const df = document.querySelector('input[name="data_fim"]');
+  const dias = document.querySelector('input[name="dias_viagem"]');
+  const qtd = document.querySelector('input[name="quantidade_diarias"]');
+  const origem = document.querySelector('input[name="origem"]');
+  const totalDiariasDisplay = document.getElementById('total_diarias_display');
+  const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  // Função para permitir digitação de valores decimais com vírgula
+  function maskMoneyLive(e){
+    let v = e.target.value;
+    
+    // Permitir apenas números e vírgula (padrão brasileiro)
+    v = v.replace(/[^\d,]/g, '');
+    
+    // Permitir apenas uma vírgula
+    let commaCount = (v.match(/,/g) || []).length;
+    if (commaCount > 1) {
+      // Se há mais de uma vírgula, manter apenas a primeira
+      let firstCommaIndex = v.indexOf(',');
+      let beforeComma = v.substring(0, firstCommaIndex + 1);
+      let afterComma = v.substring(firstCommaIndex + 1).replace(/,/g, '');
+      v = beforeComma + afterComma;
+    }
+    
+    // Limitar a 2 casas decimais após a vírgula
+    if (v.includes(',')) {
+      let parts = v.split(',');
+      if (parts[1] && parts[1].length > 2) {
+        parts[1] = parts[1].substring(0, 2);
+        v = parts[0] + ',' + parts[1];
+      }
+    }
+    
+    e.target.value = v;
+    updateTotalDiarias();
+  }
+  if (form){
+    form.addEventListener('submit', () => {
+      // Normaliza moeda no submit: remove milhares e troca vírgula por ponto
+      function normalizeMoney(v){
+        if (!v) return '';
+        let s = v.toString().trim();
+        s = s.replace(/[R$\s]/g, '');
+        const hasComma = s.includes(',');
+        const hasDot = s.includes('.');
+        if (hasComma && hasDot) {
+          // Assume o último separador como decimal; remove o outro como milhar
+          const lastComma = s.lastIndexOf(',');
+          const lastDot = s.lastIndexOf('.');
+          if (lastComma > lastDot) {
+            // decimal = vírgula
+            s = s.replace(/\./g, '').replace(',', '.');
+          } else {
+            // decimal = ponto
+            s = s.replace(/,/g, '');
+          }
+        } else if (hasComma) {
+          s = s.replace(',', '.');
+        } // se tiver só ponto, já está ok
+        // manter apenas dígitos e um ponto decimal
+        s = s.replace(/[^\d.]/g, '');
+        return s;
+      }
+      if (vDiaria) vDiaria.value = normalizeMoney(vDiaria.value);
+    });
+  }
+  function parseMoney(v){
+    if (!v) return 0;
+    const s = v.toString().replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+  function parseMoneyCents(v){
+    if (!v) return 0;
+    let s = v.toString().trim();
+    s = s.replace(/[R$\s]/g, '');
+    const hasComma = s.includes(',');
+    const hasDot = s.includes('.');
+    let sep = null;
+    if (hasComma && hasDot) {
+      const lastComma = s.lastIndexOf(',');
+      const lastDot = s.lastIndexOf('.');
+      sep = lastComma > lastDot ? ',' : '.';
+    } else if (hasComma) sep = ',';
+    else if (hasDot) sep = '.';
+    if (sep) {
+      const parts = s.split(sep);
+      const intPart = parts.slice(0, -1).join('').replace(/\D/g, '') || parts[0].replace(/\D/g, '') || '0';
+      const decRaw = parts[parts.length - 1].replace(/\D/g, '').padEnd(2, '0').slice(0, 2);
+      const cents = parseInt(intPart + decRaw, 10);
+      return isNaN(cents) ? 0 : cents;
+    } else {
+      const digits = s.replace(/\D/g, '');
+      if (!digits) return 0;
+      const cents = parseInt(digits + '00', 10);
+      return isNaN(cents) ? 0 : cents;
+    }
+  }
+  function updateTotalDiarias(){
+    if (!totalDiariasDisplay) return;
+    const q = parseInt(qtd && qtd.value ? qtd.value : '0', 10) || 0;
+    const unitCents = parseMoneyCents(vDiaria && vDiaria.value ? vDiaria.value : '0');
+    const totalCents = q * unitCents;
+    const total = totalCents / 100;
+    totalDiariasDisplay.value = fmtBRL.format(total || 0);
+  }
+  function calcDias(){
+    if (!di || !df || !dias || !qtd) return;
+    const sd = di.value;
+    const sf = df.value;
+    if (!sd || !sf) return;
+    const d1 = new Date(sd + 'T00:00:00');
+    const d2 = new Date(sf + 'T00:00:00');
+    const ms = d2 - d1;
+    const days = Math.floor(ms / (1000*60*60*24)) + 1;
+    const val = Math.max(days, 0);
+    dias.value = val;
+    qtd.value = val;
+    updateTotalDiarias();
+  }
+  if (di) di.addEventListener('change', calcDias);
+  if (df) df.addEventListener('change', calcDias);
+  if (vDiaria) {
+    // Remover qualquer listener anterior
+    vDiaria.removeEventListener('input', maskMoneyLive);
+    
+    // Adicionar listener simples que permite vírgula
+    vDiaria.addEventListener('input', function(e) {
+      let v = e.target.value;
+      
+      // Permitir apenas números e vírgula
+      v = v.replace(/[^\d,]/g, '');
+      
+      // Permitir apenas uma vírgula
+      let commaIndex = v.indexOf(',');
+      if (commaIndex !== -1) {
+        let beforeComma = v.substring(0, commaIndex + 1);
+        let afterComma = v.substring(commaIndex + 1).replace(/,/g, '');
+        // Limitar a 2 casas decimais
+        if (afterComma.length > 2) {
+          afterComma = afterComma.substring(0, 2);
+        }
+        v = beforeComma + afterComma;
+      }
+      
+      e.target.value = v;
+      updateTotalDiarias();
+    });
+    
+    // Formatação apenas ao sair do campo
+    vDiaria.addEventListener('blur', (e) => {
+      if (e.target.value) {
+        const cents = parseMoneyCents(e.target.value);
+        e.target.value = (cents / 100).toFixed(2).replace('.', ',');
+      }
+      updateTotalDiarias();
+    });
+  }
+  if (qtd) qtd.addEventListener('input', updateTotalDiarias);
+  // defaults
+  if (origem && !origem.value) origem.value = 'Iturama';
+  calcDias();
+  // Inicializar total correto caso haja valores inicias; não forçar 0,00 para não atrapalhar digitação
+  updateTotalDiarias();
+});
+</script>
+{% endblock %}

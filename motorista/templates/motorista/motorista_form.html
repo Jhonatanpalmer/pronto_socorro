@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}{% if obj %}Editar Motorista{% else %}Novo Motorista{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .mf-shell { max-width: 1140px; }
+  .mf-hero {
+    border: none;
+    border-radius: 1.25rem;
+    background: radial-gradient(circle at 20% -10%, rgba(13,110,253,.35), rgba(13,110,253,.05));
+    color: #0b1f44;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+  }
+  .mf-hero .card-body { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; }
+  .mf-hero h1 { font-weight: 700; font-size: 1.75rem; }
+  .mf-hero .meta { font-size: .9rem; color: rgba(11,31,68,.8); }
+  .mf-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .85rem;
+    background: #fff;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #0d6efd;
+  }
+  .mf-actions { display: flex; flex-direction: column; gap: .5rem; align-items: flex-start; }
+  .mf-form-card { border-radius: 1.25rem; }
+  .mf-section {
+    border: 1px solid #e9eef5;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background: #fbfdff;
+  }
+  .mf-section-title {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #4c5c74;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+  .mf-helper { font-size: .9rem; color: #6c7a8c; margin-bottom: 1rem; }
+  .mf-table-card { border-radius: 1.25rem; }
+  .mf-table-header {
+    background: #0b1f44;
+    color: #fff;
+    border-radius: 1.25rem 1.25rem 0 0;
+    padding: 1.25rem 1.5rem;
+  }
+  .mf-table { margin-bottom: 0; }
+  .mf-table thead th {
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-size: .75rem;
+    border-bottom: 2px solid #e9eef5;
+    color: #94a3b8;
+    background: #0f172a;
+  }
+  .mf-table tbody tr {
+    border-bottom: 1px solid rgba(148,163,184,.25);
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .mf-table tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  }
+  .mf-table tbody td { vertical-align: middle; }
+  .mf-table tbody td:first-child { font-weight: 600; color: #0b1f44; }
+  .mf-note { font-size: .85rem; color: #6c757d; }
+  @media (max-width: 768px) {
+    .mf-hero .card-body { flex-direction: column; text-align: center; }
+    .mf-actions { align-items: center; }
+    .mf-section { padding: 1.25rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-lg-5 mf-shell">
+  <div class="card mf-hero mb-4">
+    <div class="card-body">
+      <div class="flex-grow-1">
+        <div class="mf-pill mb-3"><i class="bi bi-compass"></i> Gestão de Motoristas</div>
+        <h1 class="mb-2">{% if obj %}Atualize os dados do motorista{% else %}Crie um novo registro{% endif %}</h1>
+        <p class="meta mb-0">Informações claras agilizam o despacho das viagens e conectam automaticamente com o módulo de RH.</p>
+      </div>
+      <div class="mf-actions">
+        <a href="{% url 'motorista-home' %}" class="btn btn-outline-light text-dark fw-semibold"><i class="bi bi-list"></i> Voltar para início</a>
+        <span class="text-muted small"><i class="bi bi-mouse"></i> Dê dois cliques nos registros do RH para preencher o formulário.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mf-form-card border-0 shadow-sm">
+    <div class="card-body p-4 p-lg-5">
+      <form method="post" novalidate class="mf-form">
+        {% csrf_token %}
+        {% if rh_motoristas_page %}
+          <input type="hidden" name="rh_page" value="{{ rh_motoristas_page.number }}">
+        {% endif %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <section class="mf-section">
+          <div class="mf-section-title"><i class="bi bi-person-vcard"></i> Identificação</div>
+          <p class="mf-helper">Campos essenciais para localizar e validar o profissional. Utilize letras maiúsculas para padronizar os relatórios.</p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nome completo</label>
+              {{ form.nome_completo|add_class:'form-control form-control-lg text-uppercase'|attr:'style:text-transform:uppercase'|attr:'autocomplete:off' }}
+              {% if form.nome_completo.errors %}<div class="invalid-feedback d-block">{{ form.nome_completo.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">CPF</label>
+              {{ form.cpf|add_class:'form-control form-control-lg'|attr:'maxlength:11'|attr:'inputmode:numeric'|attr:'placeholder:Opcional' }}
+              {% if form.cpf.errors %}<div class="invalid-feedback d-block">{{ form.cpf.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">RG</label>
+              {{ form.rg|add_class:'form-control form-control-lg'|attr:'placeholder:Opcional' }}
+              {% if form.rg.errors %}<div class="invalid-feedback d-block">{{ form.rg.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data de nascimento</label>
+              {{ form.data_nascimento|add_class:'form-control form-control-lg'|attr:'placeholder:Opcional' }}
+              {% if form.data_nascimento.errors %}<div class="invalid-feedback d-block">{{ form.data_nascimento.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Endereço</label>
+              {{ form.endereco|add_class:'form-control form-control-lg'|attr:'placeholder:Rua, número, bairro' }}
+              {% if form.endereco.errors %}<div class="invalid-feedback d-block">{{ form.endereco.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Telefone</label>
+              {{ form.telefone|add_class:'form-control form-control-lg'|attr:'placeholder:(34) 99999-9999' }}
+              {% if form.telefone.errors %}<div class="invalid-feedback d-block">{{ form.telefone.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">E-mail</label>
+              {{ form.email|add_class:'form-control form-control-lg'|attr:'placeholder:Opcional' }}
+              {% if form.email.errors %}<div class="invalid-feedback d-block">{{ form.email.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="mf-section">
+          <div class="mf-section-title"><i class="bi bi-car-front"></i> Documentos e CNH</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">CNH - Número</label>
+              {{ form.cnh_numero|add_class:'form-control form-control-lg'|attr:'placeholder:Opcional' }}
+              {% if form.cnh_numero.errors %}<div class="invalid-feedback d-block">{{ form.cnh_numero.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Categoria</label>
+              {{ form.cnh_categoria|add_class:'form-control form-control-lg'|attr:'placeholder:Ex: D' }}
+              {% if form.cnh_categoria.errors %}<div class="invalid-feedback d-block">{{ form.cnh_categoria.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Validade da CNH</label>
+              {{ form.cnh_validade|add_class:'form-control form-control-lg'|attr:'placeholder:Opcional' }}
+              {% if form.cnh_validade.errors %}<div class="invalid-feedback d-block">{{ form.cnh_validade.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Situação</label>
+              {{ form.situacao|add_class:'form-select form-select-lg' }}
+            </div>
+          </div>
+        </section>
+
+        <section class="mf-section">
+          <div class="mf-section-title"><i class="bi bi-briefcase"></i> Vínculo e agenda</div>
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Matrícula</label>
+              {{ form.matricula|add_class:'form-control form-control-lg'|attr:'placeholder:Opcional' }}
+              {% if form.matricula.errors %}<div class="invalid-feedback d-block">{{ form.matricula.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Admissão</label>
+              {{ form.data_admissao|add_class:'form-control form-control-lg'|attr:'placeholder:Opcional' }}
+              {% if form.data_admissao.errors %}<div class="invalid-feedback d-block">{{ form.data_admissao.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Escala de trabalho</label>
+              {{ form.escala_trabalho|add_class:'form-control form-control-lg'|attr:'placeholder:Ex: 12x36' }}
+              {% if form.escala_trabalho.errors %}<div class="invalid-feedback d-block">{{ form.escala_trabalho.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Dias disponíveis</label>
+              <div class="form-control form-control-lg bg-light text-muted">Definir via escala</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mt-4">
+          <a href="{% url 'motorista-home' %}" class="btn btn-outline-secondary btn-lg"><i class="bi bi-arrow-left"></i> Cancelar</a>
+          <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check2-circle"></i> {% if obj %}Atualizar motorista{% else %}Salvar cadastro{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if rh_motoristas_page is not None %}
+  <div class="card mf-table-card mt-4 shadow-sm">
+    <div class="mf-table-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div>
+        <h5 class="mb-1">Motoristas já listados pelo RH</h5>
+        <p class="mb-0 text-white-50">Use o duplo clique para importar os dados diretamente para o formulário.</p>
+      </div>
+      <div class="text-end">
+        <span class="badge bg-light text-dark fs-6">{{ rh_motoristas_total }} registro{{ rh_motoristas_total|pluralize }}</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if rh_motoristas_page and rh_motoristas_page.object_list %}
+      <div id="rh-motoristas" class="table-responsive">
+        <table class="table table-hover align-middle mf-table mb-0">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Cargo</th>
+              <th>Setor / Lotação</th>
+              <th>Situação</th>
+              <th>Telefone</th>
+              <th>E-mail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for funcionario in rh_motoristas_page %}
+            <tr class="js-rh-motorista-row"
+                data-nome="{{ funcionario.nome|default:''|escape }}"
+                data-cpf="{{ funcionario.cpf|default:'' }}"
+                data-rg="{{ funcionario.rg|default:'' }}"
+                data-nascimento="{% if funcionario.data_nascimento %}{{ funcionario.data_nascimento|date:'Y-m-d' }}{% endif %}"
+                data-telefone="{{ funcionario.telefone|default:'' }}"
+                data-email="{{ funcionario.email|default:''|escape }}"
+                data-endereco="{{ funcionario.endereco|default:''|escape }}{% if funcionario.numero %}, {{ funcionario.numero|escape }}{% endif %}{% if funcionario.bairro %} - {{ funcionario.bairro|escape }}{% endif %}{% if funcionario.cidade %} - {{ funcionario.cidade|escape }}{% if funcionario.uf %}/{{ funcionario.uf|upper }}{% endif %}{% endif %}"
+                data-situacao="{{ funcionario.situacao|default:'' }}"
+                data-admissao="{% if funcionario.data_admissao %}{{ funcionario.data_admissao|date:'Y-m-d' }}{% endif %}"
+            >
+              <td>{{ funcionario.nome }}</td>
+              <td>{{ funcionario.cargo }}</td>
+              <td>{{ funcionario.setor_lotacao|default:'—' }}</td>
+              <td>
+                {% if funcionario.situacao == 'ativo' %}
+                  <span class="badge bg-success-subtle text-success">Ativo</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ funcionario.get_situacao_display }}</span>
+                {% endif %}
+              </td>
+              <td>{{ funcionario.telefone|default:'—' }}</td>
+              <td>{{ funcionario.email|default:'—' }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Nenhum funcionário do RH com cargo de motorista encontrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 border-top">
+        <nav aria-label="Paginação RH">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item {% if not rh_motoristas_page.has_previous %}disabled{% endif %}">
+              <a class="page-link" href="{% if rh_motoristas_page.has_previous %}?rh_page={{ rh_motoristas_page.previous_page_number }}#rh-motoristas{% else %}#{% endif %}">Anterior</a>
+            </li>
+            {% for num in rh_motoristas_page.paginator.page_range %}
+            <li class="page-item {% if num == rh_motoristas_page.number %}active{% endif %}">
+              <a class="page-link" href="?rh_page={{ num }}#rh-motoristas">{{ num }}</a>
+            </li>
+            {% endfor %}
+            <li class="page-item {% if not rh_motoristas_page.has_next %}disabled{% endif %}">
+              <a class="page-link" href="{% if rh_motoristas_page.has_next %}?rh_page={{ rh_motoristas_page.next_page_number }}#rh-motoristas{% else %}#{% endif %}">Próximo</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      {% else %}
+      <div class="p-4">
+        <p class="text-muted mb-0">Nenhum funcionário do RH com cargo de motorista encontrado.</p>
+      </div>
+      {% endif %}
+    </div>
+    <div class="card-footer bg-transparent border-0 pt-0">
+      <p class="mf-note mb-0">Essas informações são exibidas para consulta rápida. O cadastro de motoristas no módulo Transporte continua independente do RH.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const cpf = document.querySelector('input[name="cpf"]');
+  const tel = document.querySelector('input[name="telefone"]');
+  const nome = document.querySelector('input[name="nome_completo"]');
+  const rg = document.querySelector('input[name="rg"]');
+  const nascimento = document.querySelector('input[name="data_nascimento"]');
+  const email = document.querySelector('input[name="email"]');
+  const endereco = document.querySelector('input[name="endereco"]');
+  const admissao = document.querySelector('input[name="data_admissao"]');
+  const situacao = document.querySelector('select[name="situacao"]');
+  function maskCPF(v){
+    v = v.replace(/\D/g, '').slice(0,11);
+    if (v.length > 9) return v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+    if (v.length > 6) return v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    if (v.length > 3) return v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+    return v;
+  }
+  function maskTel(v){
+    v = v.replace(/\D/g, '').slice(0,11);
+    if (v.length > 10) return v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    if (v.length > 6) return v.replace(/(\d{2})(\d{0,5})(\d{0,4})/, '($1) $2-$3');
+    if (v.length > 2) return v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    return v;
+  }
+  if (cpf) cpf.addEventListener('input', e => { e.target.value = maskCPF(e.target.value); });
+  if (tel) tel.addEventListener('input', e => { e.target.value = maskTel(e.target.value); });
+  if (nome) nome.addEventListener('input', e => { e.target.value = (e.target.value || '').toUpperCase(); });
+
+  function setValue(el, value){
+    if (!el) return;
+    el.value = value || '';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  document.querySelectorAll('.js-rh-motorista-row').forEach(row => {
+    row.addEventListener('dblclick', () => {
+      setValue(nome, (row.dataset.nome || '').toUpperCase());
+      setValue(cpf, row.dataset.cpf || '');
+      setValue(rg, row.dataset.rg || '');
+      setValue(nascimento, row.dataset.nascimento || '');
+      setValue(tel, row.dataset.telefone || '');
+      setValue(email, row.dataset.email || '');
+      setValue(endereco, row.dataset.endereco || '');
+      setValue(admissao, row.dataset.admissao || '');
+      if (situacao && row.dataset.situacao) {
+        situacao.value = row.dataset.situacao;
+        situacao.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      row.classList.add('table-primary');
+      setTimeout(() => row.classList.remove('table-primary'), 1500);
+    });
+  });
+});
+</script>
+{% endblock %}

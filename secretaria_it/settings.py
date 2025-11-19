@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'viagens',
     'tfd',
     'regulacao',
+    'rh',
+    'motorista',
     'widget_tweaks',
 ]
 
@@ -86,23 +88,21 @@ WSGI_APPLICATION = 'secretaria_it.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
+
+_SMS_DB_NAME = os.getenv('SMS_DB_NAME') or os.getenv('ESUS_DB_NAME') or 'smsiturama'
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': _SMS_DB_NAME,
+        'USER': os.getenv('SMS_DB_USER') or os.getenv('ESUS_DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('SMS_DB_PASSWORD') or os.getenv('ESUS_DB_PASSWORD', ''),
+        'HOST': os.getenv('SMS_DB_HOST') or os.getenv('ESUS_DB_HOST', 'localhost'),
+        'PORT': os.getenv('SMS_DB_PORT') or os.getenv('ESUS_DB_PORT', '5432'),  
+    },
 }
 
-# Secondary database for e-SUS (PostgreSQL)
-DATABASES['esus'] = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': os.getenv('ESUS_DB_NAME', 'esus'),
-    'USER': os.getenv('ESUS_DB_USER', 'postresql'),
-    'PASSWORD': os.getenv('ESUS_DB_PASSWORD', ''),
-    'HOST': os.getenv('ESUS_DB_HOST', 'localhost'),
-    'PORT': os.getenv('ESUS_DB_PORT', '5432'),
-    
-}
+
 
 
 # Password validation
@@ -149,6 +149,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Media files (uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Origem padrão para viagens de motoristas (pode ser sobrescrito por variável de ambiente)
+DEFAULT_ORIGEM = os.getenv('DEFAULT_ORIGEM', 'Iturama')
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'

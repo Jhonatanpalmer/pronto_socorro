@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Motoristas{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #0d6efd, #20c997); box-shadow: 0 8px 24px rgba(13,110,253,.25);">
+    <div class="text-white">
+      <h2 class="fw-bold mb-1"><i class="bi bi-people-fill me-2"></i>Motoristas</h2>
+      <div class="text-white-50">Selecione uma opção</div>
+    </div>
+  </div>
+
+  <div class="row g-3 g-md-4">
+    <div class="col-12 col-md-4">
+      <a href="{% url 'manutencao-create' %}" class="text-decoration-none">
+        <div class="card shadow-sm h-100 border-0">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="display-6 text-danger"><i class="bi bi-tools"></i></div>
+            <div>
+              <h5 class="mb-1">Registrar Manutenção</h5>
+              <div class="text-muted small">Enviar veículo para manutenção</div>
+              <div class="mt-1 small"><span class="badge bg-light text-dark">Em aberto: {{ manutencoes_abertas|default:0 }}</span></div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-md-4">
+      <a href="{% url 'veiculo-create' %}" class="text-decoration-none">
+        <div class="card shadow-sm h-100 border-0">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="display-6 text-warning"><i class="bi bi-truck-front-fill"></i></div>
+            <div>
+              <h5 class="mb-1">Cadastrar Veículos</h5>
+              <div class="text-muted small">Placa, modelo, tipo e combustível</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-md-4">
+      <a href="{% url 'motorista-create' %}" class="text-decoration-none">
+        <div class="card shadow-sm h-100 border-0">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="display-6 text-primary"><i class="bi bi-person-plus-fill"></i></div>
+            <div>
+              <h5 class="mb-1">Cadastrar Motorista</h5>
+              <div class="text-muted small">Novo cadastro de motorista</div>
+              <div class="mt-1 small"><span class="badge bg-light text-dark">Total: {{ total_motoristas|default:0 }}</span></div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <a href="{% url 'motorista-viagem-create' %}" class="text-decoration-none">
+        <div class="card shadow-sm h-100 border-0">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="display-6 text-success"><i class="bi bi-geo-alt-fill"></i></div>
+            <div>
+              <h5 class="mb-1">Cadastrar Viagens</h5>
+              <div class="text-muted small">Registrar deslocamentos</div>
+              <div class="mt-1 small"><span class="badge bg-light text-dark">No mês: {{ total_viagens_mes|default:0 }}</span></div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <a href="{% url 'motorista-relatorios' %}" class="text-decoration-none">
+        <div class="card shadow-sm h-100 border-0">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="display-6 text-info"><i class="bi bi-bar-chart-fill"></i></div>
+            <div>
+              <h5 class="mb-1">Relatórios</h5>
+              <div class="text-muted small">Visão geral e ranking</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <a href="{% url 'motorista-list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list-ul"></i> Ver lista de motoristas</a>
+    <a href="{% url 'motorista-viagem-list' %}" class="btn btn-outline-secondary btn-sm ms-2"><i class="bi bi-list"></i> Ver lista de viagens</a>
+    <a href="{% url 'veiculo-list' %}" class="btn btn-outline-secondary btn-sm ms-2"><i class="bi bi-truck"></i> Ver lista de veículos</a>
+    <a href="{% url 'manutencao-list' %}" class="btn btn-outline-secondary btn-sm ms-2"><i class="bi bi-wrench-adjustable"></i> Ver manutenções</a>
+  </div>
+</div>
+{% endblock %}

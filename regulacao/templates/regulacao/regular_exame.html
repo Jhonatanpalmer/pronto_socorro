@@ -19,66 +19,148 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-4">
-                        <div class="col-md-6">
-                            <h6 class="text-muted">Paciente</h6>
-                            <div class="d-flex flex-column small">
-                                <span><strong>Nome:</strong> {{ regulacao.paciente.nome }}</span>
-                                <span><strong>CPF:</strong> {{ regulacao.paciente.cpf }}</span>
-                                {% if regulacao.paciente.telefone %}
-                                    <span><strong>Telefone:</strong> {{ regulacao.paciente.telefone }}</span>
-                                {% endif %}
-                                <span><strong>Nascimento:</strong> {{ regulacao.paciente.data_nascimento|date:"d/m/Y" }}</span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted">Solicitação</h6>
-                            <div class="d-flex flex-column small">
-                                <span><strong>UBS:</strong> {{ regulacao.ubs_solicitante.nome }}</span>
-                                <span><strong>Médico:</strong> {{ regulacao.medico_solicitante.nome }} (CRM {{ regulacao.medico_solicitante.crm }})</span>
-                                <span><strong>Solicitado em:</strong> {{ regulacao.data_solicitacao|date:"d/m/Y H:i" }}</span>
-                            </div>
-                        </div>
+                        {% if regulacao.status == 'pendente' %}
                         <div class="col-12">
-                            <h6 class="text-muted">Exame solicitado</h6>
-                            <div class="alert alert-light mb-0">
-                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                                    <h5 class="mb-0">{{ regulacao.tipo_exame.nome }}</h5>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        {% if regulacao.prioridade == 'alta' %}
-                                            <span class="badge bg-danger">Alta</span>
-                                        {% elif regulacao.prioridade == 'media' %}
-                                            <span class="badge bg-warning text-dark">Média</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Normal</span>
+                            {% if regulacao.pendencia_respondida_em %}
+                                <div class="alert alert-info d-flex align-items-center gap-2">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                    <div><strong>Aguardando análise da Regulação</strong> — UBS enviou uma resposta para a pendência.</div>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning d-flex align-items-center gap-2">
+                                    <i class="bi bi-hourglass-split"></i>
+                                    <div><strong>Aguardando resposta da UBS Solicitante</strong> — Pendência aberta pela Regulação.</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        <!-- Bloco: Paciente -->
+                        <div class="col-12 col-lg-6">
+                            <h6 class="text-muted mb-2">Ficha do paciente</h6>
+                            <div class="table-responsive rounded-3 border">
+                                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th class="w-40 text-muted">Nome</th>
+                                            <td class="fw-medium">{{ regulacao.paciente.nome }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="text-muted">CPF</th>
+                                            <td class="font-monospace">{{ regulacao.paciente.cpf }}</td>
+                                        </tr>
+                                        {% if regulacao.paciente.telefone %}
+                                        <tr>
+                                            <th class="text-muted">Telefone</th>
+                                            <td>{{ regulacao.paciente.telefone }}</td>
+                                        </tr>
                                         {% endif %}
+                                        <tr>
+                                            <th class="text-muted">Nascimento</th>
+                                            <td>{{ regulacao.paciente.data_nascimento|date:"d/m/Y" }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Bloco: Solicitação -->
+                        <div class="col-12 col-lg-6">
+                            <h6 class="text-muted mb-2">Dados da solicitação</h6>
+                            <div class="table-responsive rounded-3 border">
+                                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th class="w-40 text-muted">UBS</th>
+                                            <td class="fw-medium">{{ regulacao.ubs_solicitante.nome }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="text-muted">Médico solicitante</th>
+                                            <td>{{ regulacao.medico_solicitante.nome }} (CRM {{ regulacao.medico_solicitante.crm }})</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="text-muted">Solicitado em</th>
+                                            <td>{{ regulacao.data_solicitacao|date:"d/m/Y H:i" }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Bloco: Exame solicitado -->
+                        <div class="col-12">
+                            <h6 class="text-muted mb-2">Exame solicitado</h6>
+                            <div class="table-responsive rounded-3 border">
+                                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th class="w-40 text-muted">Procedimento</th>
+                                            <td class="fw-semibold">{{ regulacao.tipo_exame.nome }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="text-muted">Prioridade</th>
+                                            <td>
+                                                {% if regulacao.prioridade == 'alta' %}
+                                                    <span class="badge bg-danger">Alta</span>
+                                                {% elif regulacao.prioridade == 'media' %}
+                                                    <span class="badge bg-warning text-dark">Média</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Normal</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
                                         {% if regulacao.tipo_exame.codigo %}
-                                            <span class="badge bg-light text-secondary border">Cód: {{ regulacao.tipo_exame.codigo }}</span>
+                                        <tr>
+                                            <th class="text-muted">Código</th>
+                                            <td>{{ regulacao.tipo_exame.codigo }}</td>
+                                        </tr>
                                         {% endif %}
                                         {% if regulacao.tipo_exame.valor %}
-                                            <span class="badge bg-light text-secondary border">R$ {{ regulacao.tipo_exame.valor|floatformat:2 }}</span>
+                                        <tr>
+                                            <th class="text-muted">Valor</th>
+                                            <td>R$ {{ regulacao.tipo_exame.valor|floatformat:2 }}</td>
+                                        </tr>
                                         {% endif %}
-                                    </div>
-                                </div>
-                                {% if regulacao.tipo_exame.descricao %}
-                                    <div class="mt-2 small text-muted">{{ regulacao.tipo_exame.descricao }}</div>
-                                {% endif %}
-                                {% if regulacao.observacoes_solicitacao %}
-                                    <div class="mt-2"><strong>Observações:</strong> {{ regulacao.observacoes_solicitacao }}</div>
-                                {% endif %}
+                                        {% if regulacao.tipo_exame.descricao %}
+                                        <tr>
+                                            <th class="text-muted">Descrição</th>
+                                            <td class="text-muted">{{ regulacao.tipo_exame.descricao }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if regulacao.observacoes_solicitacao %}
+                                        <tr>
+                                            <th class="text-muted">Observações</th>
+                                            <td>{{ regulacao.observacoes_solicitacao }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
+
                         {% if regulacao.status in 'autorizado,negado,cancelado' or regulacao.regulador or regulacao.data_regulacao %}
                         <div class="col-12">
-                            <hr class="my-2">
-                            <h6 class="text-muted">Regulação</h6>
-                            <div class="small">
-                                {% if regulacao.regulador %}
-                                    <div><strong>Regulado por:</strong> {% firstof regulacao.regulador.get_full_name regulacao.regulador.username %}</div>
-                                {% endif %}
-                                <div><strong>Data:</strong> {{ regulacao.data_regulacao|date:"d/m/Y H:i" }}</div>
-                                {% if regulacao.motivo_decisao %}
-                                    <div><strong>Motivo:</strong> {{ regulacao.motivo_decisao }}</div>
-                                {% endif %}
+                            <h6 class="text-muted mb-2">Regulação</h6>
+                            <div class="table-responsive rounded-3 border">
+                                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                    <tbody>
+                                        {% if regulacao.regulador %}
+                                        <tr>
+                                            <th class="w-40 text-muted">Regulado por</th>
+                                            <td>{% firstof regulacao.regulador.get_full_name regulacao.regulador.username %}</td>
+                                        </tr>
+                                        {% endif %}
+                                        <tr>
+                                            <th class="text-muted">Data</th>
+                                            <td>{{ regulacao.data_regulacao|date:"d/m/Y H:i" }}</td>
+                                        </tr>
+                                        {% if regulacao.motivo_decisao %}
+                                        <tr>
+                                            <th class="text-muted">Motivo</th>
+                                            <td>{{ regulacao.motivo_decisao }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                         {% endif %}
@@ -96,99 +178,97 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="post" id="form-regular-exame">
-                        {% csrf_token %}
-
-                        <!-- Decisão destacada em cartões grandes -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Decisão <span class="text-danger">*</span></label>
-                                            <div class="row g-3">
-                                                <div class="col-12 col-lg-6">
-                                                    <input type="radio" class="btn-check" name="decisao" id="autorizar" value="autorizado" required {% if decisao == 'autorizado' %}checked{% endif %}>
-                                                    <label class="btn btn-lg w-100 p-4 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-success decision-option" for="autorizar">
-                                                        <span class="display-5"><i class="bi bi-check-circle-fill text-success"></i></span>
-                                                        <span>
-                                                            <span class="h4 mb-1 d-block">Autorizar</span>
-                                                            <small class="text-muted">Definir local, data e médico do exame.</small>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-12 col-lg-6">
-                                                    <input type="radio" class="btn-check" name="decisao" id="negar" value="negado" required {% if decisao == 'negado' %}checked{% endif %}>
-                                                    <label class="btn btn-lg w-100 p-4 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-danger decision-option" for="negar">
-                                                        <span class="display-5"><i class="bi bi-x-circle-fill text-danger"></i></span>
-                                                        <span>
-                                                            <span class="h4 mb-1 d-block">Negar</span>
-                                                            <small class="text-muted">Será necessário informar o motivo da negação.</small>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                            </div>
+                    <!-- Formulário de Regulação -->
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="card-title mb-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-gear-fill"></i>
+                                Realizar Regulação
+                            </h5>
                         </div>
+                        <div class="card-body">
+                            <form method="post" id="form-regular-exame">
+                                {% csrf_token %}
 
-                        <!-- Campos quando autorizado -->
-                        <div id="campos-autorizacao" class="border rounded-3 p-3 mb-4" style="display:none;">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Local de Realização <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="local_realizacao" placeholder="Ex.: Clínica ABC" value="{{ request.POST.local_realizacao|default:regulacao.local_realizacao }}" />
+                                <!-- Decisão destacada em cartões grandes -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold">Decisão <span class="text-danger">*</span></label>
+                                    <div class="row g-3">
+                                        <div class="col-12 col-lg-6">
+                                            <input type="radio" class="btn-check" name="decisao" id="autorizar" value="autorizado" required {% if decisao == 'autorizado' %}checked{% endif %}>
+                                            <label class="btn btn-lg w-100 p-4 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-success decision-option" for="autorizar">
+                                                <span class="display-5"><i class="bi bi-check-circle-fill text-success"></i></span>
+                                                <span>
+                                                    <span class="h4 mb-1 d-block">Autorizar</span>
+                                                    <small class="text-muted">Definir local, data e médico do exame.</small>
+                                                </span>
+                                            </label>
+                                        </div>
+                                        <div class="col-12 col-lg-6">
+                                            <input type="radio" class="btn-check" name="decisao" id="negar" value="negado" required {% if decisao == 'negado' %}checked{% endif %}>
+                                            <label class="btn btn-lg w-100 p-4 border rounded-3 text-start d-flex align-items-center gap-3 btn-outline-danger decision-option" for="negar">
+                                                <span class="display-5"><i class="bi bi-x-circle-fill text-danger"></i></span>
+                                                <span>
+                                                    <span class="h4 mb-1 d-block">Negar</span>
+                                                    <small class="text-muted">Será necessário informar o motivo da negação.</small>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Data do Agendamento <span class="text-danger">*</span></label>
-                                    <input type="date" class="form-control" name="data_agendada" value="{{ request.POST.data_agendada|default:regulacao.data_agendada|date:'Y-m-d' }}" />
+
+                                <!-- Campos quando autorizado -->
+                                <div id="campos-autorizacao" class="border rounded-3 p-3 mb-4 bg-light" style="display:none;">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Local de Realização <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" name="local_realizacao" placeholder="Ex.: Clínica ABC" value="{{ request.POST.local_realizacao|default:regulacao.local_realizacao }}" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Data do Agendamento <span class="text-danger">*</span></label>
+                                            <input type="date" class="form-control" name="data_agendada" value="{{ request.POST.data_agendada|default:regulacao.data_agendada|date:'Y-m-d' }}" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Hora <span class="text-danger">*</span></label>
+                                            <input type="time" class="form-control" name="hora_agendada" value="{{ request.POST.hora_agendada|default:regulacao.hora_agendada|time:'H:i' }}" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Médico Atendente <span class="text-danger">*</span></label>
+                                            <select class="form-select" name="medico_atendente">
+                                                <option value="">Selecione...</option>
+                                                {% for m in medicos %}
+                                                    <option value="{{ m.id }}" {% if request.POST.medico_atendente == m.id|stringformat:'s' or regulacao.medico_atendente_id == m.id %}selected{% endif %}>{{ m.nome }} (CRM {{ m.crm }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Observações da Regulação</label>
+                                            <textarea class="form-control" name="observacoes_regulacao" rows="2" placeholder="Informações adicionais">{{ regulacao.observacoes_regulacao }}</textarea>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Hora <span class="text-danger">*</span></label>
-                                    <input type="time" class="form-control" name="hora_agendada" value="{{ request.POST.hora_agendada|default:regulacao.hora_agendada|time:'H:i' }}" />
+
+                                <!-- Justificativa -->
+                                <div class="mb-4">
+                                    <label for="justificativa" class="form-label fw-semibold">Justificativa <span class="text-danger">*</span></label>
+                                    <textarea name="justificativa" id="justificativa" rows="4" class="form-control" placeholder="Descreva os motivos da decisão" required>{{ request.POST.justificativa }}</textarea>
+                                    <div class="form-text">Explique os motivos que levaram à sua decisão.</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Médico Atendente <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="medico_atendente">
-                                        <option value="">Selecione...</option>
-                                        {% for m in medicos %}
-                                            <option value="{{ m.id }}" {% if request.POST.medico_atendente == m.id|stringformat:'s' or regulacao.medico_atendente_id == m.id %}selected{% endif %}>{{ m.nome }} (CRM {{ m.crm }})</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Observações da Regulação</label>
-                                    <textarea class="form-control" name="observacoes_regulacao" rows="2" placeholder="Informações adicionais">{{ regulacao.observacoes_regulacao }}</textarea>
-                                </div>
+
+                            </form>
+                        </div>
+                        <div class="card-footer bg-white border-top">
+                            <div class="d-grid gap-3 d-sm-flex justify-content-sm-end align-items-center">
+                                <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Voltar à lista
+                                </a>
+                                <button type="submit" form="form-regular-exame" id="submitDecisionBtn" class="btn btn-primary btn-lg px-4">
+                                    <i class="bi bi-check2-circle me-1"></i>
+                                    <span class="btn-text">Confirmar regulação</span>
+                                </button>
                             </div>
                         </div>
-
-                        <!-- Justificativa -->
-                        <div class="mb-4">
-                            <label for="justificativa" class="form-label fw-semibold">Justificativa <span class="text-danger">*</span></label>
-                            <textarea name="justificativa" id="justificativa" rows="4" class="form-control" placeholder="Descreva os motivos da decisão" required>{{ request.POST.justificativa }}</textarea>
-                            <div class="form-text">Explique os motivos que levaram à sua decisão.</div>
-                        </div>
-
-                                    <div class="d-grid gap-3 d-sm-flex justify-content-sm-end align-items-center">
-                            <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Voltar à lista
-                            </a>
-                                        <button type="submit" id="submitDecisionBtn" class="btn btn-primary btn-lg px-4">
-                                            <i class="bi bi-check2-circle me-1"></i>
-                                            <span class="btn-text">Confirmar regulação</span>
-                                        </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            {% else %}
-            <div class="text-center">
-                <a href="{% url 'regulacao-list' %}" class="btn btn-primary">
-                    <i class="bi bi-arrow-left"></i> Voltar à Lista
-                </a>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-<!-- Modal de confirmação para negação -->
+                    </div>
 <div class="modal fade" id="modalNegar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -281,6 +361,14 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 <style>
+/* Tabela moderna com acabamento melhor */
+.table > :not(caption) > * > * { vertical-align: middle; }
+.table thead th { white-space: nowrap; }
+.table tbody th { width: 32%; }
+.table-responsive { background: #fff; }
+.table-responsive .table { border-radius: .5rem; overflow: hidden; }
+.w-40 { width: 40%; }
+
 /* Visual realçado nas opções de decisão */
 .btn-check:checked + .btn-outline-success {
     background-color: #d1e7dd;
@@ -299,8 +387,7 @@ document.addEventListener('DOMContentLoaded', function(){
     box-shadow: 0 0 0 .2rem rgba(220,53,69,.35);
 }
 
-/* Ajustes de tabela genéricos usados nas listas */
-.table thead th { white-space: nowrap; }
+/* Ajustes utilitários legados das listas (mantidos para compatibilidade) */
 .table .truncate-col { max-width: 380px; }
 .table .truncate-col .text-truncate { max-width: 100%; }
 @media (max-width: 576px) {

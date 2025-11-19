@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}{% if obj %}Editar Manutenção{% else %}Nova Manutenção{% endif %}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-wrench"></i> {% if obj %}Editar Manutenção{% else %}Registrar Manutenção{% endif %}</h6>
+      <div class="d-flex gap-2">
+        <a href="{% url 'manutencao-list' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-list-ul"></i> Lista</a>
+        {% if obj %}
+        <a href="{% url 'manutencao-detail' obj.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-eye"></i> Ver</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Veículo</label>
+            {{ form.veiculo|add_class:'form-select' }}
+            {% if form.veiculo.errors %}<div class="text-danger small mt-1">{{ form.veiculo.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Tipo</label>
+            {{ form.tipo|add_class:'form-select' }}
+            {% if form.tipo.errors %}<div class="text-danger small mt-1">{{ form.tipo.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Status</label>
+            {{ form.status|add_class:'form-select' }}
+            {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors|striptags }}</div>{% endif %}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Local de Manutenção</label>
+            {{ form.local|add_class:'form-select' }}
+            <div class="form-text">Precisa cadastrar um novo local? <a href="{% url 'local-manutencao-create' %}">Clique aqui</a>.</div>
+            {% if form.local.errors %}<div class="text-danger small mt-1">{{ form.local.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Data de envio</label>
+            {{ form.data_envio|add_class:'form-control' }}
+            {% if form.data_envio.errors %}<div class="text-danger small mt-1">{{ form.data_envio.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Data de devolução</label>
+            {{ form.data_retorno|add_class:'form-control' }}
+            <div class="form-text">Preencha quando o veículo retornar.</div>
+            {% if form.data_retorno.errors %}<div class="text-danger small mt-1">{{ form.data_retorno.errors|striptags }}</div>{% endif %}
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Problema reportado</label>
+            {{ form.descricao_problema|add_class:'form-control' }}
+            {% if form.descricao_problema.errors %}<div class="text-danger small mt-1">{{ form.descricao_problema.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Serviços realizados</label>
+            {{ form.servicos_realizados|add_class:'form-control' }}
+            {% if form.servicos_realizados.errors %}<div class="text-danger small mt-1">{{ form.servicos_realizados.errors|striptags }}</div>{% endif %}
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a href="{% url 'manutencao-list' %}" class="btn btn-outline-secondary btn-icon"><i class="bi bi-arrow-left"></i> Voltar</a>
+          <button type="submit" class="btn btn-success btn-icon"><i class="bi bi-check2-circle"></i> {% if obj %}Atualizar{% else %}Salvar{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

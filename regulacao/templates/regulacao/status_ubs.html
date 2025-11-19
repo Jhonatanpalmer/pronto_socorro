@@ -25,7 +25,6 @@
             </td>
             <td>{{ r.tipo_exame.nome }}</td>
             <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
-              <td><span class="badge {{ r.get_status_badge_class }}">Aguardando</span></td>
             <td>
               <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
               {% if r.resultado_observacao %}
@@ -66,7 +65,6 @@
             </td>
             <td>{{ r.especialidade.nome }}</td>
             <td><span class="badge {{ r.get_status_badge_class }}">{{ r.get_status_display }}</span></td>
-              <td><span class="badge {{ r.get_status_badge_class }}">Aguardando</span></td>
             <td>
               <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
               {% if r.resultado_observacao %}

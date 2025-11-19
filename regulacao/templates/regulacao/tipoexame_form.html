@@ -73,6 +73,21 @@
                         </div>
 
                         <div class="mb-3">
+                            <label for="{{ form.especialidade.id_for_label }}" class="form-label">
+                                <strong>Especialidade responsável</strong>
+                            </label>
+                            {{ form.especialidade }}
+                            <div class="form-text">Defina a especialidade para habilitar agenda e profissionais na autorização.</div>
+                            {% if form.especialidade.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.especialidade.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
                             <label for="{{ form.valor.id_for_label }}" class="form-label">
                                 <strong>Valor (R$)</strong>
                             </label>

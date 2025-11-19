@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import UBS, MedicoSolicitante, TipoExame, RegulacaoExame
+from .models import (
+    UBS,
+    MedicoSolicitante,
+    TipoExame,
+    RegulacaoExame,
+    LocalAtendimento,
+    Especialidade,
+    MedicoAmbulatorio,
+    AgendaMedica,
+)
 
 @admin.register(UBS)
 class UBSAdmin(admin.ModelAdmin):
@@ -38,3 +47,33 @@ class RegulacaoExameAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+@admin.register(LocalAtendimento)
+class LocalAtendimentoAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'tipo', 'telefone', 'ativo', 'criado_em']
+    list_filter = ['ativo', 'tipo', 'criado_em']
+    search_fields = ['nome', 'endereco', 'tipo']
+    list_editable = ['ativo']
+
+
+@admin.register(Especialidade)
+class EspecialidadeAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'ativa', 'criado_em']
+    list_filter = ['ativa']
+    search_fields = ['nome', 'descricao']
+    list_editable = ['ativa']
+
+
+@admin.register(MedicoAmbulatorio)
+class MedicoAmbulatorioAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'crm', 'ativo', 'criado_em']
+    list_filter = ['ativo', 'especialidades']
+    search_fields = ['nome', 'crm']
+    filter_horizontal = ['especialidades']
+    list_editable = ['ativo']
+
+@admin.register(AgendaMedica)
+class AgendaMedicaAdmin(admin.ModelAdmin):
+    list_display = ['medico', 'especialidade', 'dia_semana', 'capacidade', 'ativo']
+    list_filter = ['especialidade', 'dia_semana', 'ativo']
+    search_fields = ['medico__nome', 'medico__crm', 'especialidade__nome']

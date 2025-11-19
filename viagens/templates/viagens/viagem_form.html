@@ -50,14 +50,20 @@
 
                             <!-- Paciente -->
                             <div class="col-12 col-md-6">
-                                <label for="{{ form.paciente.id_for_label }}" class="form-label fw-semibold small text-muted">Paciente</label>
-                                <!-- Campo de busca com autocomplete (rápido) -->
+                                <label for="busca-paciente" class="form-label fw-semibold small text-muted">Paciente</label>
+                                {{ form.paciente }}
                                 <div class="position-relative mb-2">
-                                    <input type="text" id="busca-paciente" class="form-control form-control-sm" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
+                                    <input type="text" id="busca-paciente" class="form-control form-control-sm" placeholder="Digite nome ou CPF para buscar..." autocomplete="off" />
                                     <div id="resultado-paciente" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
-                                    <div class="form-text">Busca rápida; ao selecionar, o campo Paciente será preenchido.</div>
                                 </div>
-                                {{ form.paciente|add_class:"form-select form-select-sm" }}
+                                <div class="form-text">Selecione um paciente já cadastrado digitando nome ou CPF. Os dados serão preenchidos automaticamente.</div>
+                                <div id="paciente-feedback" class="text-danger small mt-2 d-none">Selecione um paciente cadastrado para continuar.</div>
+                                <div id="paciente-resumo" class="alert alert-secondary small mt-2 d-none">
+                                    <div><strong>Paciente:</strong> <span data-role="nome">-</span></div>
+                                    <div><strong>CPF:</strong> <span data-role="cpf">-</span></div>
+                                    <div><strong>Telefone:</strong> <span data-role="telefone">-</span></div>
+                                    <div><strong>Endereço:</strong> <span data-role="endereco">-</span></div>
+                                </div>
                                 {% if form.paciente.errors %}
                                     <div class="text-danger small mt-1">{{ form.paciente.errors|striptags }}</div>
                                 {% endif %}
@@ -74,8 +80,9 @@
 
                             <!-- Destino -->
                             <div class="col-12 col-md-6">
-                                <label for="{{ form.destino.id_for_label }}" class="form-label fw-semibold small text-muted">Destino</label>
-                                {{ form.destino|add_class:"form-control form-control-sm" }}
+                                <label for="{{ form.destino.id_for_label }}" class="form-label fw-semibold small text-muted">Cidade de Destino</label>
+                                {{ form.destino|add_class:"form-select form-select-sm" }}
+                                <div class="form-text">Precisa cadastrar uma nova cidade? Use o botão "Cidade de Destino" na tela de viagens.</div>
                                 {% if form.destino.errors %}
                                     <div class="text-danger small mt-1">{{ form.destino.errors|striptags }}</div>
                                 {% endif %}
@@ -108,10 +115,11 @@
                                 {% endif %}
                             </div>
 
-                            <!-- Motorista -->
+                            <!-- Motorista (novo: referência ao app Motorista) -->
                             <div class="col-12 col-md-6">
                                 <label for="{{ form.motorista.id_for_label }}" class="form-label fw-semibold small text-muted">Motorista</label>
-                                {{ form.motorista|add_class:"form-control form-control-sm" }}
+                                {{ form.motorista|add_class:"form-select form-select-sm" }}
+                                <div class="form-text">Selecione o motorista cadastrado (lista pode ser filtrada futuramente).</div>
                                 {% if form.motorista.errors %}
                                     <div class="text-danger small mt-1">{{ form.motorista.errors|striptags }}</div>
                                 {% endif %}
@@ -129,7 +137,7 @@
                             <!-- Tipo de Atendimento -->
                             <div class="col-12 col-md-6">
                                 <label for="{{ form.tipo_atendimento.id_for_label }}" class="form-label fw-semibold small text-muted">Tipo de Atendimento</label>
-                                {{ form.tipo_atendimento|add_class:"form-control form-control-sm" }}
+                                {{ form.tipo_atendimento|add_class:"form-select form-select-sm" }}
                                 {% if form.tipo_atendimento.errors %}
                                     <div class="text-danger small mt-1">{{ form.tipo_atendimento.errors|striptags }}</div>
                                 {% endif %}
@@ -138,7 +146,7 @@
                             <!-- Hospital -->
                             <div class="col-12 col-md-6">
                                 <label for="{{ form.hospital.id_for_label }}" class="form-label fw-semibold small text-muted">Hospital</label>
-                                {{ form.hospital|add_class:"form-control form-control-sm" }}
+                                {{ form.hospital|add_class:"form-select form-select-sm" }}
                                 {% if form.hospital.errors %}
                                     <div class="text-danger small mt-1">{{ form.hospital.errors|striptags }}</div>
                                 {% endif %}
@@ -172,15 +180,84 @@
 document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('busca-paciente');
     const list = document.getElementById('resultado-paciente');
-    const select = document.getElementById('id_paciente');
+    const hidden = document.getElementById('id_paciente');
     const enderecoInput = document.getElementById('id_endereco_paciente');
-    if (!input || !list || !select) return;
+    const feedback = document.getElementById('paciente-feedback');
+    const resumoBox = document.getElementById('paciente-resumo');
+    const resumoNome = resumoBox ? resumoBox.querySelector('[data-role="nome"]') : null;
+    const resumoCpf = resumoBox ? resumoBox.querySelector('[data-role="cpf"]') : null;
+    const resumoTelefone = resumoBox ? resumoBox.querySelector('[data-role="telefone"]') : null;
+    const resumoEndereco = resumoBox ? resumoBox.querySelector('[data-role="endereco"]') : null;
+
+    if (!input || !list || !hidden) return;
 
     let timer = null;
+
+    if (enderecoInput) {
+        enderecoInput.addEventListener('input', () => {
+            enderecoInput.dataset.autofill = 'false';
+        });
+    }
 
     function clearList() {
         list.innerHTML = '';
         list.style.display = 'none';
+    }
+
+    function montarEndereco(item) {
+        if (item.endereco) {
+            return item.endereco;
+        }
+        const partes = [];
+        if (item.logradouro) partes.push(item.logradouro);
+        if (item.numero) partes.push(`nº ${item.numero}`);
+        if (item.bairro) partes.push(item.bairro);
+        if (item.cep) partes.push(`CEP: ${item.cep}`);
+        return partes.join(', ');
+    }
+
+    function atualizarResumo({ nome, cpf, telefone, endereco }) {
+        if (!resumoBox) return;
+        if (!nome) {
+            resumoBox.classList.add('d-none');
+            return;
+        }
+        if (resumoNome) resumoNome.textContent = nome || '-';
+        if (resumoCpf) resumoCpf.textContent = cpf || 'Não informado';
+        if (resumoTelefone) resumoTelefone.textContent = telefone || 'Não informado';
+        if (resumoEndereco) resumoEndereco.textContent = endereco || 'Não informado';
+        resumoBox.classList.remove('d-none');
+    }
+
+    function limparSelecao() {
+        hidden.value = '';
+        hidden.dataset.selectedName = '';
+        hidden.dataset.selectedCpf = '';
+        hidden.dataset.selectedTelefone = '';
+        hidden.dataset.selectedEndereco = '';
+        atualizarResumo({});
+    }
+
+    function aplicarSelecao(item) {
+        const enderecoTexto = montarEndereco(item);
+        hidden.value = item.id;
+        hidden.dataset.selectedName = item.nome || '';
+        hidden.dataset.selectedCpf = item.cpf || '';
+        hidden.dataset.selectedTelefone = item.telefone || '';
+        hidden.dataset.selectedEndereco = enderecoTexto || '';
+        input.value = item.nome || '';
+        if (feedback) feedback.classList.add('d-none');
+        atualizarResumo({
+            nome: item.nome,
+            cpf: item.cpf,
+            telefone: item.telefone,
+            endereco: enderecoTexto,
+        });
+        if (enderecoInput && (enderecoInput.dataset.autofill !== 'false' || !enderecoInput.value.trim())) {
+            enderecoInput.value = enderecoTexto || enderecoInput.value;
+            enderecoInput.dataset.autofill = 'true';
+        }
+        clearList();
     }
 
     function renderResults(items) {
@@ -189,22 +266,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const a = document.createElement('a');
             a.href = '#';
             a.className = 'list-group-item list-group-item-action';
-            a.textContent = item.label || item.nome;
+            const detalhes = [];
+            if (item.cpf) detalhes.push(`CPF: ${item.cpf}`);
+            if (item.telefone) detalhes.push(item.telefone);
+            const endereco = montarEndereco(item);
+            if (endereco) detalhes.push(endereco);
+            a.innerHTML = `<div class="fw-semibold">${item.nome || ''}</div>` +
+                (detalhes.length ? `<div class="small text-muted">${detalhes.join(' • ')}</div>` : '');
             a.addEventListener('click', (e) => {
                 e.preventDefault();
-                // Preenche o select de paciente apenas com a opção escolhida
-                select.innerHTML = '';
-                const opt = document.createElement('option');
-                opt.value = item.id;
-                opt.textContent = item.nome;
-                opt.selected = true;
-                select.appendChild(opt);
-                // Preencher endereço do paciente se existir e se o campo estiver vazio
-                if (enderecoInput && (!enderecoInput.value || enderecoInput.value === 'Não informado')) {
-                    enderecoInput.value = (item.endereco || '').toString().trim() || enderecoInput.value;
-                }
-                clearList();
-                input.value = item.nome;
+                aplicarSelecao(item);
             });
             list.appendChild(a);
         });
@@ -216,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function () {
         url.searchParams.set('q', q);
         url.searchParams.set('limit', '20');
         fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(r => (r.ok ? r.json() : Promise.reject()))
             .then(data => renderResults((data && data.results) || []))
             .catch(() => clearList());
     }
@@ -224,7 +295,21 @@ document.addEventListener('DOMContentLoaded', function () {
     input.addEventListener('input', function () {
         const q = (input.value || '').trim();
         clearTimeout(timer);
-        if (q.length < 2) { clearList(); return; }
+        if (!q.length) {
+            limparSelecao();
+            clearList();
+            return;
+        }
+        if (hidden.dataset.selectedName) {
+            const selecionado = hidden.dataset.selectedName.toLowerCase();
+            if (selecionado !== q.toLowerCase()) {
+                limparSelecao();
+            }
+        }
+        if (q.length < 2) {
+            clearList();
+            return;
+        }
         timer = setTimeout(() => buscar(q), 250);
     });
 
@@ -233,6 +318,35 @@ document.addEventListener('DOMContentLoaded', function () {
             clearList();
         }
     });
+
+    const form = input.closest('form');
+    if (form) {
+        form.addEventListener('submit', function (evt) {
+            if (!hidden.value) {
+                evt.preventDefault();
+                if (feedback) {
+                    feedback.classList.remove('d-none');
+                }
+                input.focus();
+            }
+        });
+    }
+
+    // Estado inicial (edição ou carregamento de paciente pré-selecionado)
+    const nomeInicial = hidden.dataset.selectedName || '';
+    if (nomeInicial) {
+        input.value = nomeInicial;
+        atualizarResumo({
+            nome: nomeInicial,
+            cpf: hidden.dataset.selectedCpf || '',
+            telefone: hidden.dataset.selectedTelefone || '',
+            endereco: hidden.dataset.selectedEndereco || '',
+        });
+        if (enderecoInput && !enderecoInput.value) {
+            enderecoInput.value = hidden.dataset.selectedEndereco || '';
+            enderecoInput.dataset.autofill = 'true';
+        }
+    }
 });
 </script>
 

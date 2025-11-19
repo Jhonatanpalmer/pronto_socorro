@@ -14,6 +14,7 @@ from tfd.models import TFD
 from django.utils.dateparse import parse_date
 from django.utils.http import urlencode
 from .forms import PacienteForm
+from .services import buscar_paciente_esus
 from collections import defaultdict
 
 class PacienteListView(LoginRequiredMixin, ListView):
@@ -68,7 +69,17 @@ def paciente_autocomplete(request):
             | Q(cpf__icontains=q)
             | Q(cns__icontains=q)
         )
-    qs = qs.order_by("nome").values("id", "nome", "cpf", "cns", "endereco", "telefone")[:limit]
+    qs = qs.order_by("nome").values(
+        "id",
+        "nome",
+        "cpf",
+        "cns",
+        "telefone",
+        "logradouro",
+        "numero",
+        "bairro",
+        "cep",
+    )[:limit]
     results = []
     for r in qs:
         label_parts = [r.get("nome") or ""]
@@ -76,13 +87,27 @@ def paciente_autocomplete(request):
             label_parts.append(f"CPF: {r['cpf']}")
         if r.get("cns"):
             label_parts.append(f"CNS: {r['cns']}")
+        endereco_parts = []
+        if r.get("logradouro"):
+            endereco_parts.append(r["logradouro"])
+        if r.get("numero"):
+            endereco_parts.append(f"nº {r['numero']}")
+        if r.get("bairro"):
+            endereco_parts.append(r["bairro"])
+        if r.get("cep"):
+            endereco_parts.append(f"CEP: {r['cep']}")
+        endereco_text = ", ".join(part for part in endereco_parts if part)
         results.append({
             "id": r["id"],
             "nome": r["nome"],
             "cpf": r.get("cpf"),
             "cns": r.get("cns"),
-            "endereco": r.get("endereco") or "",
             "telefone": r.get("telefone") or "",
+            "logradouro": r.get("logradouro") or "",
+            "numero": r.get("numero") or "",
+            "bairro": r.get("bairro") or "",
+            "cep": r.get("cep") or "",
+            "endereco": endereco_text,
             "label": " | ".join(p for p in label_parts if p),
         })
     return JsonResponse({"results": results})
@@ -110,6 +135,34 @@ class PacienteCreateView(LoginRequiredMixin, CreateView):
         messages.success(self.request, "Paciente criado com sucesso.")
         return response
 
+    def get_initial(self):
+        """Se vier cpf/cns via GET, tenta buscar no e-SUS e preencher o formulário.
+
+        Não salva nada automaticamente, apenas pré-preenche os campos.
+        """
+        initial = super().get_initial()
+        cpf = (self.request.GET.get('cpf') or '').strip()
+        cns = (self.request.GET.get('cns') or '').strip()
+        try:
+            dados = buscar_paciente_esus(cpf=cpf or None, cns=cns or None)
+            if dados:
+                initial.update({
+                    'nome': dados.get('nome') or '',
+                    'cpf': dados.get('cpf') or '',
+                    'cns': dados.get('cns') or '',
+                    'data_nascimento': dados.get('data_nascimento'),
+                    'nome_mae': dados.get('nome_mae') or '',
+                    'nome_pai': dados.get('nome_pai') or '',
+                    'telefone': dados.get('telefone') or '',
+                    'logradouro': dados.get('logradouro') or '',
+                    'numero': dados.get('numero') or '',
+                    'bairro': dados.get('bairro') or '',
+                    'cep': dados.get('cep') or '',
+                })
+        except Exception:
+            pass
+        return initial
+
 class PacienteUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
     access_key = 'pacientes'
@@ -120,8 +173,37 @@ class PacienteUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, "Paciente atualizado com sucesso.")
+        messages.success(self.request, 'Paciente atualizado com sucesso!')
         return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erro ao atualizar paciente. Verifique os dados.')
+        return super().form_invalid(form)
+
+    def get_initial(self):
+        """Opcionalmente pré-preenche campos vazios com dados do e-SUS quando ?esus=1.
+
+        Útil para complementar cadastro existente sem sobrescrever manualmente.
+        """
+        initial = super().get_initial()
+        try:
+            if self.request.GET.get('esus') == '1':
+                cpf = (self.object.cpf or '').strip()
+                cns = (self.object.cns or '').strip()
+                dados = buscar_paciente_esus(cpf=cpf or None, cns=cns or None)
+                if dados:
+                    # Só aplica initial para campos que estejam vazios no instance
+                    for f in ['nome','cpf','cns','data_nascimento','nome_mae','nome_pai','telefone','logradouro','numero','bairro','cep']:
+                        if not getattr(self.object, f, None):
+                            initial[f] = dados.get(f)
+                    # Adiciona mensagem de sucesso se dados foram encontrados
+                    messages.success(self.request, 'Dados do e-SUS carregados com sucesso para campos vazios!')
+                else:
+                    # Mensagem se não encontrou dados
+                    messages.warning(self.request, 'Nenhum dado encontrado no e-SUS para este CPF/CNS.')
+        except Exception as e:
+            messages.error(self.request, f'Erro ao buscar dados no e-SUS: {str(e)}')
+        return initial
 
 class PacienteDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
     login_url = '/accounts/login/'

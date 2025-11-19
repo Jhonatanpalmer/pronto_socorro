@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="container py-3">
+  <h3>Gerar Agenda Mensal (por dia)</h3>
+  <form method="post" class="mt-3">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Médico</label>
+        {{ form.medico|add_class:'form-select' }}
+        <div class="form-text">Apenas médicos do ambulatório</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Especialidade</label>
+        {{ form.especialidade|add_class:'form-select' }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Início</label>
+        {{ form.inicio|add_class:'form-control' }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Meses</label>
+        {{ form.meses|add_class:'form-select' }}
+        <div class="form-text">Máximo de 6 meses</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Dias da semana</label>
+        <div class="form-control p-2">
+          {{ form.dias_semana }}
+        </div>
+        <div class="form-text">Ex.: seg/qua/sex</div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Capacidade por dia</label>
+        {{ form.capacidade|add_class:'form-control' }}
+      </div>
+      <div class="col-md-12">
+        <label class="form-check">
+          {{ form.sobrescrever }}
+          <span class="ms-1">Sobrescrever dias existentes</span>
+        </label>
+      </div>
+    </div>
+    <div class="mt-3 d-flex gap-2">
+      <button class="btn btn-primary">Gerar</button>
+      <a href="{% url 'agendadia-list' %}" class="btn btn-secondary">Voltar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

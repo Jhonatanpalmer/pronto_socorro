@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Excluir Local de Manutenção{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-exclamation-triangle"></i> Confirmar exclusão</h6>
+      <a href="{% url 'local-manutencao-list' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-x-lg"></i> Cancelar</a>
+    </div>
+    <div class="card-body">
+      <p>Tem certeza que deseja excluir o local <strong>{{ obj.nome }}</strong> ({{ obj.cidade }})?</p>
+      {% if obj.manutencoes.exists %}
+      <div class="alert alert-warning">Este local possui manutenções vinculadas. Para excluir, remova ou altere as manutenções primeiro.</div>
+      {% endif %}
+      <form method="post" class="d-flex justify-content-end gap-2">
+        {% csrf_token %}
+        <a href="{% url 'local-manutencao-list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+        <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Excluir</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

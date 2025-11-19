@@ -67,8 +67,20 @@ class TFD(models.Model):
 					self.paciente_cpf = p.cpf
 				if not self.paciente_cns and getattr(p, 'cns', None):
 					self.paciente_cns = p.cns
-				if (not self.paciente_endereco) and getattr(p, 'endereco', None):
-					self.paciente_endereco = p.endereco
+				# Montar endereço completo a partir dos campos estruturados
+				if not self.paciente_endereco and p:
+					endereco_parts = []
+					if getattr(p, 'logradouro', None):
+						endereco_parts.append(p.logradouro)
+					if getattr(p, 'numero', None):
+						endereco_parts.append(f"nº {p.numero}")
+					if getattr(p, 'bairro', None):
+						endereco_parts.append(p.bairro)
+					if getattr(p, 'cep', None):
+						endereco_parts.append(f"CEP: {p.cep}")
+					
+					if endereco_parts:
+						self.paciente_endereco = ", ".join(endereco_parts)
 				if (not self.paciente_telefone) and getattr(p, 'telefone', None):
 					self.paciente_telefone = p.telefone
 			except Exception:

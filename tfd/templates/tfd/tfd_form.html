@@ -6,25 +6,115 @@
 
 {% block content %}
 <div class="container py-4 py-md-5">
-    <!-- Hero -->
-    <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #198754, #20c997); box-shadow: 0 8px 24px rgba(25,135,84,.25);">
-        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
-            <div class="display-6"><i class="bi bi-journal-plus"></i></div>
-            <div class="flex-grow-1">
-                <h2 class="fw-bold mb-1">{% if form.instance.pk %}Editar{% else %}Novo{% endif %} TFD</h2>
-                <div class="text-white-50">Preencha os dados do paciente, viagem e valores</div>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="{% url 'tfd-list' %}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar</a>
-            </div>
+    <!-- Header simples -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">{% if form.instance.pk %}Editar{% else %}Novo{% endif %} TFD</h2>
+            <div class="text-muted">Preencha os dados do paciente, viagem e valores</div>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary">Voltar</a>
         </div>
     </div>
 
     <div class="card shadow-sm app-card">
         <div class="app-accent accent-success"></div>
         <div class="card-body">
+            <!-- Exibir erros de validação -->
+            {% if form.errors %}
+                <div class="alert alert-danger" role="alert">
+                    <h6><i class="bi bi-exclamation-triangle"></i> Erro ao salvar o formulário:</h6>
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    {% for field, errors in form.errors.items %}
+                        {% if field != '__all__' %}
+                            <div><strong>{{ field|capfirst }}:</strong> 
+                                {% for error in errors %}{{ error }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
             <style>
+                .tf-section-title { font-weight: 700; font-size: 1rem; color: #0d6efd; }
+                .tf-help { color: #6c757d; font-size: .9rem; }
                 .tf-address textarea.form-control { min-height: 56px; max-height: 120px; resize: vertical; }
+                .tf-busca-paciente-label {
+                    color: #7d1a1a;
+                    font-weight: 600;
+                    letter-spacing: .01em;
+                }
+                .tf-busca-paciente {
+                    border: 2px solid #a32020;
+                    background: #fff6f6;
+                    box-shadow: 0 0 0 .1rem rgba(163,32,32,.12);
+                    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+                }
+                .tf-busca-paciente:focus {
+                    border-color: #c03434;
+                    background: #fff;
+                    box-shadow: 0 0 0 .2rem rgba(192,52,52,.25);
+                }
+                #tfd-busca-status {
+                    color: #7d1a1a;
+                }
+                .tfd-paciente-card {
+                    border: 1px solid #f1aeb5;
+                    background: linear-gradient(135deg, #fff7f7, #ffeef1);
+                    border-radius: 1rem;
+                    padding: 1.5rem;
+                    box-shadow: 0 1rem 2rem rgba(125, 26, 26, 0.08);
+                    position: relative;
+                    overflow: hidden;
+                }
+                .tfd-paciente-card::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    border-radius: inherit;
+                    padding: 1px;
+                    background: linear-gradient(135deg, rgba(125,26,26,.3), rgba(255,255,255,.3));
+                    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                    -webkit-mask-composite: xor;
+                            mask-composite: exclude;
+                }
+                .tfd-card-label {
+                    text-transform: uppercase;
+                    font-size: .75rem;
+                    letter-spacing: .08em;
+                    color: #9f1e1e;
+                    font-weight: 700;
+                }
+                .tfd-card-name {
+                    font-size: 1.35rem;
+                    font-weight: 700;
+                    color: #470d0d;
+                }
+                .tfd-card-sub {
+                    color: #b63a3a;
+                    font-weight: 600;
+                }
+                .tfd-card-grid {
+                    position: relative;
+                    z-index: 1;
+                }
+                .tfd-card-mini-label {
+                    font-size: .8rem;
+                    text-transform: uppercase;
+                    color: #7d1a1a;
+                    font-weight: 600;
+                    letter-spacing: .04em;
+                }
+                .tfd-card-mini-value {
+                    font-size: 1rem;
+                    color: #3a0d0d;
+                    font-weight: 600;
+                    word-break: break-word;
+                }
             </style>
 
             <script>
@@ -70,31 +160,86 @@
 
                 <div class="row g-3">
                     <div class="col-12">
-                        <h6 class="text-uppercase text-muted mb-2">Dados do Paciente</h6>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="tf-section-title">Dados do Paciente</div>
+                        </div>
+                        <div id="tfd-paciente-help" class="tf-help">As informações serão preenchidas automaticamente após selecionar o paciente.</div>
+                        <hr class="mt-2" />
                     </div>
-                    <div class="col-md-6 position-relative">
-                        <label class="form-label">Paciente (vinculado)</label>
-                        <input type="text" id="tfd-busca-paciente" class="form-control mb-2" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
-                        <div id="tfd-resultado-paciente" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
-                        {{ form.paciente|add_class:"form-select" }}
-                        <div class="form-text">Selecione um paciente para preencher automaticamente os dados do paciente.</div>
+                    
+                    <!-- Campo único de busca por CPF ou Nome -->
+                    <div class="col-12" id="tfd-secao-pesquisa">
+                        <label class="form-label tf-busca-paciente-label">Paciente (CPF ou nome)</label>
+                        <input type="text" id="tfd-busca-unificada" class="form-control tf-busca-paciente" placeholder="Ex: 123.456.789-00 ou João da Silva" autocomplete="off" />
+                        <div id="tfd-busca-status" class="form-text mt-2">
+                            A busca acontece automaticamente ao digitar o CPF completo ou pelo menos 3 letras do nome.
+                        </div>
+                    </div>
+
+                    <!-- Resultados da busca (separado para controle independente) -->
+                    <div class="col-12" id="tfd-resultados-nome" style="display: none;">
+                        <div class="form-text mb-2">Clique no paciente desejado para selecionar.</div>
+                        <div id="tfd-lista-pacientes" class="list-group"></div>
+                    </div>
+
+                    <!-- Campo de confirmação de CPF (oculto inicialmente) -->
+                    <div class="col-12" id="tfd-secao-cpf-confirmacao" style="display: none;">
+                        <div class="alert alert-success py-2 mb-3">
+                            Paciente selecionado. Confira o CPF abaixo.
+                        </div>
+                        <div class="tfd-paciente-card d-none" id="tfd-paciente-card">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                                <div>
+                                    <div class="tfd-card-label">Paciente selecionado</div>
+                                    <div class="tfd-card-name" id="tfd-card-nome">—</div>
+                                    <div class="tfd-card-sub" id="tfd-card-cpf">CPF: —</div>
+                                </div>
+                                <span class="badge rounded-pill text-bg-light text-danger fw-semibold"><i class="bi bi-person-check"></i> Confirmado</span>
+                            </div>
+                            <div class="row g-3 tfd-card-grid">
+                                <div class="col-md-4">
+                                    <div class="tfd-card-mini-label"><i class="bi bi-upc-scan"></i> CNS</div>
+                                    <div class="tfd-card-mini-value" id="tfd-card-cns">—</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="tfd-card-mini-label"><i class="bi bi-telephone"></i> Telefone</div>
+                                    <div class="tfd-card-mini-value" id="tfd-card-tel">—</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="tfd-card-mini-label"><i class="bi bi-geo-alt"></i> Endereço</div>
+                                    <div class="tfd-card-mini-value" id="tfd-card-end">—</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">CPF do paciente selecionado</label>
+                            <input type="text" id="tfd-cpf-confirmacao" class="form-control text-center" readonly />
+                            <div class="form-text">Preenchido automaticamente.</div>
+                        </div>
+                        <button type="button" id="tfd-btn-alterar-paciente" class="btn btn-outline-primary">Escolher outro paciente</button>
+                        <hr class="my-4">
+                    </div>
+
+                    <!-- Campos ocultos para o Django -->
+                    <div style="display: none;">
+                        {{ form.paciente }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Acompanhante (se houver)</label>
+                        <label class="form-label">Nome completo</label>
                         {{ form.paciente_nome|add_class:"form-control" }}
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="form-label">CPF</label>
                         {{ form.paciente_cpf|add_class:"form-control" }}
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">CNS</label>
+                    <div class="col-md-4">
+                        <label class="form-label">CNS (Cartão SUS)</label>
                         {{ form.paciente_cns|add_class:"form-control" }}
                     </div>
-                    <div class="col-md-8 tf-address">
-                        <label class="form-label">Endereço</label>
+                    <div class="col-md-8">
+                        <label class="form-label">Endereço completo</label>
                         {{ form.paciente_endereco|add_class:"form-control" }}
-                        <div class="form-text">Formato curto: rua, nº, bairro. Máx. 300 caracteres.</div>
+                        <div class="form-text">Endereço será preenchido automaticamente do cadastro do paciente.</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Telefone</label>
@@ -102,23 +247,28 @@
                     </div>
 
                     <div class="col-12 mt-2">
-                        <h6 class="text-uppercase text-muted mb-2">Viagem</h6>
+                        <div class="tf-section-title">Dados da Viagem</div>
+                        <div class="tf-help">Informe o destino e o período.</div>
+                        <hr class="mt-2" />
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Cidade de destino</label>
-                        {{ form.cidade_destino|add_class:"form-control" }}
+                        <label class="form-label">Cidade de destino <span class="text-danger">*</span></label>
+                        {{ form.cidade_destino|add_class:"form-select" }}
+                        <div class="form-text">Lista carregada automaticamente com as cidades do IBGE.</div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Data início</label>
+                        <label class="form-label">Data de início <span class="text-danger">*</span></label>
                         {{ form.data_inicio|add_class:"form-control" }}
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Data fim</label>
+                        <label class="form-label">Data de fim <span class="text-danger">*</span></label>
                         {{ form.data_fim|add_class:"form-control" }}
                     </div>
 
                     <div class="col-12 mt-2">
-                        <h6 class="text-uppercase text-muted mb-2">Valores</h6>
+                        <div class="tf-section-title">Valores Financeiros</div>
+                        <div class="tf-help">Diárias, auxílios e valor total.</div>
+                        <hr class="mt-2" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Número de diárias</label>
@@ -126,25 +276,16 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Valor da diária (R$)</label>
-                        <div class="input-group">
-                            <span class="input-group-text">R$</span>
-                            {{ form.valor_diaria|add_class:"form-control text-end" }}
-                        </div>
+                        {{ form.valor_diaria|add_class:"form-control text-end" }}
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Valor do Auxílio Municipal (R$)</label>
-                        <div class="input-group">
-                            <span class="input-group-text">R$</span>
-                            {{ form.valor_beneficio|add_class:"form-control text-end" }}
-                        </div>
+                        <label class="form-label">Valor do auxílio municipal (R$)</label>
+                        {{ form.valor_beneficio|add_class:"form-control text-end" }}
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Valor total (R$)</label>
-                        <div class="input-group">
-                            <span class="input-group-text">R$</span>
-                            {{ form.valor_total|add_class:"form-control text-end" }}
-                        </div>
-                        <div class="form-text">Calculado automaticamente como <code>valor_beneficio + (valor_diaria × número_diarias)</code> se não informado.</div>
+                        {{ form.valor_total|add_class:"form-control text-end" }}
+                        <div class="form-text">Calculado como <code>auxílio + (diária × nº diárias)</code> quando não informado.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Observações</label>
@@ -152,9 +293,20 @@
                     </div>
                 </div>
 
-                <div class="card-footer bg-transparent border-0 px-0 mt-4 d-flex justify-content-end gap-2">
-                    <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</a>
-                    <button type="submit" class="btn btn-success"><i class="bi bi-check2"></i> Salvar registro</button>
+                <div class="card-footer bg-light border-top-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary btn-lg px-4">
+                            <i class="bi bi-arrow-left-circle"></i> Voltar
+                        </a>
+                        <div class="d-flex gap-3">
+                            <button type="reset" class="btn btn-outline-warning btn-lg px-4">
+                                <i class="bi bi-arrow-clockwise"></i> Limpar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="bi bi-check-circle-fill"></i> Salvar TFD
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -216,60 +368,482 @@ document.addEventListener('DOMContentLoaded', function () {
         form.classList.add('was-validated');
     }, false);
 
-    // Autocomplete Paciente para TFD
-    const buscaInput = document.getElementById('tfd-busca-paciente');
-    const resultadoList = document.getElementById('tfd-resultado-paciente');
+    // CPF e Nome Busca e Auto-preenchimento
+    const buscaUnificadaInput = document.getElementById('tfd-busca-unificada');
+    const buscaStatus = document.getElementById('tfd-busca-status');
+    const resultadosNome = document.getElementById('tfd-resultados-nome');
+    const listaPacientes = document.getElementById('tfd-lista-pacientes');
     const pacienteSelect = document.getElementById('id_paciente');
     const nomeInput = document.getElementById('id_paciente_nome');
     const cpfInput = document.getElementById('id_paciente_cpf');
     const cnsInput = document.getElementById('id_paciente_cns');
     const endInput = document.getElementById('id_paciente_endereco');
     const telInput = document.getElementById('id_paciente_telefone');
+    const pacienteCard = document.getElementById('tfd-paciente-card');
+    const cardNome = document.getElementById('tfd-card-nome');
+    const cardCpf = document.getElementById('tfd-card-cpf');
+    const cardCns = document.getElementById('tfd-card-cns');
+    const cardTel = document.getElementById('tfd-card-tel');
+    const cardEnd = document.getElementById('tfd-card-end');
+    let buscaTimer = null;
+    const BUSCA_DELAY = 400;
 
-    if (buscaInput && resultadoList && pacienteSelect){
-        let debounce;
-        function clearRes(){ resultadoList.innerHTML=''; resultadoList.style.display='none'; }
-        function render(items){
-            resultadoList.innerHTML='';
-            items.forEach(item => {
-                const a = document.createElement('a');
-                a.href = '#';
-                a.className = 'list-group-item list-group-item-action';
-                a.textContent = item.label || item.nome;
-                a.addEventListener('click', (e)=>{
-                    e.preventDefault();
-                    pacienteSelect.innerHTML = '';
-                    const opt = document.createElement('option');
-                    opt.value = item.id; opt.selected = true; opt.textContent = item.nome;
-                    pacienteSelect.appendChild(opt);
-                    if (nomeInput && !nomeInput.value) nomeInput.value = item.nome || '';
-                    if (cpfInput && !cpfInput.value && item.cpf) cpfInput.value = item.cpf;
-                    if (cnsInput && !cnsInput.value && item.cns) cnsInput.value = item.cns;
-                    if (endInput && !endInput.value && item.endereco) endInput.value = item.endereco;
-                    if (telInput && !telInput.value && item.telefone) telInput.value = item.telefone;
-                    buscaInput.value = item.nome || '';
-                    clearRes();
-                });
-                resultadoList.appendChild(a);
-            });
-            resultadoList.style.display = items.length ? 'block' : 'none';
+    function atualizarCartaoPaciente(paciente) {
+        if (!pacienteCard) return;
+        if (!paciente) {
+            pacienteCard.classList.add('d-none');
+            return;
         }
-        function buscar(q){
-            const url = new URL('{% url "paciente_autocomplete" %}', window.location.origin);
-            url.searchParams.set('q', q); url.searchParams.set('limit','20');
-            fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(r => r.ok ? r.json() : Promise.reject())
-                .then(d => render((d && d.results) || []))
-                .catch(() => clearRes());
+        if (cardNome) cardNome.textContent = paciente.nome || '—';
+        if (cardCpf) cardCpf.textContent = `CPF: ${paciente.cpf ? formatarCPF(paciente.cpf) : '—'}`;
+        if (cardCns) cardCns.textContent = paciente.cns || 'Não informado';
+        if (cardTel) cardTel.textContent = paciente.telefone || 'Não informado';
+        if (cardEnd) cardEnd.textContent = paciente.endereco_completo || paciente.endereco || 'Não informado';
+        pacienteCard.classList.remove('d-none');
+    }
+
+    // Função para preencher dados do paciente selecionado
+    function preencherDadosPaciente(paciente) {
+        console.log('Preenchendo dados do paciente:', paciente);
+        if (buscaTimer) {
+            clearTimeout(buscaTimer);
+            buscaTimer = null;
         }
-        buscaInput.addEventListener('input', function(){
-            const v = (this.value||'').trim();
-            clearTimeout(debounce);
-            if (v.length < 2){ clearRes(); return; }
-            debounce = setTimeout(()=> buscar(v), 250);
+        
+        // Atualizar select do paciente (campo oculto)
+        if (pacienteSelect) {
+            pacienteSelect.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = paciente.id;
+            opt.selected = true;
+            opt.textContent = paciente.nome;
+            pacienteSelect.appendChild(opt);
+            
+            // Forçar o valor e disparar evento change
+            pacienteSelect.value = paciente.id;
+            pacienteSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            console.log('Campo paciente preenchido com ID:', paciente.id);
+        }
+
+        // Preencher campos de dados do paciente
+        if (nomeInput) nomeInput.value = paciente.nome || '';
+        if (cpfInput) cpfInput.value = paciente.cpf || '';
+        if (cnsInput) cnsInput.value = paciente.cns || '';
+        if (endInput) endInput.value = paciente.endereco_completo || paciente.endereco || '';
+        if (telInput) telInput.value = paciente.telefone || '';
+
+        if (buscaUnificadaInput) {
+            const partes = [];
+            if (paciente.nome) partes.push(paciente.nome);
+            if (paciente.cpf) partes.push(formatarCPF(paciente.cpf));
+            buscaUnificadaInput.value = partes.join(' - ');
+        }
+
+        buscaStatus.textContent = '✓ Paciente encontrado! Dados carregados automaticamente.';
+        buscaStatus.className = 'form-text text-success';
+
+        atualizarCartaoPaciente(paciente);
+        
+        // Desabilitar campos para evitar edição acidental
+        if (nomeInput) nomeInput.readOnly = true;
+        if (cnsInput) cnsInput.readOnly = true;
+        if (endInput) endInput.readOnly = true;
+        if (telInput) telInput.readOnly = true;
+        
+        // Ocultar resultados da busca por nome
+        if (resultadosNome) resultadosNome.style.display = 'none';
+    }
+
+    // Exibe estado de confirmação e oculta UI de busca
+    function exibirConfirmacaoSelecionado(paciente) {
+        console.log('Executando exibirConfirmacaoSelecionado...');
+        
+        // Ocultar seção de pesquisa com !important via setAttribute
+        const secaoPesquisa = document.getElementById('tfd-secao-pesquisa');
+        if (secaoPesquisa) {
+            secaoPesquisa.style.cssText = 'display: none !important;';
+            console.log('Seção de pesquisa ocultada');
+        }
+        if (buscaUnificadaInput) {
+            buscaUnificadaInput.readOnly = true;
+        }
+
+        // Ocultar ajuda do topo
+        const pacienteHelp = document.getElementById('tfd-paciente-help');
+        if (pacienteHelp) {
+            pacienteHelp.style.cssText = 'display: none !important;';
+        }
+
+        // Ocultar COMPLETAMENTE a lista de resultados com !important
+        const resultadosDiv = document.getElementById('tfd-resultados-nome');
+        if (resultadosDiv) {
+            resultadosDiv.style.cssText = 'display: none !important;';
+            console.log('Div de resultados ocultada');
+        }
+        
+        // Limpar conteúdo da lista
+        const listaPac = document.getElementById('tfd-lista-pacientes');
+        if (listaPac) {
+            listaPac.innerHTML = '';
+            console.log('Lista de pacientes limpa');
+        }
+
+        // Mostrar confirmação de CPF
+        const secaoCpfConfirmacao = document.getElementById('tfd-secao-cpf-confirmacao');
+        const cpfConfirmacao = document.getElementById('tfd-cpf-confirmacao');
+        if (secaoCpfConfirmacao) {
+            secaoCpfConfirmacao.style.cssText = 'display: block !important;';
+            console.log('Seção de confirmação exibida');
+        }
+        if (cpfConfirmacao && paciente) {
+            cpfConfirmacao.value = formatarCPF(paciente.cpf || '');
+        }
+
+        // Limpar status da busca
+        const buscaSt = document.getElementById('tfd-busca-status');
+        if (buscaSt) {
+            buscaSt.textContent = '';
+            buscaSt.className = 'form-text text-muted';
+        }
+
+        // Scroll para mostrar confirmação
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
+    }
+
+    // Função para limpar dados do paciente
+    function limparDadosPaciente() {
+        // Limpar select do paciente
+        pacienteSelect.innerHTML = '';
+        
+        // Limpar campos
+        if (nomeInput) { nomeInput.value = ''; nomeInput.readOnly = false; }
+        if (cnsInput) { cnsInput.value = ''; cnsInput.readOnly = false; }
+        if (endInput) { endInput.value = ''; endInput.readOnly = false; }
+        if (telInput) { telInput.value = ''; telInput.readOnly = false; }
+        if (buscaUnificadaInput) { buscaUnificadaInput.readOnly = false; }
+        
+        // Ocultar resultados da busca por nome
+        if (resultadosNome) resultadosNome.style.display = 'none';
+        if (listaPacientes) listaPacientes.innerHTML = '';
+        atualizarCartaoPaciente(null);
+    }
+
+    // Função para formatar CPF
+    function formatarCPF(cpf) {
+        const numeros = cpf.replace(/\D/g, '');
+        return numeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+
+    // Função para limpar formatação do CPF
+    function limparCPF(cpf) {
+        return cpf.replace(/\D/g, '');
+    }
+
+    // Função para detectar se é CPF ou nome
+    function detectarTipoBusca(valor) {
+        const valorLimpo = valor.replace(/\D/g, '');
+        // Se tem apenas números e tem 11 dígitos, é CPF
+        if (valorLimpo.length === 11 && /^\d+$/.test(valorLimpo)) {
+            return 'cpf';
+        }
+        // Caso contrário, é nome
+        return 'nome';
+    }
+
+    function agendarBuscaAutomatica() {
+        if (!buscaUnificadaInput) {
+            return;
+        }
+
+        const valor = buscaUnificadaInput.value.trim();
+        if (buscaTimer) {
+            clearTimeout(buscaTimer);
+            buscaTimer = null;
+        }
+
+        if (!valor) {
+            if (buscaStatus) {
+                buscaStatus.textContent = 'Digite o CPF completo ou pelo menos 3 letras do nome para localizar o paciente.';
+                buscaStatus.className = 'form-text text-muted';
+            }
+            return;
+        }
+
+        const tipo = detectarTipoBusca(valor);
+
+        if (tipo === 'cpf') {
+            const cpfLimpo = limparCPF(valor);
+            if (cpfLimpo.length < 11) {
+                buscaStatus.textContent = 'Digite os 11 dígitos do CPF para iniciar a busca automática.';
+                buscaStatus.className = 'form-text text-warning';
+                return;
+            }
+            buscaStatus.textContent = 'Buscando paciente pelo CPF...';
+            buscaStatus.className = 'form-text text-info';
+            buscaTimer = setTimeout(() => buscarPacientePorCPF(cpfLimpo), BUSCA_DELAY);
+            return;
+        }
+
+        if (valor.length < 3) {
+            buscaStatus.textContent = 'Digite pelo menos 3 letras para buscar pelo nome.';
+            buscaStatus.className = 'form-text text-warning';
+            return;
+        }
+
+        buscaStatus.textContent = 'Buscando pacientes pelo nome...';
+        buscaStatus.className = 'form-text text-info';
+        buscaTimer = setTimeout(() => buscarPacientePorNome(valor), BUSCA_DELAY);
+    }
+
+    // Aplicar máscara de CPF automaticamente se detectar que é CPF
+    if (buscaUnificadaInput) {
+        // Buscar ao pressionar Enter
+        buscaUnificadaInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarPacienteUnificado();
+            }
         });
-        document.addEventListener('click', function(e){
-            if (!resultadoList.contains(e.target) && e.target !== buscaInput){ clearRes(); }
+    }
+
+    // Função unificada de busca
+    function buscarPacienteUnificado() {
+        if (!buscaUnificadaInput) {
+            return;
+        }
+
+        const valor = buscaUnificadaInput.value.trim();
+        if (!valor) {
+            buscaStatus.textContent = 'Digite o CPF completo ou pelo menos 3 letras do nome para localizar o paciente.';
+            buscaStatus.className = 'form-text text-warning';
+            return;
+        }
+
+        const tipo = detectarTipoBusca(valor);
+        if (tipo === 'cpf') {
+            buscarPacientePorCPF(valor);
+            return;
+        }
+
+        if (valor.length < 3) {
+            buscaStatus.textContent = 'Digite pelo menos 3 letras para buscar pelo nome.';
+            buscaStatus.className = 'form-text text-warning';
+            return;
+        }
+        buscarPacientePorNome(valor);
+    }
+
+    // Função para buscar paciente por CPF
+    function buscarPacientePorCPF(cpfValor) {
+        if (buscaTimer) {
+            clearTimeout(buscaTimer);
+            buscaTimer = null;
+        }
+
+        const cpfLimpo = limparCPF(cpfValor || buscaUnificadaInput.value.trim());
+        if (!cpfLimpo) {
+            buscaStatus.textContent = 'Digite um CPF para buscar.';
+            buscaStatus.className = 'form-text text-warning';
+            return;
+        }
+
+        if (cpfLimpo.length !== 11) {
+            buscaStatus.textContent = 'CPF deve ter 11 dígitos.';
+            buscaStatus.className = 'form-text text-danger';
+            return;
+        }
+
+        buscaStatus.textContent = 'Buscando paciente pelo CPF...';
+        buscaStatus.className = 'form-text text-info';
+
+        const url = new URL('{% url "tfd-buscar-paciente-cpf" %}', window.location.origin);
+        url.searchParams.set('cpf', cpfLimpo);
+
+        fetch(url.toString(), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.paciente) {
+                preencherDadosPaciente(data.paciente);
+                exibirConfirmacaoSelecionado(data.paciente);
+            } else {
+                buscaStatus.textContent = data.error || 'Paciente não encontrado.';
+                buscaStatus.className = 'form-text text-danger';
+                limparDadosPaciente();
+            }
+        })
+        .catch(error => {
+            console.error('Erro na busca:', error);
+            buscaStatus.textContent = 'Erro ao buscar paciente. Verifique sua conexão e tente novamente.';
+            buscaStatus.className = 'form-text text-danger';
+        });
+    }
+
+    // Função para buscar paciente por nome
+    function buscarPacientePorNome(nomeValor) {
+        if (buscaTimer) {
+            clearTimeout(buscaTimer);
+            buscaTimer = null;
+        }
+
+        const nome = nomeValor || buscaUnificadaInput.value.trim();
+        if (!nome) {
+            buscaStatus.textContent = 'Digite um nome para buscar.';
+            buscaStatus.className = 'form-text text-warning';
+            return;
+        }
+
+        if (nome.length < 3) {
+            buscaStatus.textContent = 'Digite pelo menos 3 letras para buscar pelo nome.';
+            buscaStatus.className = 'form-text text-warning';
+            return;
+        }
+
+        buscaStatus.textContent = 'Buscando pacientes pelo nome...';
+        buscaStatus.className = 'form-text text-info';
+
+        const url = new URL('{% url "tfd-buscar-paciente-nome" %}', window.location.origin);
+        url.searchParams.set('nome', nome);
+
+        fetch(url.toString(), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.pacientes && data.pacientes.length > 0) {
+                mostrarResultadosNome(data.pacientes);
+                buscaStatus.textContent = `${data.pacientes.length} paciente(s) encontrado(s). Selecione um abaixo.`;
+                buscaStatus.className = 'form-text text-success';
+            } else {
+                buscaStatus.textContent = data.error || 'Nenhum paciente encontrado com esse nome.';
+                buscaStatus.className = 'form-text text-danger';
+                resultadosNome.style.display = 'none';
+                limparDadosPaciente();
+            }
+        })
+        .catch(error => {
+            console.error('Erro na busca:', error);
+            buscaStatus.textContent = 'Erro ao buscar pacientes. Verifique sua conexão e tente novamente.';
+            buscaStatus.className = 'form-text text-danger';
+        });
+    }
+
+    // Função para mostrar resultados da busca por nome
+    function mostrarResultadosNome(pacientes) {
+        listaPacientes.innerHTML = '';
+        
+        pacientes.forEach(paciente => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${paciente.nome}</h6>
+                    <small>CPF: ${formatarCPF(paciente.cpf || '')}</small>
+                </div>
+                <p class="mb-1">${paciente.endereco_completo || 'Endereço não informado'}</p>
+                <small>CNS: ${paciente.cns || 'Não informado'} | Tel: ${paciente.telefone || 'Não informado'}</small>
+            `;
+            
+            // Event listener para clique - oculta imediatamente a lista
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Paciente clicado:', paciente.nome);
+                
+                // Primeiro ocultar tudo IMEDIATAMENTE
+                const resultDiv = document.getElementById('tfd-resultados-nome');
+                if (resultDiv) {
+                    resultDiv.style.cssText = 'display: none !important;';
+                }
+                
+                // Depois preencher dados e exibir confirmação
+                preencherDadosPaciente(paciente);
+                exibirConfirmacaoSelecionado(paciente);
+            });
+            
+            listaPacientes.appendChild(item);
+        });
+        
+        resultadosNome.style.display = 'block';
+    }
+
+    if (buscaUnificadaInput) {
+        // Event listener para o botão "Alterar Paciente"
+        const btnAlterarPaciente = document.getElementById('tfd-btn-alterar-paciente');
+        if (btnAlterarPaciente) {
+            btnAlterarPaciente.addEventListener('click', function() {
+                // Ocultar seção de confirmação de CPF
+                const secaoConfirmacao = document.getElementById('tfd-secao-cpf-confirmacao');
+                if (secaoConfirmacao) secaoConfirmacao.style.display = 'none';
+                
+                // Mostrar seção de pesquisa novamente
+                const secaoPesq = document.getElementById('tfd-secao-pesquisa');
+                if (secaoPesq) secaoPesq.style.display = 'block';
+                
+                const pacienteHelp = document.getElementById('tfd-paciente-help');
+                if (pacienteHelp) pacienteHelp.style.display = 'block';
+                
+                // Ocultar lista de resultados
+                const resultadosDiv = document.getElementById('tfd-resultados-nome');
+                if (resultadosDiv) resultadosDiv.style.display = 'none';
+                
+                // Limpar campos de busca e dados do paciente
+                buscaUnificadaInput.value = '';
+                limparDadosPaciente();
+                if (pacienteCard) pacienteCard.classList.add('d-none');
+                
+                // Resetar status da busca
+                buscaStatus.textContent = 'Digite o CPF completo ou pelo menos 3 letras do nome para localizar o paciente.';
+                buscaStatus.className = 'form-text text-muted';
+                if (buscaTimer) {
+                    clearTimeout(buscaTimer);
+                    buscaTimer = null;
+                }
+                
+                // Focar no campo de busca
+                buscaUnificadaInput.focus();
+            });
+        }
+
+        // Formatação automática de CPF e limpeza de dados quando usuário digita
+        buscaUnificadaInput.addEventListener('input', function() {
+            const bruto = this.value;
+
+            if (/^[\d.\-\s]*$/.test(bruto)) {
+                const somenteDigitos = limparCPF(bruto);
+                if (somenteDigitos.length <= 11) {
+                    this.value = somenteDigitos.length === 11 ? formatarCPF(somenteDigitos) : somenteDigitos;
+                }
+            }
+            
+            // Limpar status e dados quando usuário digita
+            if (buscaStatus) {
+                buscaStatus.textContent = 'A busca acontece automaticamente ao completar o CPF ou digitar pelo menos 3 letras do nome.';
+                buscaStatus.className = 'form-text text-muted';
+            }
+            
+            // Ocultar resultados de busca por nome
+            if (resultadosNome) {
+                resultadosNome.style.display = 'none';
+            }
+            
+            // Habilitar campos para edição se estavam bloqueados
+            if (nomeInput) nomeInput.readOnly = false;
+            if (cnsInput) cnsInput.readOnly = false;
+            if (endInput) endInput.readOnly = false;
+            if (telInput) telInput.readOnly = false;
+
+            agendarBuscaAutomatica();
         });
     }
 });

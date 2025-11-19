@@ -88,11 +88,13 @@
             <td>{{ r.data_solicitacao|date:'d/m/Y H:i' }}</td>
             <td class="text-end">
               <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
-                {% if r.status == 'fila' or r.status == 'pendente' %}
-                  <a class="btn btn-sm btn-warning" href="{% url 'regular-consulta' r.pk %}">Regular</a>
+                {% if not is_ubs_user %}
+                  {% if r.status == 'fila' or r.status == 'pendente' %}
+                    <a class="btn btn-sm btn-warning" href="{% url 'regular-consulta' r.pk %}">Regular</a>
+                  {% endif %}
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'consulta-update' r.pk %}">Editar</a>
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'consulta-delete' r.pk %}">Excluir</a>
                 {% endif %}
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'consulta-update' r.pk %}">Editar</a>
-                <a class="btn btn-sm btn-outline-danger" href="{% url 'consulta-delete' r.pk %}">Excluir</a>
                 <a class="btn btn-sm btn-outline-primary" href="{% url 'paciente_historico' r.paciente_id %}"><i class="bi bi-clock-history"></i> Histórico</a>
               </div>
             </td>

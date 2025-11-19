@@ -11,6 +11,9 @@ ACCESS_KEYS = {
     'tfd': 'can_tfd',
     'regulacao': 'can_regulacao',
     'users_admin': 'can_users_admin',
+    'rh': 'can_rh',
+    'motorista': 'can_motorista',
+    'veiculos': 'can_veiculos',
 }
 
 

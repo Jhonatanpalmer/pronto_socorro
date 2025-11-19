@@ -169,6 +169,9 @@
                             <a href="{% url 'tfd-update' t.pk %}" class="btn btn-sm btn-outline-primary me-1" title="Editar registro">
                                 <i class="bi bi-pencil-fill"></i>
                             </a>
+                            <a href="{% url 'tfd-delete' t.pk %}" class="btn btn-sm btn-outline-danger" title="Excluir registro" onclick="return confirm('Tem certeza que deseja excluir este TFD? Esta ação não pode ser desfeita.');">
+                                <i class="bi bi-trash"></i>
+                            </a>
                         {% else %}
                             <span class="text-muted small">Login necessário</span>
                         {% endif %}

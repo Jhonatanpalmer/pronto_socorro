@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Atestados Médicos{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Atestados Médicos</h3>
+    <a class="btn btn-primary" href="{% url 'rh-atestado-create' %}"><i class="bi bi-plus-lg"></i> Novo Atestado</a>
+  </div>
+  <div class="d-flex justify-content-end gap-2 mb-3">
+    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+      <i class="bi bi-printer"></i> Imprimir
+    </button>
+  </div>
+  {% if tem_removidos %}
+    <div class="alert alert-warning">
+      Existem atestados removidos. Apenas administradores conseguem visualizá-los e restaurá-los.
+    </div>
+  {% endif %}
+  {% if lista %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Funcionário</th>
+          <th>Período</th>
+          <th>Dias</th>
+          <th>CID</th>
+          <th>Médico</th>
+          <th>Arquivo</th>
+          <th>Status</th>
+          <th class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in lista %}
+        <tr class="{% if not a.ativo %}table-warning{% endif %}">
+          <td>{{ a.funcionario.nome }}</td>
+          <td>{{ a.data_inicio|date:'d/m/Y' }} a {{ a.data_fim|date:'d/m/Y' }}</td>
+          <td class="text-center">{{ a.dias }}</td>
+          <td>{{ a.cid }}</td>
+          <td>{{ a.medico }}{% if a.crm %} (CRM {{ a.crm }}){% endif %}</td>
+          <td>
+            {% if a.arquivo %}
+              <a class="btn btn-sm btn-outline-secondary" href="{{ a.arquivo.url }}" target="_blank">Baixar</a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>
+            {% if a.ativo %}
+              <span class="badge bg-success">Ativo</span>
+            {% else %}
+              <div class="d-flex flex-column">
+                <span class="badge bg-danger">Removido</span>
+                <small class="text-muted">{{ a.removido_em|date:'d/m/Y H:i' }}{% if a.removido_por %} por {{ a.removido_por.get_full_name|default:a.removido_por.username }}{% endif %}</small>
+              </div>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-flex justify-content-end gap-2">
+              <a href="{% url 'rh-atestado-update' a.pk %}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil-square"></i></a>
+              <a href="{% url 'rh-atestado-print' a.pk %}" class="btn btn-sm btn-outline-secondary" title="Imprimir" target="_blank" rel="noopener">
+                <i class="bi bi-printer"></i>
+              </a>
+              {% if a.ativo %}
+              <form method="post" action="{% url 'rh-atestado-delete' a.pk %}" onsubmit="return confirm('Deseja realmente remover este atestado?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% elif exibe_acao_restaurar %}
+              <form method="post" action="{% url 'rh-atestado-restore' a.pk %}" onsubmit="return confirm('Restaurar este atestado?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-success" title="Restaurar">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-info">Nenhum atestado cadastrado.</div>
+  {% endif %}
+</div>
+{% endblock %}

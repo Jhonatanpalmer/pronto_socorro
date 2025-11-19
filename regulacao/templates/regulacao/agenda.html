@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
+{% load regulacao_extras %}
 {% block title %}Agenda de Regulação{% endblock %}
 {% block content %}
 <div class="container py-4">
-  <h4 class="mb-1">Agenda de Atendimentos</h4>
-  {% if ubs_atual %}
-    <div class="text-muted mb-3">UBS: {{ ubs_atual.nome }}</div>
-  {% else %}
-    <div class="text-muted mb-3">Todas as UBS</div>
-  {% endif %}
+  <div class="d-flex justify-content-between align-items-end mb-2">
+    <div class="d-flex align-items-center gap-3">
+      <h4 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-calendar2-week"></i> Agenda de Atendimentos</h4>
+    </div>
+    <div class="ag-subtle small">{% if ubs_atual %}<i class="bi bi-hospital"></i> UBS: {{ ubs_atual.nome }}{% else %}Todas as UBS{% endif %}</div>
+  </div>
 
   <!-- Filtros de Data da Agenda -->
-  <form method="get" class="row g-2 align-items-end mb-3 d-print-none agenda-filter">
+  <form method="get" class="row g-2 align-items-end mb-3 d-print-none agenda-filter ag-filter">
     <div class="col-md-3">
       <label class="form-label">Início</label>
       <input type="date" name="di" value="{{ di|default:hoje }}" class="form-control" min="{{ hoje }}">
@@ -42,12 +43,15 @@
 
   <div class="tab-content" id="agendaTabsContent">
     <div class="tab-pane fade {% if only != 'ex' %}show active{% endif %}" id="consultas-pane" role="tabpanel" aria-labelledby="consultas-tab" tabindex="0">
-      <div class="card h-100 shadow-sm mb-4">
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-          <strong>Consultas Agendadas</strong>
+      <div class="card h-100 ag-card mb-4">
+        <div class="ag-header">
+          <h6 class="mb-0"><i class="bi bi-person-lines-fill"></i> Consultas Agendadas</h6>
+          {% if not ubs_atual %}
           <button type="submit" form="form-consultas" class="btn btn-light btn-sm text-success fw-semibold" title="Salvar alterações desta aba">
             <i class="bi bi-check2-circle"></i> Salvar alterações
           </button>
+          <div class="small text-muted ms-2">Resultados de datas futuras serão ignorados ao salvar.</div>
+          {% endif %}
         </div>
         <div class="card-body p-0">
           <form id="form-consultas" method="post" action="{% url 'agenda-resultado-batch' %}">
@@ -56,16 +60,16 @@
             <input type="hidden" name="di" value="{{ di }}">
             <input type="hidden" name="df" value="{{ df }}">
             <div class="table-responsive">
-            <table class="table table-hover table-striped align-middle mb-0">
+            <table class="table table-hover table-striped sticky-head align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th class="text-nowrap">Data</th>
-                  <th class="text-nowrap">Hora</th>
-                  <th>Paciente</th>
-                  <th>Especialidade</th>
-                  <th>UBS</th>
-                  <th class="text-end d-print-none">Ações</th>
-                  <th class="text-nowrap">Resultado</th>
+                  <th class="text-nowrap"><i class="bi bi-calendar2-day th-icon"></i> Data</th>
+                  <th class="text-nowrap"><i class="bi bi-clock th-icon"></i> Hora</th>
+                  <th><i class="bi bi-person th-icon"></i> Paciente</th>
+                  <th><i class="bi bi-award th-icon"></i> Especialidade</th>
+                  <th><i class="bi bi-hospital th-icon"></i> UBS</th>
+                  <th class="text-end d-print-none"><i class="bi bi-gear th-icon"></i> Ações</th>
+                  <th class="text-nowrap"><i class="bi bi-activity th-icon"></i> Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -83,17 +87,18 @@
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm align-items-stretch" role="group">
                       {% if not ubs_atual %}
-                      <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-outline-secondary" title="Ver pedido do paciente">
+                      <a href="{% url 'paciente-pedido' r.paciente_id %}?only=co" class="btn btn-outline-secondary" title="Ver pedido do paciente">
                         <i class="bi bi-box-arrow-up-right"></i>
                       </a>
                       {% endif %}
                       <a href="{% url 'paciente_historico' r.paciente_id %}" class="btn btn-outline-primary" title="Ver histórico do paciente">
                         <i class="bi bi-clock-history"></i>
                       </a>
-                      <a href="{% url 'comprovante-consulta' r.pk %}" class="btn btn-outline-success" title="Imprimir comprovante">
+                      <a href="{% url 'impressao-consultas-dia' r.paciente_id r.data_agendada|date:'Y-m-d' %}" class="btn btn-outline-dark" title="Imprimir consultas deste dia" target="_blank">
                         <i class="bi bi-printer"></i>
                       </a>
-                      {% if r.data_agendada and r.data_agendada <= hoje %}
+                      
+                      {% if not ubs_atual %}
                       <div class="d-flex gap-1 ms-2 align-items-center">
                         <select name="co-{{ r.pk }}-resultado" class="form-select form-select-sm">
                           <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>Aguardando</option>
@@ -110,6 +115,11 @@
                   </td>
                   <td class="text-nowrap">
                     <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+                    {% if r.resultado_observacao %}
+                    <div class="small text-muted mt-1" style="max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ r.resultado_observacao }}">
+                      {{ r.resultado_observacao }}
+                    </div>
+                    {% endif %}
                   </td>
                 </tr>
                 {% empty %}
@@ -118,17 +128,35 @@
               </tbody>
             </table>
             </div>
+            {% if not ubs_atual %}
             <div class="d-flex justify-content-end p-2">
               <button class="btn btn-success btn-sm">
                 <i class="bi bi-check2-circle"></i> Salvar alterações
               </button>
             </div>
+            {% endif %}
           </form>
         </div>
       </div>
+      
       {% if pend_consultas %}
-      <div class="card h-100 shadow-sm mb-4">
-        <div class="card-header bg-warning text-dark"><strong>Consultas Pendentes (sua UBS)</strong></div>
+      {% if ubs_atual %}
+      <div id="consultas-fila-prompt" class="alert alert-warning d-flex justify-content-between align-items-center mb-3" role="alert">
+        <div><strong>Consultas:</strong> Solicita ver as consultas que estão em fila de espera?</div>
+        <div class="d-flex gap-2">
+          <button type="button" id="btn-show-consultas" class="btn btn-sm btn-primary"><i class="bi bi-eye"></i> Sim, mostrar</button>
+        </div>
+      </div>
+      {% endif %}
+      <div id="consultas-fila-card" class="card h-100 shadow-sm mb-4{% if ubs_atual %} d-none{% endif %}">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+          <strong>Consultas em fila de espera (sua UBS)</strong>
+          {% if ubs_atual %}
+          <button type="button" id="btn-hide-consultas" class="btn btn-sm btn-outline-dark">
+            <i class="bi bi-eye-slash"></i> Ocultar
+          </button>
+          {% endif %}
+        </div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-end mb-2">
             <div class="col-md-3">
@@ -166,6 +194,8 @@
                   <th>Paciente</th>
                   <th>Especialidade</th>
                   <th>Status</th>
+                  <th>Pendência</th>
+                  <th class="text-end">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,6 +205,22 @@
                   <td><div class="fw-semibold">{{ c.paciente.nome }}</div></td>
                   <td>{{ c.especialidade.nome }}</td>
                   <td><span class="badge {{ c.get_status_badge_class }}">{{ c.get_status_display }}</span></td>
+                  <td>
+                    {% if c.status == 'pendente' %}
+                      <div class="small">{{ c.pendencia_motivo|default:'—' }}</div>
+                      {% if c.pendencia_resposta %}<div class="text-muted small">Resposta: {{ c.pendencia_resposta|truncatechars:60 }}</div>{% endif %}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-end">
+                    {% if ubs_atual and c.status == 'pendente' %}
+                    <a href="{% url 'pendencia-consulta-responder' c.pk %}?next={{ request.get_full_path|urlencode }}#consultas-pane" class="btn btn-sm btn-warning text-dark">Responder</a>
+                    {% with last=c.msgs_reg.0 %}
+                      {% if last %}
+                        <div class="text-muted small mt-1">Respondido por: {% firstof last.autor.get_full_name last.autor.username %} · {{ last.criado_em|date:'d/m/Y H:i' }}</div>
+                      {% endif %}
+                    {% endwith %}
+                    {% endif %}
+                  </td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="text-center py-3">Sem pendências.</td></tr>
@@ -186,16 +232,16 @@
           <nav class="mt-2">
             <ul class="pagination pagination-sm justify-content-end mb-0">
               {% if pend_co_page.has_previous %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco=1#consultas-pane">«</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.previous_page_number }}#consultas-pane">‹</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco=1&only=co#consultas-pane">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.previous_page_number }}&only=co#consultas-pane">‹</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">«</span></li>
               <li class="page-item disabled"><span class="page-link">‹</span></li>
               {% endif %}
               <li class="page-item disabled"><span class="page-link">Página {{ pend_co_page.number }} de {{ pend_co_page.paginator.num_pages }}</span></li>
               {% if pend_co_page.has_next %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.next_page_number }}#consultas-pane">›</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.paginator.num_pages }}#consultas-pane">»</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.next_page_number }}&only=co#consultas-pane">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pco }}{% if qs_pco %}&{% endif %}page_pco={{ pend_co_page.paginator.num_pages }}&only=co#consultas-pane">»</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">›</span></li>
               <li class="page-item disabled"><span class="page-link">»</span></li>
@@ -204,16 +250,19 @@
           </nav>
           {% endif %}
         </div>
-      </div>
+  </div>
       {% endif %}
     </div>
   <div class="tab-pane fade {% if only == 'ex' %}show active{% endif %}" id="exames-pane" role="tabpanel" aria-labelledby="exames-tab" tabindex="0">
-      <div class="card h-100 shadow-sm">
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-          <strong>Exames Agendados</strong>
+      <div class="card h-100 ag-card">
+        <div class="ag-header">
+          <h6 class="mb-0"><i class="bi bi-clipboard2-pulse"></i> Exames Agendados</h6>
+          {% if not ubs_atual %}
           <button type="submit" form="form-exames" class="btn btn-light btn-sm text-success fw-semibold" title="Salvar alterações desta aba">
             <i class="bi bi-check2-circle"></i> Salvar alterações
           </button>
+          <div class="small text-muted ms-2">Resultados de datas futuras serão ignorados ao salvar.</div>
+          {% endif %}
         </div>
         <div class="card-body p-0">
           <form id="form-exames" method="post" action="{% url 'agenda-resultado-batch' %}">
@@ -222,16 +271,16 @@
             <input type="hidden" name="di" value="{{ di }}">
             <input type="hidden" name="df" value="{{ df }}">
             <div class="table-responsive">
-            <table class="table table-hover table-striped align-middle mb-0">
+            <table class="table table-hover table-striped sticky-head align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th class="text-nowrap">Data</th>
-                  <th class="text-nowrap">Hora</th>
-                  <th>Paciente</th>
-                  <th>Exame</th>
-                  <th>UBS</th>
-                  <th class="text-end d-print-none">Ações</th>
-                  <th class="text-nowrap">Resultado</th>
+                  <th class="text-nowrap"><i class="bi bi-calendar2-day th-icon"></i> Data</th>
+                  <th class="text-nowrap"><i class="bi bi-clock th-icon"></i> Hora</th>
+                  <th><i class="bi bi-person th-icon"></i> Paciente</th>
+                  <th><i class="bi bi-clipboard2-check th-icon"></i> Exame</th>
+                  <th><i class="bi bi-hospital th-icon"></i> UBS</th>
+                  <th class="text-end d-print-none"><i class="bi bi-gear th-icon"></i> Ações</th>
+                  <th class="text-nowrap"><i class="bi bi-activity th-icon"></i> Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -249,17 +298,18 @@
                   <td class="text-end d-print-none">
                     <div class="btn-group btn-group-sm align-items-stretch" role="group">
                       {% if not ubs_atual %}
-                      <a href="{% url 'paciente-pedido' r.paciente_id %}" class="btn btn-outline-secondary" title="Ver pedido do paciente">
+                      <a href="{% url 'paciente-pedido' r.paciente_id %}?only=ex" class="btn btn-outline-secondary" title="Ver pedido do paciente">
                         <i class="bi bi-box-arrow-up-right"></i>
                       </a>
                       {% endif %}
                       <a href="{% url 'paciente_historico' r.paciente_id %}" class="btn btn-outline-primary" title="Ver histórico do paciente">
                         <i class="bi bi-clock-history"></i>
                       </a>
-                      <a href="{% url 'comprovante-exame' r.pk %}" class="btn btn-outline-success" title="Imprimir comprovante">
+                      <a href="{% url 'impressao-exames-dia' r.paciente_id r.data_agendada|date:'Y-m-d' %}" class="btn btn-outline-dark" title="Imprimir exames deste dia" target="_blank">
                         <i class="bi bi-printer"></i>
                       </a>
-                      {% if r.data_agendada and r.data_agendada <= hoje %}
+                      
+                      {% if not ubs_atual %}
                       <div class="d-flex gap-1 ms-2 align-items-center">
                         <select name="ex-{{ r.pk }}-resultado" class="form-select form-select-sm">
                           <option value="pendente" {% if r.resultado_atendimento == 'pendente' %}selected{% endif %}>Aguardando</option>
@@ -276,6 +326,11 @@
                   </td>
                   <td class="text-nowrap">
                     <span class="badge {{ r.get_resultado_badge_class }}">{{ r.get_resultado_atendimento_display }}</span>
+                    {% if r.resultado_observacao %}
+                    <div class="small text-muted mt-1" style="max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ r.resultado_observacao }}">
+                      {{ r.resultado_observacao }}
+                    </div>
+                    {% endif %}
                   </td>
                 </tr>
                 {% empty %}
@@ -284,17 +339,34 @@
               </tbody>
             </table>
             </div>
+            {% if not ubs_atual %}
             <div class="d-flex justify-content-end p-2">
               <button class="btn btn-success btn-sm">
                 <i class="bi bi-check2-circle"></i> Salvar alterações
               </button>
             </div>
+            {% endif %}
           </form>
         </div>
       </div>
       {% if pend_exames %}
-      <div class="card h-100 shadow-sm mt-4">
-        <div class="card-header bg-warning text-dark"><strong>Exames Pendentes (sua UBS)</strong></div>
+      {% if ubs_atual %}
+      <div id="exames-fila-prompt" class="alert alert-warning d-flex justify-content-between align-items-center mb-3" role="alert">
+        <div><strong>Exames:</strong> Solicita ver os exames que estão em fila de espera?</div>
+        <div class="d-flex gap-2">
+          <button type="button" id="btn-show-exames" class="btn btn-sm btn-primary"><i class="bi bi-eye"></i> Sim, mostrar</button>
+        </div>
+      </div>
+      {% endif %}
+      <div id="exames-fila-card" class="card h-100 shadow-sm mt-4{% if ubs_atual %} d-none{% endif %}">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+          <strong>Exames em fila de espera (sua UBS)</strong>
+          {% if ubs_atual %}
+          <button type="button" id="btn-hide-exames" class="btn btn-sm btn-outline-dark">
+            <i class="bi bi-eye-slash"></i> Ocultar
+          </button>
+          {% endif %}
+        </div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-end mb-2">
             <div class="col-md-3">
@@ -332,6 +404,8 @@
                   <th>Paciente</th>
                   <th>Exame</th>
                   <th>Status</th>
+                  <th>Pendência</th>
+                  <th class="text-end">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -341,6 +415,22 @@
                   <td><div class="fw-semibold">{{ e.paciente.nome }}</div></td>
                   <td>{{ e.tipo_exame.nome }}</td>
                   <td><span class="badge {{ e.get_status_badge_class }}">{{ e.get_status_display }}</span></td>
+                  <td>
+                    {% if e.status == 'pendente' %}
+                      <div class="small">{{ e.pendencia_motivo|default:'—' }}</div>
+                      {% if e.pendencia_resposta %}<div class="text-muted small">Resposta: {{ e.pendencia_resposta|truncatechars:60 }}</div>{% endif %}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-end">
+                    {% if ubs_atual and e.status == 'pendente' %}
+                    <a href="{% url 'pendencia-exame-responder' e.pk %}?next={{ request.get_full_path|urlencode }}#exames-pane" class="btn btn-sm btn-warning text-dark">Responder</a>
+                    {% with last=e.msgs_reg.0 %}
+                      {% if last %}
+                        <div class="text-muted small mt-1">Respondido por: {% firstof last.autor.get_full_name last.autor.username %} · {{ last.criado_em|date:'d/m/Y H:i' }}</div>
+                      {% endif %}
+                    {% endwith %}
+                    {% endif %}
+                  </td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="text-center py-3">Sem pendências.</td></tr>
@@ -352,16 +442,16 @@
           <nav class="mt-2">
             <ul class="pagination pagination-sm justify-content-end mb-0">
               {% if pend_ex_page.has_previous %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex=1#exames-pane">«</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.previous_page_number }}#exames-pane">‹</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex=1&only=ex#exames-pane">«</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.previous_page_number }}&only=ex#exames-pane">‹</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">«</span></li>
               <li class="page-item disabled"><span class="page-link">‹</span></li>
               {% endif %}
               <li class="page-item disabled"><span class="page-link">Página {{ pend_ex_page.number }} de {{ pend_ex_page.paginator.num_pages }}</span></li>
               {% if pend_ex_page.has_next %}
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.next_page_number }}#exames-pane">›</a></li>
-              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.paginator.num_pages }}#exames-pane">»</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.next_page_number }}&only=ex#exames-pane">›</a></li>
+              <li class="page-item"><a class="page-link" href="?{{ qs_pex }}{% if qs_pex %}&{% endif %}page_pex={{ pend_ex_page.paginator.num_pages }}&only=ex#exames-pane">»</a></li>
               {% else %}
               <li class="page-item disabled"><span class="page-link">›</span></li>
               <li class="page-item disabled"><span class="page-link">»</span></li>
@@ -370,12 +460,27 @@
           </nav>
           {% endif %}
         </div>
-      </div>
+  </div>
       {% endif %}
 
       {% if neg_ex_page %}
-      <div class="card h-100 shadow-sm mt-4">
-        <div class="card-header bg-danger text-white"><strong>Exames Negados (sua UBS)</strong></div>
+      {% if ubs_atual %}
+      <div id="exames-negados-prompt" class="alert alert-danger d-flex justify-content-between align-items-center mb-3" role="alert">
+        <div><strong>Exames negados:</strong> Solicita ver os exames que foram negados?</div>
+        <div class="d-flex gap-2">
+          <button type="button" id="btn-show-negados" class="btn btn-sm btn-primary"><i class="bi bi-eye"></i> Sim, mostrar</button>
+        </div>
+      </div>
+      {% endif %}
+      <div id="exames-negados-card" class="card h-100 shadow-sm mt-4{% if ubs_atual %} d-none{% endif %}">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+          <strong>Exames Negados (sua UBS)</strong>
+          {% if ubs_atual %}
+          <button type="button" id="btn-hide-negados" class="btn btn-sm btn-light text-danger">
+            <i class="bi bi-eye-slash"></i> Ocultar
+          </button>
+          {% endif %}
+        </div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-end mb-2">
             <div class="col-md-3">
@@ -490,6 +595,63 @@ document.addEventListener('DOMContentLoaded', function () {
       persistUrl(val);
     });
   });
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const btnCo = document.getElementById('btn-show-consultas');
+  const cardCo = document.getElementById('consultas-fila-card');
+  const promptCo = document.getElementById('consultas-fila-prompt');
+  const btnHideCo = document.getElementById('btn-hide-consultas');
+  if (btnCo && cardCo && promptCo){
+    btnCo.addEventListener('click', ()=>{
+      cardCo.classList.remove('d-none');
+      promptCo.classList.add('d-none');
+    });
+  }
+  if (btnHideCo && cardCo && promptCo){
+    btnHideCo.addEventListener('click', ()=>{
+      cardCo.classList.add('d-none');
+      promptCo.classList.remove('d-none');
+    });
+  }
+  const btnEx = document.getElementById('btn-show-exames');
+  const cardEx = document.getElementById('exames-fila-card');
+  const promptEx = document.getElementById('exames-fila-prompt');
+  const btnHideEx = document.getElementById('btn-hide-exames');
+  if (btnEx && cardEx && promptEx){
+    btnEx.addEventListener('click', ()=>{
+      cardEx.classList.remove('d-none');
+      promptEx.classList.add('d-none');
+    });
+  }
+  if (btnHideEx && cardEx && promptEx){
+    btnHideEx.addEventListener('click', ()=>{
+      cardEx.classList.add('d-none');
+      promptEx.classList.remove('d-none');
+    });
+  }
+
+  // Exames negados
+  const btnNeg = document.getElementById('btn-show-negados');
+  const cardNeg = document.getElementById('exames-negados-card');
+  const promptNeg = document.getElementById('exames-negados-prompt');
+  const btnHideNeg = document.getElementById('btn-hide-negados');
+  if (btnNeg && cardNeg && promptNeg){
+    btnNeg.addEventListener('click', ()=>{
+      cardNeg.classList.remove('d-none');
+      promptNeg.classList.add('d-none');
+    });
+  }
+  if (btnHideNeg && cardNeg && promptNeg){
+    btnHideNeg.addEventListener('click', ()=>{
+      cardNeg.classList.add('d-none');
+      promptNeg.classList.remove('d-none');
+    });
+  }
 });
 </script>
 {% endblock %}

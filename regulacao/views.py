@@ -9,23 +9,200 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.forms import modelformset_factory
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.core.paginator import Paginator
-from .models import UBS, MedicoSolicitante, TipoExame, RegulacaoExame, Especialidade, RegulacaoConsulta
+from .models import UBS, MedicoSolicitante, TipoExame, RegulacaoExame, Especialidade, RegulacaoConsulta, Notificacao, PendenciaMensagemExame, PendenciaMensagemConsulta, LocalAtendimento, MedicoAmbulatorio, AgendaMedica, AgendaMedicaDia, AcaoUsuario
 from pacientes.models import Paciente
 from django.http import JsonResponse
 from django.utils import timezone
-import base64
-from io import BytesIO
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from .forms import (
     UBSForm, MedicoSolicitanteForm, TipoExameForm, RegulacaoExameForm,
     RegulacaoExameCreateForm, EspecialidadeForm, RegulacaoConsultaForm,
-    RegulacaoExameBatchForm, RegulacaoConsultaBatchForm, SIGTAPImportForm
+    RegulacaoExameBatchForm, RegulacaoConsultaBatchForm, SIGTAPImportForm,
+    LocalAtendimentoForm, MedicoAmbulatorioForm, AgendaMedicaForm, AgendaMedicaDiaForm, AgendaMensalGerarForm,
+    RegulacaoExameTextosForm, RegulacaoConsultaTextosForm,
 )
 import os
 import shutil
 import tempfile
 from functools import wraps
+
+
+@login_required
+@require_access('regulacao')
+def o_que_fiz_hoje(request):
+    """Página que mostra as estatísticas das ações realizadas pelo usuário no dia atual."""
+    hoje = timezone.localdate()
+    
+    # EXAMES - Listas com pacientes
+    exames_autorizados_list = RegulacaoExame.objects.filter(
+        regulador=request.user,
+        data_regulacao__date=hoje,
+        status='autorizado'
+    ).select_related('paciente', 'tipo_exame')
+    
+    exames_negados_list = RegulacaoExame.objects.filter(
+        regulador=request.user,
+        data_regulacao__date=hoje,
+        status='negado'
+    ).select_related('paciente', 'tipo_exame')
+    
+    exames_pendenciados_list = RegulacaoExame.objects.filter(
+        regulador=request.user,
+        data_regulacao__date=hoje,
+        status='pendente'
+    ).select_related('paciente', 'tipo_exame')
+    
+    # CONSULTAS - Listas com pacientes
+    consultas_autorizadas_list = RegulacaoConsulta.objects.filter(
+        regulador=request.user,
+        data_regulacao__date=hoje,
+        status='autorizado'
+    ).select_related('paciente', 'especialidade', 'medico_atendente')
+    
+    consultas_negadas_list = RegulacaoConsulta.objects.filter(
+        regulador=request.user,
+        data_regulacao__date=hoje,
+        status='negado'
+    ).select_related('paciente', 'especialidade', 'medico_atendente')
+    
+    consultas_pendenciadas_list = RegulacaoConsulta.objects.filter(
+        regulador=request.user,
+        data_regulacao__date=hoje,
+        status='pendente'
+    ).select_related('paciente', 'especialidade', 'medico_atendente')
+    
+    # Contadores para compatibilidade
+    exames_autorizados = exames_autorizados_list.count()
+    exames_negados = exames_negados_list.count()
+    exames_pendenciados = exames_pendenciados_list.count()
+    consultas_autorizadas = consultas_autorizadas_list.count()
+    consultas_negadas = consultas_negadas_list.count()
+    consultas_pendenciadas = consultas_pendenciadas_list.count()
+    
+    context = {
+        'hoje': hoje,
+        'exames_autorizados': exames_autorizados,
+        'exames_negados': exames_negados,
+        'exames_pendenciados': exames_pendenciados,
+        'consultas_autorizadas': consultas_autorizadas,
+        'consultas_negadas': consultas_negadas,
+        'consultas_pendenciadas': consultas_pendenciadas,
+        'total_exames': exames_autorizados + exames_negados + exames_pendenciados,
+        'total_consultas': consultas_autorizadas + consultas_negadas + consultas_pendenciadas,
+        # Listas de pacientes
+        'exames_autorizados_list': exames_autorizados_list,
+        'exames_negados_list': exames_negados_list,
+        'exames_pendenciados_list': exames_pendenciados_list,
+        'consultas_autorizadas_list': consultas_autorizadas_list,
+        'consultas_negadas_list': consultas_negadas_list,
+        'consultas_pendenciadas_list': consultas_pendenciadas_list,
+    }
+    
+    return render(request, 'regulacao/o_que_fiz_hoje.html', context)
+
+
+@login_required
+@require_access('regulacao')
+def impressao_consulta(request, pk: int):
+    """Página de impressão para uma consulta específica.
+    Mostra dados do paciente, UBS solicitante, especialidade, local/data/hora, médico atendente (se houver)
+    e informações de autorização (quem autorizou e quando).
+    """
+    reg = get_object_or_404(
+        RegulacaoConsulta.objects.select_related(
+            'paciente', 'especialidade', 'ubs_solicitante', 'medico_atendente', 'regulador'
+        ),
+        pk=pk,
+    )
+    return render(request, 'regulacao/impressao_consulta.html', {
+        'reg': reg,
+        'paciente': reg.paciente,
+    })
+
+
+@login_required
+@require_access('regulacao')
+def impressao_exames_dia(request, paciente_id: int, dia: str):
+    """Página de impressão para exames de um paciente em uma data específica.
+    Se houver mais de um exame no dia, imprimir todos no mesmo recibo.
+    Inclui dados do paciente, UBS solicitante, lista de exames, local/data/hora e dados do autorizador.
+    """
+    from django.utils.dateparse import parse_date
+    paciente = get_object_or_404(Paciente, pk=paciente_id)
+    data = parse_date(dia)
+    if not data:
+        # fallback: tentar formatos comuns
+        try:
+            from datetime import datetime
+            data = datetime.strptime(dia, '%Y-%m-%d').date()
+        except Exception:
+            data = None
+
+    exames_qs = RegulacaoExame.objects.select_related(
+        'paciente', 'tipo_exame', 'ubs_solicitante', 'medico_atendente', 'regulador'
+    ).filter(paciente_id=paciente.id, status='autorizado')
+    if data:
+        exames_qs = exames_qs.filter(data_agendada=data)
+    exames = list(exames_qs.order_by('hora_agendada', 'id'))
+    
+    # Buscar informações dos locais de atendimento para enriquecer os dados
+    locais_atendimento = {}
+    for local in LocalAtendimento.objects.filter(ativo=True):
+        locais_atendimento[local.nome.lower()] = local
+    
+    # Enriquecer exames com informações do local de atendimento
+    for exame in exames:
+        exame.local_atendimento_obj = None
+        if exame.local_realizacao:
+            # Tentar encontrar o local de atendimento correspondente
+            local_key = exame.local_realizacao.lower()
+            if local_key in locais_atendimento:
+                exame.local_atendimento_obj = locais_atendimento[local_key]
+            else:
+                # Busca parcial por nome similar
+                for nome, local_obj in locais_atendimento.items():
+                    if nome in local_key or local_key in nome:
+                        exame.local_atendimento_obj = local_obj
+                        break
+    
+    return render(request, 'regulacao/impressao_exames_dia.html', {
+        'paciente': paciente,
+        'data': data,
+        'exames': exames,
+    })
+
+
+@login_required
+@require_access('regulacao')
+def impressao_consultas_dia(request, paciente_id: int, dia: str):
+    """Página de impressão para consultas de um paciente em uma data específica.
+    Lista todas as consultas autorizadas do paciente para a data informada.
+    """
+    from django.utils.dateparse import parse_date
+    paciente = get_object_or_404(Paciente, pk=paciente_id)
+    data = parse_date(dia)
+    if not data:
+        try:
+            from datetime import datetime
+            data = datetime.strptime(dia, '%Y-%m-%d').date()
+        except Exception:
+            data = None
+
+    consultas_qs = RegulacaoConsulta.objects.select_related(
+        'paciente', 'especialidade', 'ubs_solicitante', 'medico_atendente', 'regulador'
+    ).filter(paciente_id=paciente.id, status='autorizado')
+    if data:
+        consultas_qs = consultas_qs.filter(data_agendada=data)
+    consultas = list(consultas_qs.order_by('hora_agendada', 'id'))
+
+    return render(request, 'regulacao/impressao_consultas_dia.html', {
+        'paciente': paciente,
+        'data': data,
+        'consultas': consultas,
+    })
 
 
 # ==== Helpers de Grupo/Permissão ====
@@ -73,6 +250,258 @@ def any_group_required(*group_names: str):
             return view_func(request, *args, **kwargs)
         return _wrapped
     return decorator
+
+
+# ============ Pendências: resposta da UBS ============
+
+@login_required
+@require_access('regulacao')
+def responder_pendencia_exame(request, pk: int):
+    """Responder à pendência de um exame (UBS da própria unidade ou Regulador)."""
+    ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
+    # Reguladores também podem responder; UBS somente itens da própria unidade
+    if ubs_user:
+        obj = get_object_or_404(RegulacaoExame, pk=pk, ubs_solicitante=ubs_user)
+    else:
+        obj = get_object_or_404(RegulacaoExame, pk=pk)
+    if obj.status != 'pendente':
+        messages.info(request, 'Este exame não está com pendência no momento.')
+        return redirect('regulacao-agenda')
+    next_url = (request.GET.get('next') or '').strip() or str(reverse_lazy('regulacao-agenda'))
+    # Determinar papel do usuário e de quem estamos aguardando
+    is_ubs = bool(getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None))
+    # Calcular de quem é a vez com base na última mensagem do histórico
+    last_msg = obj.pendencia_mensagens.order_by('criado_em').last()
+    if obj.status == 'pendente' and not obj.pendencia_resolvida_em:
+        if last_msg:
+            aguardando = 'ubs' if last_msg.lado == 'regulacao' else 'regulacao'
+        else:
+            aguardando = 'ubs'
+    else:
+        aguardando = None
+    can_reply = (aguardando == 'ubs' and is_ubs) or (aguardando == 'regulacao' and not is_ubs)
+    _ = can_reply  # referenced in template context below
+
+    if request.method == 'POST':
+        resposta = (request.POST.get('pendencia_resposta') or '').strip()
+        if not resposta:
+            messages.error(request, 'Informe a resposta para a pendência.')
+        else:
+            # UBS responde: grava campos de resposta e mensagem; Regulação responde: só mensagem
+            if is_ubs:
+                obj.pendencia_resposta = resposta
+                obj.pendencia_respondida_em = timezone.now()
+                obj.pendencia_respondida_por = request.user
+                obj.save(update_fields=['pendencia_resposta','pendencia_respondida_em','pendencia_respondida_por','atualizado_em'])
+            # Registrar mensagem no histórico
+            PendenciaMensagemExame.objects.create(
+                exame=obj,
+                autor=request.user,
+                lado='ubs' if is_ubs else 'regulacao',
+                tipo='mensagem',
+                texto=resposta,
+            )
+            # Notificar lado oposto (se quem respondeu foi UBS, notificar reguladores; se foi regulador, notificar UBS)
+            try:
+                ubs_do_item = obj.ubs_solicitante
+                # Heurística: se usuário tiver perfil_ubs, é UBS; senão, é regulador
+                if is_ubs:
+                    # Notificar reguladores: opção simples - todos usuários do grupo 'regulacao'
+                    from django.contrib.auth.models import User
+                    regs = User.objects.filter(groups__name='regulacao').distinct()
+                    for u in regs:
+                        Notificacao.objects.create(
+                            user=u,
+                            texto=f"UBS {ubs_do_item.nome} respondeu pendência do exame de {obj.paciente.nome}.",
+                            url=str(reverse_lazy('pendencia-exame-responder', kwargs={'pk': obj.pk})),
+                        )
+                else:
+                    # Notificar usuários da UBS solicitante
+                    usuarios = getattr(ubs_do_item, 'usuarios', None)
+                    if usuarios is not None:
+                        for vinc in usuarios.select_related('user').all():
+                            Notificacao.objects.create(
+                                user=vinc.user,
+                                texto=f"Regulação respondeu pendência do exame de {obj.paciente.nome}.",
+                                url=str(reverse_lazy('pendencia-exame-responder', kwargs={'pk': obj.pk})),
+                            )
+            except Exception:
+                pass
+            if is_ubs:
+                messages.success(request, 'Resposta registrada.')
+            else:
+                messages.success(request, 'Resposta registrada.')
+            # cair para o render abaixo, permanecendo na página
+    mensagens = obj.pendencia_mensagens.all().order_by('criado_em')
+    # Recalcular aguardando/can_reply após possível POST
+    last_msg = mensagens.last()
+    if obj.status == 'pendente' and not obj.pendencia_resolvida_em:
+        if last_msg:
+            aguardando = 'ubs' if last_msg.lado == 'regulacao' else 'regulacao'
+        else:
+            aguardando = 'ubs'
+    else:
+        aguardando = None
+    can_reply = (aguardando == 'ubs' and is_ubs) or (aguardando == 'regulacao' and not is_ubs)
+    _ = can_reply
+    return render(request, 'regulacao/pendencia_responder.html', {
+        'obj': obj,
+        'tipo': 'exame',
+        'back_url': next_url,
+        'mensagens': mensagens,
+        'is_ubs': is_ubs,
+        'aguardando': aguardando,
+        'can_reply': can_reply,
+    })
+
+
+@login_required
+@require_access('regulacao')
+def responder_pendencia_consulta(request, pk: int):
+    """Responder à pendência de uma consulta (UBS da própria unidade ou Regulador)."""
+    ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
+    if ubs_user:
+        obj = get_object_or_404(RegulacaoConsulta, pk=pk, ubs_solicitante=ubs_user)
+    else:
+        obj = get_object_or_404(RegulacaoConsulta, pk=pk)
+    if obj.status != 'pendente':
+        messages.info(request, 'Esta consulta não está com pendência no momento.')
+        return redirect('regulacao-agenda')
+    next_url = (request.GET.get('next') or '').strip() or str(reverse_lazy('regulacao-agenda'))
+    is_ubs = bool(getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None))
+    last_msg = obj.pendencia_mensagens.order_by('criado_em').last()
+    if obj.status == 'pendente' and not obj.pendencia_resolvida_em:
+        if last_msg:
+            aguardando = 'ubs' if last_msg.lado == 'regulacao' else 'regulacao'
+        else:
+            aguardando = 'ubs'
+    else:
+        aguardando = None
+    can_reply = (aguardando == 'ubs' and is_ubs) or (aguardando == 'regulacao' and not is_ubs)
+    _ = can_reply
+
+    if request.method == 'POST':
+        resposta = (request.POST.get('pendencia_resposta') or '').strip()
+        if not resposta:
+            messages.error(request, 'Informe a resposta para a pendência.')
+        else:
+            if is_ubs:
+                obj.pendencia_resposta = resposta
+                obj.pendencia_respondida_em = timezone.now()
+                obj.pendencia_respondida_por = request.user
+                obj.save(update_fields=['pendencia_resposta','pendencia_respondida_em','pendencia_respondida_por','atualizado_em'])
+            PendenciaMensagemConsulta.objects.create(
+                consulta=obj,
+                autor=request.user,
+                lado='ubs' if is_ubs else 'regulacao',
+                tipo='mensagem',
+                texto=resposta,
+            )
+            # Notificações cruzadas
+            try:
+                ubs_do_item = obj.ubs_solicitante
+                if is_ubs:
+                    from django.contrib.auth.models import User
+                    regs = User.objects.filter(groups__name='regulacao').distinct()
+                    for u in regs:
+                        Notificacao.objects.create(
+                            user=u,
+                            texto=f"UBS {ubs_do_item.nome} respondeu pendência da consulta de {obj.paciente.nome}.",
+                            url=str(reverse_lazy('pendencia-consulta-responder', kwargs={'pk': obj.pk})),
+                        )
+                else:
+                    usuarios = getattr(ubs_do_item, 'usuarios', None)
+                    if usuarios is not None:
+                        for vinc in usuarios.select_related('user').all():
+                            Notificacao.objects.create(
+                                user=vinc.user,
+                                texto=f"Regulação respondeu pendência da consulta de {obj.paciente.nome}.",
+                                url=str(reverse_lazy('pendencia-consulta-responder', kwargs={'pk': obj.pk})),
+                            )
+            except Exception:
+                pass
+            if is_ubs:
+                messages.success(request, 'Resposta registrada.')
+            else:
+                messages.success(request, 'Resposta registrada.')
+    mensagens = obj.pendencia_mensagens.all().order_by('criado_em')
+    last_msg = mensagens.last()
+    if obj.status == 'pendente' and not obj.pendencia_resolvida_em:
+        if last_msg:
+            aguardando = 'ubs' if last_msg.lado == 'regulacao' else 'regulacao'
+        else:
+            aguardando = 'ubs'
+    else:
+        aguardando = None
+    can_reply = (aguardando == 'ubs' and is_ubs) or (aguardando == 'regulacao' and not is_ubs)
+    _ = can_reply
+    return render(request, 'regulacao/pendencia_responder.html', {
+        'obj': obj,
+        'tipo': 'consulta',
+        'back_url': next_url,
+        'mensagens': mensagens,
+        'is_ubs': is_ubs,
+        'aguardando': aguardando,
+        'can_reply': can_reply,
+    })
+
+
+# ============ Edição de textos (Obs/Motivo/Pendência) ============
+
+@login_required
+@require_access('regulacao')
+def editar_textos_exame(request, pk: int):
+    """Página dedicada para editar Observações, Motivo (se negar) e Pendência (motivo) de um Exame."""
+    obj = get_object_or_404(RegulacaoExame, pk=pk)
+    next_url = (request.GET.get('next') or '').strip() or str(reverse_lazy('regulacao-agenda'))
+    campo = (request.GET.get('campo') or '').strip().lower()
+    if campo not in ('obs', 'motivo', 'pendencia'):
+        campo = 'obs'
+    if request.method == 'POST':
+        form = RegulacaoExameTextosForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Informações atualizadas.')
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Corrija os erros para salvar.')
+    else:
+        form = RegulacaoExameTextosForm(instance=obj)
+    return render(request, 'regulacao/textos_editar.html', {
+        'obj': obj,
+        'tipo': 'exame',
+        'form': form,
+        'back_url': next_url,
+        'campo': campo,
+    })
+
+
+@login_required
+@require_access('regulacao')
+def editar_textos_consulta(request, pk: int):
+    """Página dedicada para editar Observações, Motivo (se negar) e Pendência (motivo) de uma Consulta."""
+    obj = get_object_or_404(RegulacaoConsulta, pk=pk)
+    next_url = (request.GET.get('next') or '').strip() or str(reverse_lazy('regulacao-agenda'))
+    campo = (request.GET.get('campo') or '').strip().lower()
+    if campo not in ('obs', 'motivo', 'pendencia'):
+        campo = 'obs'
+    if request.method == 'POST':
+        form = RegulacaoConsultaTextosForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Informações atualizadas.')
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Corrija os erros para salvar.')
+    else:
+        form = RegulacaoConsultaTextosForm(instance=obj)
+    return render(request, 'regulacao/textos_editar.html', {
+        'obj': obj,
+        'tipo': 'consulta',
+        'form': form,
+        'back_url': next_url,
+        'campo': campo,
+    })
 # ============ Seleção de UBS (Malote) para Reguladores ============
 
 @login_required
@@ -207,6 +636,380 @@ class MedicoDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+# ============ VIEWS PARA MÉDICOS DO AMBULATÓRIO ============
+
+class MedicoAmbulatorioListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = MedicoAmbulatorio
+    template_name = 'regulacao/medicoambulatorio_list.html'
+    context_object_name = 'medico_list'
+    ordering = ['nome']
+
+
+class MedicoAmbulatorioCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = MedicoAmbulatorio
+    form_class = MedicoAmbulatorioForm
+    template_name = 'regulacao/medicoambulatorio_form.html'
+    success_url = reverse_lazy('ambulatorio-medico-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Médico do ambulatório cadastrado com sucesso!')
+        return super().form_valid(form)
+
+
+class MedicoAmbulatorioUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = MedicoAmbulatorio
+    form_class = MedicoAmbulatorioForm
+    template_name = 'regulacao/medicoambulatorio_form.html'
+    success_url = reverse_lazy('ambulatorio-medico-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Médico do ambulatório atualizado com sucesso!')
+        return super().form_valid(form)
+
+
+class MedicoAmbulatorioDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = MedicoAmbulatorio
+    template_name = 'regulacao/medicoambulatorio_confirm_delete.html'
+    success_url = reverse_lazy('ambulatorio-medico-list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Médico do ambulatório excluído com sucesso!')
+        return super().delete(request, *args, **kwargs)
+
+
+# ============ VIEWS PARA AGENDA MÉDICA ============
+
+class AgendaMedicaListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedica
+    template_name = 'regulacao/agendamedica_list.html'
+    context_object_name = 'agenda_list'
+    ordering = ['medico__nome', 'especialidade__nome', 'dia_semana']
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('medico', 'especialidade')
+        espec = (self.request.GET.get('especialidade') or '').strip()
+        medico = (self.request.GET.get('medico') or '').strip()
+        if espec.isdigit():
+            qs = qs.filter(especialidade_id=int(espec))
+        if medico.isdigit():
+            qs = qs.filter(medico_id=int(medico))
+        return qs
+
+
+class AgendaMedicaCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedica
+    form_class = AgendaMedicaForm
+    template_name = 'regulacao/agendamedica_form.html'
+    success_url = reverse_lazy('agendamedica-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Agenda cadastrada com sucesso!')
+        return super().form_valid(form)
+
+
+class AgendaMedicaUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedica
+    form_class = AgendaMedicaForm
+    template_name = 'regulacao/agendamedica_form.html'
+    success_url = reverse_lazy('agendamedica-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Agenda atualizada com sucesso!')
+        return super().form_valid(form)
+
+
+class AgendaMedicaDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedica
+    template_name = 'regulacao/agendamedica_confirm_delete.html'
+    success_url = reverse_lazy('agendamedica-list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Agenda excluída com sucesso!')
+        return super().delete(request, *args, **kwargs)
+
+
+@login_required
+@require_access('regulacao')
+def agenda_info(request):
+    """Endpoint JSON: retorna dias permitidos (0-6) e capacidades por dia
+    para um médico e especialidade informados via GET (?medico=ID&especialidade=ID).
+    Também informa, para uma data específica (?data=YYYY-MM-DD), quantas vagas restam.
+    """
+    from django.utils.dateparse import parse_date
+    try:
+        med_id = int(request.GET.get('medico') or 0)
+        esp_id = int(request.GET.get('especialidade') or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Parâmetros inválidos.'}, status=400)
+    if not med_id or not esp_id:
+        return JsonResponse({'ok': False, 'error': 'Informe médico e especialidade.'}, status=400)
+    # PRIMÁRIO: agenda mensal (por dia)
+    from datetime import timedelta
+    hoje = timezone.localdate()
+    ate = hoje + timedelta(days=210)  # ~7 meses
+    per_dia = list(AgendaMedicaDia.objects.filter(
+        medico_id=med_id, especialidade_id=esp_id, ativo=True, data__gte=hoje, data__lte=ate
+    ).order_by('data'))
+    # Fallback: se não houver registros para este esp_id, tentar especialidades com o mesmo nome (case-insensitive)
+    if not per_dia:
+        try:
+            esp = Especialidade.objects.filter(pk=esp_id).first()
+            if esp is not None:
+                # Match por nome ignorando caixa e espaços
+                same_name_ids = list(Especialidade.objects.filter(nome__iexact=esp.nome.strip()).values_list('id', flat=True))
+                if same_name_ids:
+                    per_dia = list(AgendaMedicaDia.objects.filter(
+                        medico_id=med_id, especialidade_id__in=same_name_ids, ativo=True, data__gte=hoje, data__lte=ate
+                    ).order_by('data'))
+                # Fallback adicional: normalizar em Python e filtrar por nome
+                if not per_dia:
+                    name_norm = (esp.nome or '').strip().casefold()
+                    cand = AgendaMedicaDia.objects.select_related('especialidade').filter(
+                        medico_id=med_id, ativo=True, data__gte=hoje, data__lte=ate
+                    ).order_by('data')
+                    per_dia = [x for x in cand if (getattr(x.especialidade, 'nome', '') or '').strip().casefold() == name_norm]
+        except Exception:
+            pass
+    # Dicionário: data ISO -> capacidade total do dia
+    cap_por_data = {x.data.isoformat(): int(x.capacidade or 0) for x in per_dia}
+    # Usados por data
+    usados_por_data = {
+        d_iso: RegulacaoConsulta.objects.filter(medico_atendente_id=med_id, data_agendada=d_iso, status='autorizado').count()
+        for d_iso in cap_por_data.keys()
+    }
+    restantes_por_data = {d_iso: max(0, cap_por_data[d_iso] - usados_por_data.get(d_iso, 0)) for d_iso in cap_por_data.keys()}
+    # datas_agenda: todas as datas com agenda cadastrada (independente de vagas)
+    datas_agenda = sorted(cap_por_data.keys())
+    # datas_disponiveis: somente datas com vagas > 0
+    datas_disponiveis = [d for d in datas_agenda if restantes_por_data.get(d, 0) > 0]
+    proxima_data_sugerida = datas_disponiveis[0] if datas_disponiveis else None
+    # Compat: dias/caps semanais vazios (não usados quando mensal é primário)
+    dias = []
+    caps = {}
+    data_str = (request.GET.get('data') or '').strip()
+    restantes = None
+    fonte = 'semanal'
+    if data_str:
+        d = parse_date(data_str)
+        if d:
+            usados = RegulacaoConsulta.objects.filter(medico_atendente_id=med_id, data_agendada=d, status='autorizado').count()
+            cap = cap_por_data.get(d.isoformat())
+            if cap is not None:
+                restantes = max(0, int(cap) - int(usados))
+                fonte = 'dia'
+    return JsonResponse({
+        'ok': True,
+        'dias': dias,
+        'capacidades': caps,
+        'vagas_restantes': restantes,
+        'fonte': fonte,
+        'proxima_data_sugerida': proxima_data_sugerida,
+        'datas_disponiveis': datas_disponiveis,
+        'datas_agenda': datas_agenda,
+    })
+
+
+# ============ Agenda por Data (CRUD + Gerador Mensal) ============
+
+class AgendaMedicaDiaListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedicaDia
+    template_name = 'regulacao/agendamedicadia_list.html'
+    context_object_name = 'agenda_list'
+    ordering = ['data', 'medico__nome']
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('medico', 'especialidade')
+        med = (self.request.GET.get('medico') or '').strip()
+        esp = (self.request.GET.get('especialidade') or '').strip()
+        di = (self.request.GET.get('di') or '').strip()
+        df = (self.request.GET.get('df') or '').strip()
+        from django.utils.dateparse import parse_date
+        if med.isdigit():
+            qs = qs.filter(medico_id=int(med))
+        if esp.isdigit():
+            qs = qs.filter(especialidade_id=int(esp))
+        if di:
+            d = parse_date(di)
+            if d:
+                qs = qs.filter(data__gte=d)
+        if df:
+            d = parse_date(df)
+            if d:
+                qs = qs.filter(data__lte=d)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['medicos'] = MedicoAmbulatorio.objects.filter(ativo=True).order_by('nome')
+        return context
+
+    def post(self, request, *args, **kwargs):
+        action = (request.POST.get('action') or '').strip()
+        ids = request.POST.getlist('ids')
+        if action == 'bulk_delete' and ids:
+            try:
+                ids_int = [int(x) for x in ids]
+                deleted, _ = AgendaMedicaDia.objects.filter(id__in=ids_int).delete()
+                messages.success(request, f"{deleted} item(ns) excluído(s).")
+            except Exception as e:
+                messages.error(request, f"Erro ao excluir: {e}")
+        else:
+            messages.info(request, 'Selecione itens e clique em Excluir selecionados.')
+        # Redirecionar mantendo filtros atuais
+        return redirect(f"{reverse_lazy('agendadia-list')}?{request.META.get('QUERY_STRING','')}")
+
+
+class AgendaMedicaDiaCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedicaDia
+    form_class = AgendaMedicaDiaForm
+    template_name = 'regulacao/agendamedicadia_form.html'
+    success_url = reverse_lazy('agendadia-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Agenda (por dia) cadastrada com sucesso!')
+        return super().form_valid(form)
+
+
+class AgendaMedicaDiaUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedicaDia
+    form_class = AgendaMedicaDiaForm
+    template_name = 'regulacao/agendamedicadia_form.html'
+    success_url = reverse_lazy('agendadia-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Agenda (por dia) atualizada com sucesso!')
+        return super().form_valid(form)
+
+
+class AgendaMedicaDiaDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = AgendaMedicaDia
+    template_name = 'regulacao/agendamedicadia_confirm_delete.html'
+    success_url = reverse_lazy('agendadia-list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Agenda (por dia) excluída com sucesso!')
+        return super().delete(request, *args, **kwargs)
+
+
+@login_required
+@require_access('regulacao')
+def agenda_mensal_gerar(request):
+    form = AgendaMensalGerarForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        med = form.cleaned_data['medico']
+        esp = form.cleaned_data['especialidade']
+        inicio = form.cleaned_data['inicio']
+        meses = form.cleaned_data['meses']
+        dias_semana = sorted(int(x) for x in form.cleaned_data['dias_semana'])
+        capacidade = form.cleaned_data['capacidade']
+        sobrescrever = form.cleaned_data['sobrescrever']
+
+        from datetime import timedelta
+        try:
+            from dateutil.relativedelta import relativedelta
+        except Exception:
+            # Fallback simples caso python-dateutil não esteja disponível: aproximar por 30 dias/mes
+            class relativedelta:
+                def __init__(self, months=0):
+                    self.days = months * 30
+                def __radd__(self, other):
+                    from datetime import timedelta as _td
+                    return other + _td(days=self.days)
+        created = 0
+        updated = 0
+        fim = inicio + relativedelta(months=meses)
+        d = inicio
+        while d < fim:
+            if d.weekday() in dias_semana:
+                obj, is_created = AgendaMedicaDia.objects.get_or_create(
+                    medico=med, especialidade=esp, data=d,
+                    defaults={'capacidade': capacidade, 'ativo': True}
+                )
+                if is_created:
+                    created += 1
+                elif sobrescrever:
+                    if obj.capacidade != capacidade or not obj.ativo:
+                        obj.capacidade = capacidade
+                        obj.ativo = True
+                        obj.save(update_fields=['capacidade','ativo','atualizado_em'])
+                        updated += 1
+            d += timedelta(days=1)
+        messages.success(request, f'Agenda gerada. Criados: {created}, Atualizados: {updated}.')
+        return redirect('agendadia-list')
+    return render(request, 'regulacao/agendames_gerar.html', { 'form': form })
+# ============ VIEWS PARA LOCAIS DE ATENDIMENTO ============
+
+class LocalAtendimentoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = LocalAtendimento
+    template_name = 'regulacao/localatendimento_list.html'
+    context_object_name = 'locais_list'
+    ordering = ['nome']
+
+
+class LocalAtendimentoCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = LocalAtendimento
+    form_class = LocalAtendimentoForm
+    template_name = 'regulacao/localatendimento_form.html'
+    success_url = reverse_lazy('localatendimento-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Local de atendimento cadastrado com sucesso!')
+        return super().form_valid(form)
+
+
+class LocalAtendimentoUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = LocalAtendimento
+    form_class = LocalAtendimentoForm
+    template_name = 'regulacao/localatendimento_form.html'
+    success_url = reverse_lazy('localatendimento-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Local de atendimento atualizado com sucesso!')
+        return super().form_valid(form)
+
+
+class LocalAtendimentoDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
+    login_url = '/accounts/login/'
+    access_key = 'regulacao'
+    model = LocalAtendimento
+    template_name = 'regulacao/localatendimento_confirm_delete.html'
+    success_url = reverse_lazy('localatendimento-list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Local de atendimento excluído com sucesso!')
+        return super().delete(request, *args, **kwargs)
+
+
 # ============ VIEWS PARA TIPOS DE EXAMES ============
 
 class TipoExameListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
@@ -227,12 +1030,53 @@ class TipoExameListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
                 Q(codigo__icontains=q) |
                 Q(codigo_sus__icontains=q)
             )
+        ativo = (self.request.GET.get('ativo') or '').strip()
+        if ativo == '1':
+            qs = qs.filter(ativo=True)
+        elif ativo == '0':
+            qs = qs.filter(ativo=False)
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['q'] = (self.request.GET.get('q') or '').strip()
+        context['ativo_filter'] = (self.request.GET.get('ativo') or '').strip()
         return context
+
+    def post(self, request, *args, **kwargs):
+        action = (request.POST.get('action') or '').strip()
+        ids = request.POST.getlist('ids')
+        if not action or not ids:
+            messages.info(request, 'Selecione pelo menos um item e uma ação.')
+        else:
+            try:
+                ids_int = [int(x) for x in ids]
+                qs = TipoExame.objects.filter(id__in=ids_int)
+                if action == 'ativar':
+                    updated = qs.update(ativo=True)
+                    messages.success(request, f"{updated} tipo(s) ativado(s).")
+                elif action == 'desativar':
+                    updated = qs.update(ativo=False)
+                    messages.success(request, f"{updated} tipo(s) desativado(s).")
+                else:
+                    messages.warning(request, 'Ação inválida.')
+            except Exception as e:
+                messages.error(request, f'Falha ao aplicar ação em massa: {e}')
+        # preservar filtros e paginação
+        q = (request.POST.get('q') or '').strip()
+        ativo = (request.POST.get('ativo') or '').strip()
+        page = (request.POST.get('page') or '').strip()
+        params = []
+        if q:
+            params.append(('q', q))
+        if ativo in ('0','1'):
+            params.append(('ativo', ativo))
+        if page:
+            params.append(('page', page))
+        if params:
+            from urllib.parse import urlencode
+            return redirect(f"{reverse_lazy('tipo-exame-list')}?{urlencode(params)}")
+        return redirect('tipo-exame-list')
 
 
 class TipoExameCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
@@ -273,6 +1117,27 @@ class TipoExameDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+@login_required
+@require_access('regulacao')
+def tipo_exame_toggle_ativo(request, pk: int):
+    """Alterna rapidamente o status 'ativo' de um TipoExame e volta para a lista mantendo a busca/página."""
+    obj = get_object_or_404(TipoExame, pk=pk)
+    obj.ativo = not obj.ativo
+    obj.save(update_fields=['ativo', 'atualizado_em'])
+    messages.success(request, f"Tipo de exame '{obj.nome}' foi {'ativado' if obj.ativo else 'desativado'}.")
+    # Preservar parâmetros de query (q, page)
+    next_url = request.GET.get('next') or ''
+    if next_url:
+        try:
+            from django.utils.http import url_has_allowed_host_and_scheme
+            if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+        except Exception:
+            pass
+    # fallback
+    return redirect('tipo-exame-list')
+
+
 # ============ VIEWS PARA REGULAÇÃO DE EXAMES ============
 
 class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
@@ -285,11 +1150,10 @@ class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         qs = RegulacaoExame.objects.select_related('paciente', 'ubs_solicitante', 'medico_solicitante', 'tipo_exame')
-
-        # Se usuário for UBS, restringir à sua própria UBS
+        # Se usuário for UBS, esta listagem pública não deve ser acessível
         ubs_user = getattr(getattr(self.request.user, 'perfil_ubs', None), 'ubs', None)
         if ubs_user:
-            qs = qs.filter(ubs_solicitante=ubs_user)
+            return RegulacaoExame.objects.none()
 
         # Aplicar filtros
         status = (self.request.GET.get('status') or '').strip()
@@ -386,6 +1250,13 @@ class RegulacaoListView(AccessRequiredMixin, LoginRequiredMixin, ListView):
         context['mostrando_agrupado'] = True
         return context
 
+    def dispatch(self, request, *args, **kwargs):
+        # Bloquear acesso de UBS a esta listagem e redirecionar ao portal
+        if getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None):
+            messages.info(request, 'Acesso restrito. Use o Portal da UBS para suas ações.')
+            return redirect('regulacao-dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
 
 class RegulacaoCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
     login_url = '/accounts/login/'
@@ -461,8 +1332,10 @@ class RegulacaoCreateView(AccessRequiredMixin, LoginRequiredMixin, CreateView):
                 'Alguns exames foram ignorados pois já existem para este paciente em fila ou com agendamento futuro. '
                 f"Itens: {', '.join(bloqueados_nomes)}. Caso a data agendada já tenha passado, será possível solicitar novamente."
             )
-        # Redireciona para a lista; poderíamos direcionar para o detalhe do primeiro
-        return redirect(self.success_url)
+        # Redireciona de acordo com o perfil: UBS volta ao portal; reguladores à listagem
+        if getattr(getattr(self.request.user, 'perfil_ubs', None), 'ubs', None):
+            return redirect('regulacao-dashboard')
+        return redirect('regulacao-list')
     
     def form_invalid(self, form):
         print(f"DEBUG RegulacaoCreateView: Formulário inválido! Erros: {form.errors}")
@@ -479,6 +1352,10 @@ class RegulacaoDetailView(AccessRequiredMixin, LoginRequiredMixin, DetailView):
     template_name = 'regulacao/regulacao_detail.html'
     context_object_name = 'regulacao'
 
+    def get_success_url(self):
+        # Fallback, não usado aqui
+        return str(reverse_lazy('regulacao-list'))
+
 
 class RegulacaoUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     login_url = '/accounts/login/'
@@ -491,6 +1368,12 @@ class RegulacaoUpdateView(AccessRequiredMixin, LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, f'Solicitação atualizada com sucesso! Protocolo: {form.instance.numero_protocolo}')
         return super().form_valid(form)
+
+    def get_success_url(self):
+        # UBS não navega por listagem pública
+        if getattr(getattr(self.request.user, 'perfil_ubs', None), 'ubs', None):
+            return str(reverse_lazy('regulacao-dashboard'))
+        return str(reverse_lazy('regulacao-list'))
 
 
 class RegulacaoDeleteView(AccessRequiredMixin, LoginRequiredMixin, DeleteView):
@@ -551,8 +1434,41 @@ def dashboard_regulacao(request):
     # Rota enxuta para usuários de UBS (apenas se não for superadmin)
     ubs_user = getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None)
     if ubs_user:
+        # Pendências da própria UBS (com últimas respostas da Regulação pré-carregadas)
+        pend_ex_qs = (
+            RegulacaoExame.objects
+            .select_related('paciente','tipo_exame')
+            .filter(ubs_solicitante=ubs_user, status='pendente')
+            .prefetch_related(
+                Prefetch(
+                    'pendencia_mensagens',
+                    queryset=PendenciaMensagemExame.objects.filter(lado='regulacao').order_by('-criado_em'),
+                    to_attr='msgs_reg'
+                )
+            )
+            .order_by('-data_solicitacao')
+        )
+        pend_co_qs = (
+            RegulacaoConsulta.objects
+            .select_related('paciente','especialidade')
+            .filter(ubs_solicitante=ubs_user, status='pendente')
+            .prefetch_related(
+                Prefetch(
+                    'pendencia_mensagens',
+                    queryset=PendenciaMensagemConsulta.objects.filter(lado='regulacao').order_by('-criado_em'),
+                    to_attr='msgs_reg'
+                )
+            )
+            .order_by('-data_solicitacao')
+        )
+        notif_nao_lidas = Notificacao.objects.filter(user=request.user, lida=False).order_by('-criado_em')[:10]
         return render(request, 'regulacao/portal_ubs.html', {
             'ubs_atual': ubs_user,
+            'pend_ex_count': pend_ex_qs.count(),
+            'pend_co_count': pend_co_qs.count(),
+            'pend_ex_list': list(pend_ex_qs[:8]),
+            'pend_co_list': list(pend_co_qs[:8]),
+            'notificacoes': notif_nao_lidas,
         })
 
     # Reguladores (não UBS): exigir seleção de malote (UBS) e filtrar contagens por essa UBS
@@ -584,10 +1500,54 @@ def dashboard_regulacao(request):
     pacientes_fila_exames_count = exames_fila_pacientes.count()
     pacientes_fila_consultas_count = consultas_fila_pacientes.count()
 
+    # Pendências da UBS do malote
+    pend_ex_qs = (
+        RegulacaoExame.objects
+        .select_related('paciente','tipo_exame')
+        .filter(ubs_solicitante=ubs_malote, status='pendente')
+        .prefetch_related(
+            Prefetch(
+                'pendencia_mensagens',
+                queryset=PendenciaMensagemExame.objects.filter(lado='regulacao').order_by('-criado_em'),
+                to_attr='msgs_reg'
+            ),
+            Prefetch(
+                'pendencia_mensagens',
+                queryset=PendenciaMensagemExame.objects.filter(lado='ubs').order_by('-criado_em'),
+                to_attr='msgs_ubs'
+            )
+        )
+        .order_by('-data_solicitacao')
+    )
+    pend_co_qs = (
+        RegulacaoConsulta.objects
+        .select_related('paciente','especialidade')
+        .filter(ubs_solicitante=ubs_malote, status='pendente')
+        .prefetch_related(
+            Prefetch(
+                'pendencia_mensagens',
+                queryset=PendenciaMensagemConsulta.objects.filter(lado='regulacao').order_by('-criado_em'),
+                to_attr='msgs_reg'
+            ),
+            Prefetch(
+                'pendencia_mensagens',
+                queryset=PendenciaMensagemConsulta.objects.filter(lado='ubs').order_by('-criado_em'),
+                to_attr='msgs_ubs'
+            )
+        )
+        .order_by('-data_solicitacao')
+    )
+
+    notif_nao_lidas = Notificacao.objects.filter(user=request.user, lida=False).order_by('-criado_em')[:10]
     return render(request, 'regulacao/dashboard.html', {
         'pacientes_fila_exames_count': pacientes_fila_exames_count,
         'pacientes_fila_consultas_count': pacientes_fila_consultas_count,
         'ubs_malote': ubs_malote,
+        'pend_ex_count': pend_ex_qs.count(),
+        'pend_co_count': pend_co_qs.count(),
+        'pend_ex_list': list(pend_ex_qs[:8]),
+        'pend_co_list': list(pend_co_qs[:8]),
+        'notificacoes': notif_nao_lidas,
     })
 
 
@@ -636,10 +1596,10 @@ class RegulacaoConsultaListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = RegulacaoConsulta.objects.select_related('paciente', 'ubs_solicitante', 'medico_solicitante', 'especialidade')
-        # Se usuário for UBS, restringir à sua própria UBS
+        # Se usuário for UBS, impedir acesso a esta página pública e redirecionar no dispatch
         ubs_user = getattr(getattr(self.request.user, 'perfil_ubs', None), 'ubs', None)
         if ubs_user:
-            qs = qs.filter(ubs_solicitante=ubs_user)
+            qs = qs.none()
         status = (self.request.GET.get('status') or '').strip()
         ubs = (self.request.GET.get('ubs') or '').strip()
         espec = (self.request.GET.get('especialidade') or '').strip()
@@ -683,6 +1643,13 @@ class RegulacaoConsultaListView(LoginRequiredMixin, ListView):
         context['especialidades'] = Especialidade.objects.filter(ativa=True).order_by('nome')
         context['hoje'] = timezone.localdate()
         return context
+
+    def dispatch(self, request, *args, **kwargs):
+        # Bloquear acesso de UBS a esta listagem e redirecionar ao portal
+        if getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None):
+            messages.info(request, 'Acesso restrito. Use o Portal da UBS para suas ações.')
+            return redirect('regulacao-dashboard')
+        return super().dispatch(request, *args, **kwargs)
 
 
 class RegulacaoConsultaCreateView(LoginRequiredMixin, CreateView):
@@ -779,6 +1746,47 @@ class RegulacaoConsultaCreateView(LoginRequiredMixin, CreateView):
                     )
         return super().form_valid(form)
 
+    def dispatch(self, request, *args, **kwargs):
+        # Após criar, UBS não deve navegar por listagens; manter criação permitida.
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        # UBS retorna ao portal; regulador permanece nas listagens
+        if getattr(getattr(self.request.user, 'perfil_ubs', None), 'ubs', None):
+            return str(reverse_lazy('regulacao-dashboard'))
+        return str(reverse_lazy('consulta-list'))
+
+
+# ============ Notificações ============
+
+@login_required
+@require_access('regulacao')
+def minhas_notificacoes(request):
+    """Lista as notificações do usuário autenticado com opção de marcar como lidas."""
+    qs = Notificacao.objects.filter(user=request.user).order_by('-criado_em')
+    page = request.GET.get('page') or 1
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(page)
+    # Contagem de não lidas para badge
+    nao_lidas = Notificacao.objects.filter(user=request.user, lida=False).count()
+    return render(request, 'regulacao/notificacoes.html', {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'nao_lidas_count': nao_lidas,
+    })
+
+
+@login_required
+@require_access('regulacao')
+def notificacao_marcar_lida(request, pk: int):
+    notif = get_object_or_404(Notificacao, pk=pk, user=request.user)
+    if not notif.lida:
+        notif.lida = True
+        notif.save(update_fields=['lida'])
+        messages.success(request, 'Notificação marcada como lida.')
+    next_url = request.GET.get('next') or reverse_lazy('notificacoes-list')
+    return redirect(next_url)
+
     # Observação: Regulação também pode criar solicitações se necessário pelo fluxo
 
 
@@ -818,12 +1826,18 @@ def consulta_paciente_alertas(request):
     if espec_id:
         same_espec = base_qs.filter(especialidade_id=espec_id).exists()
 
-    # Detalhes por item (especialidade, UBS, status e, se houver, data/hora)
+    # Detalhes por item (especialidade, UBS, status e, quando aplicável, data/hora)
     detalhes = []
     for r in base_qs.order_by('data_solicitacao'):
         espec_nome = r.especialidade.nome if r.especialidade else '-'
         ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else '-'
         ag_txt = ''
+        # Adicionar data de solicitação quando estiver em fila de espera
+        if r.status == 'fila' and r.data_solicitacao:
+            try:
+                ag_txt = f" (solicitado em {r.data_solicitacao.strftime('%d/%m/%Y')})"
+            except Exception:
+                pass
         if r.status == 'autorizado' and r.data_agendada:
             try:
                 ag_txt = f" (agendada para {r.data_agendada.strftime('%d/%m/%Y')}"
@@ -895,6 +1909,12 @@ def exame_paciente_alertas(request):
         exame_nome = r.tipo_exame.nome if r.tipo_exame else '-'
         ubs_nome = r.ubs_solicitante.nome if r.ubs_solicitante else '-'
         ag_txt = ''
+        # Data de solicitação para itens em fila de espera
+        if r.status == 'fila' and r.data_solicitacao:
+            try:
+                ag_txt = f" (solicitado em {r.data_solicitacao.strftime('%d/%m/%Y')})"
+            except Exception:
+                pass
         if r.status == 'autorizado' and r.data_agendada:
             try:
                 ag_txt = f" (agendado para {r.data_agendada.strftime('%d/%m/%Y')}"
@@ -1034,7 +2054,10 @@ def fila_espera(request):
         if r.data_solicitacao < g['desde']:
             g['desde'] = r.data_solicitacao
 
-    exames_grouped = sorted(grupos_ex.values(), key=lambda x: (x['paciente'].nome or '').lower())
+    # Ordenar por mais antigos primeiro (campo 'desde'), com desempate por nome do paciente
+    exames_grouped = sorted(
+        grupos_ex.values(), key=lambda x: (x['desde'], (x['paciente'].nome or '').lower())
+    )
 
     # Agrupar por paciente - Consultas
     grupos_co = {}
@@ -1060,17 +2083,30 @@ def fila_espera(request):
         if r.data_solicitacao < g['desde']:
             g['desde'] = r.data_solicitacao
 
-    consultas_grouped = sorted(grupos_co.values(), key=lambda x: (x['paciente'].nome or '').lower())
+    # Ordenar por mais antigos primeiro também para consultas
+    consultas_grouped = sorted(
+        grupos_co.values(), key=lambda x: (x['desde'], (x['paciente'].nome or '').lower())
+    )
 
     # Paginação independente
+    # Paginação: no máximo 10 itens por página (valor padrão 10)
     try:
-        per_page_ex = int(request.GET.get('per_ex', 25))
+        per_page_ex = int(request.GET.get('per_ex', 10) or 10)
     except (TypeError, ValueError):
-        per_page_ex = 25
+        per_page_ex = 10
     try:
-        per_page_co = int(request.GET.get('per_co', 25))
+        per_page_co = int(request.GET.get('per_co', 10) or 10)
     except (TypeError, ValueError):
-        per_page_co = 25
+        per_page_co = 10
+    # Garantir limites (1..10)
+    if per_page_ex < 1:
+        per_page_ex = 10
+    if per_page_co < 1:
+        per_page_co = 10
+    if per_page_ex > 10:
+        per_page_ex = 10
+    if per_page_co > 10:
+        per_page_co = 10
 
     page_ex = request.GET.get('page_ex') or 1
     page_co = request.GET.get('page_co') or 1
@@ -1137,6 +2173,7 @@ def agenda_regulacao(request):
     exames = exames_qs.order_by('data_agendada', 'hora_agendada')
     consultas = consultas_qs.order_by('data_agendada', 'hora_agendada')
     only = (request.GET.get('only') or '').strip()
+    
     context = {
         'exames': exames,
         'consultas': consultas,
@@ -1269,79 +2306,7 @@ def status_ubs(request, ubs_id):
         'consultas': consultas,
     })
 
-#### Precisco ajusar o qrcode 
-def _qrcode_base64(texto: str):
-    try:
-        import importlib
-        qrcode = importlib.import_module('qrcode')
-        img = qrcode.make(texto)
-        buf = BytesIO()
-        img.save(buf, format='PNG')
-        return base64.b64encode(buf.getvalue()).decode('ascii')
-    except Exception:
-        return None
-
-@login_required
-@require_access('regulacao')
-def comprovante_exame(request, pk: int):
-    reg = get_object_or_404(RegulacaoExame.objects.select_related('paciente','tipo_exame','ubs_solicitante','medico_atendente'), pk=pk)
-    qr = _qrcode_base64(reg.numero_protocolo)
-    return render(request, 'regulacao/comprovante_exame.html', {
-        'reg': reg,
-        'qr_base64': qr,
-    })
-
-@login_required
-@require_access('regulacao')
-def comprovante_consulta(request, pk: int):
-    reg = get_object_or_404(RegulacaoConsulta.objects.select_related('paciente','especialidade','ubs_solicitante','medico_atendente'), pk=pk)
-    qr = _qrcode_base64(reg.numero_protocolo)
-    return render(request, 'regulacao/comprovante_consulta.html', {
-        'reg': reg,
-        'qr_base64': qr,
-    })
-
-@login_required
-@require_access('regulacao')
-def comprovantes_exames(request):
-    """Imprime múltiplos comprovantes de exames autorizados.
-    - Se "ids" estiver no querystring, filtra por esses IDs.
-    - Agrupa por data_agendada (data) e imprime todos do mesmo dia juntos.
-    """
-    qs = RegulacaoExame.objects.select_related('paciente','tipo_exame','ubs_solicitante','medico_atendente').filter(status='autorizado')
-    ids = request.GET.get('ids')
-    if ids:
-        ids_list = [int(x) for x in ids.split(',') if x.isdigit()]
-        qs = qs.filter(id__in=ids_list)
-    from collections import defaultdict
-    grupos = defaultdict(list)
-    for reg in qs.order_by('data_agendada','hora_agendada','id'):
-        dia = reg.data_agendada or None
-        grupos[dia].append(reg)
-    # Ordenar por data (None por último)
-    chaves = sorted(grupos.keys(), key=lambda d: (d is None, d))
-    grupos_ordenados = [(k, grupos[k]) for k in chaves]
-    return render(request, 'regulacao/comprovantes_exames.html', {
-        'grupos': grupos_ordenados,
-        'qtd': qs.count(),
-        'show_details': request.GET.get('detalhes') in ('1','true','True','sim','yes'),
-    })
-
-@login_required
-@require_access('regulacao')
-def comprovantes_consultas(request):
-    """Imprime múltiplos comprovantes de consultas autorizadas; aceita filtro por "ids"."""
-    qs = RegulacaoConsulta.objects.select_related('paciente','especialidade','ubs_solicitante','medico_atendente').filter(status='autorizado')
-    ids = request.GET.get('ids')
-    if ids:
-        ids_list = [int(x) for x in ids.split(',') if x.isdigit()]
-        qs = qs.filter(id__in=ids_list)
-    qs = qs.order_by('data_agendada','hora_agendada','id')
-    return render(request, 'regulacao/comprovantes_consultas.html', {
-        'regs': list(qs),
-        'qtd': qs.count(),
-        'show_details': request.GET.get('detalhes') in ('1','true','True','sim','yes'),
-    })
+#### Impressão removida: rotas e templates de comprovantes excluídos
 
 
 # ============ Resultado de Atendimento (Compareceu/Faltou) ============
@@ -1351,6 +2316,10 @@ def comprovantes_consultas(request):
 def registrar_resultado_exame(request, pk: int):
     if request.method != 'POST':
         return redirect('regulacao-agenda')
+    # UBS não pode registrar resultado de atendimento
+    if is_ubs_user(request.user):
+        messages.error(request, 'Usuários das UBS não podem alterar o resultado do atendimento (aguardando/compareceu/faltou).')
+        return redirect(_back_to_agenda(request, default_only='ex', default_hash='#exames-pane'))
     reg = get_object_or_404(RegulacaoExame, pk=pk)
     # somente para autorizados com data agendada
     if reg.status != 'autorizado' or not reg.data_agendada:
@@ -1379,6 +2348,10 @@ def registrar_resultado_exame(request, pk: int):
 def registrar_resultado_consulta(request, pk: int):
     if request.method != 'POST':
         return redirect('regulacao-agenda')
+    # UBS não pode registrar resultado de atendimento
+    if is_ubs_user(request.user):
+        messages.error(request, 'Usuários das UBS não podem alterar o resultado do atendimento (aguardando/compareceu/faltou).')
+        return redirect(_back_to_agenda(request, default_only='co', default_hash='#consultas-pane'))
     reg = get_object_or_404(RegulacaoConsulta, pk=pk)
     if reg.status != 'autorizado' or not reg.data_agendada:
         messages.error(request, 'Somente itens autorizados e com data agendada podem receber resultado.')
@@ -1443,6 +2416,15 @@ def registrar_resultados_agenda(request):
     """
     if request.method != 'POST':
         return redirect('regulacao-agenda')
+
+    # UBS não pode registrar resultado de atendimento em lote
+    if is_ubs_user(request.user):
+        messages.error(request, 'Usuários das UBS não podem alterar o resultado do atendimento (aguardando/compareceu/faltou).')
+        # Tentar voltar para a aba correspondente
+        only_tab = (request.POST.get('only') or '').strip()
+        default_only = only_tab if only_tab in ('co', 'ex') else None
+        default_hash = '#consultas-pane' if default_only == 'co' else ('#exames-pane' if default_only == 'ex' else '')
+        return redirect(_back_to_agenda(request, default_only=default_only, default_hash=default_hash))
 
     hoje = timezone.localdate()
     updated_co = skipped_co = 0
@@ -1539,13 +2521,42 @@ def paciente_pedido(request, paciente_id):
     paciente = get_object_or_404(Paciente, pk=paciente_id)
     # UBS: somente visualização; não pode autorizar/
     read_only = is_ubs_user(request.user)
+    
     # Exames do paciente (todos para contexto; foco em fila/pendente para autorizar)
-    exames_qs = RegulacaoExame.objects.select_related('tipo_exame', 'ubs_solicitante', 'medico_solicitante').filter(paciente=paciente).order_by('-data_solicitacao')
+    exames_qs = RegulacaoExame.objects.select_related(
+        'tipo_exame',
+        'tipo_exame__especialidade',
+        'ubs_solicitante',
+        'medico_solicitante',
+        'medico_atendente'
+    ).filter(paciente=paciente).order_by('-data_solicitacao')
     exames_pendentes_qs = exames_qs.filter(status__in=['fila', 'pendente'])
 
     # Consultas do paciente
     consultas_qs = RegulacaoConsulta.objects.select_related('especialidade', 'ubs_solicitante', 'medico_solicitante').filter(paciente=paciente).order_by('-data_solicitacao')
     consultas_pendentes_qs = consultas_qs.filter(status__in=['fila', 'pendente'])
+    # Filtro opcional: "Aguardando resposta" para Regulação
+    # Mostra apenas itens que foram marcados como pendentes e já possuem resposta da UBS
+    pend_only = (request.GET.get('pend') == '1')
+    if pend_only:
+        exames_pendentes_qs = exames_pendentes_qs.filter(status='pendente', pendencia_respondida_em__isnull=False)
+        consultas_pendentes_qs = consultas_pendentes_qs.filter(status='pendente', pendencia_respondida_em__isnull=False)
+    
+    # Para usuários da regulação (não UBS): aplicar filtro por UBS do malote selecionado
+    if not read_only:  # Se não for usuário UBS (ou seja, é regulação)
+        malote_ubs_id = request.session.get('malote_ubs_id')
+        if malote_ubs_id:
+            try:
+                ubs_malote_id = int(malote_ubs_id)
+                # Filtrar para mostrar apenas solicitações da UBS selecionada no malote
+                exames_qs = exames_qs.filter(ubs_solicitante_id=ubs_malote_id)
+                exames_pendentes_qs = exames_pendentes_qs.filter(ubs_solicitante_id=ubs_malote_id)
+                consultas_qs = consultas_qs.filter(ubs_solicitante_id=ubs_malote_id)
+                consultas_pendentes_qs = consultas_pendentes_qs.filter(ubs_solicitante_id=ubs_malote_id)
+            except (ValueError, TypeError):
+                # Se malote_ubs_id não for válido, redirecionar para seleção
+                messages.warning(request, 'Selecione uma UBS para abrir o malote antes de visualizar pedidos.')
+                return redirect('regulacao-selecionar-malote')
 
     ExameFormSet = modelformset_factory(RegulacaoExame, form=RegulacaoExameBatchForm, extra=0, can_delete=False)
     ConsultaFormSet = modelformset_factory(RegulacaoConsulta, form=RegulacaoConsultaBatchForm, extra=0, can_delete=False)
@@ -1554,8 +2565,8 @@ def paciente_pedido(request, paciente_id):
         if read_only:
             messages.error(request, 'Usuários de UBS não podem autorizar ou negar solicitações. Acesso somente para visualização.')
             return redirect('paciente-pedido', paciente_id=paciente.id)
-        submitted_exames = 'submit_exames' in request.POST or 'deny_exames' in request.POST
-        submitted_consultas = 'submit_consultas' in request.POST or 'deny_consultas' in request.POST
+        submitted_exames = any(k in request.POST for k in ('submit_exames','deny_exames','pend_exames'))
+        submitted_consultas = any(k in request.POST for k in ('submit_consultas','deny_consultas','pend_consultas'))
         exame_fs = ExameFormSet(request.POST if submitted_exames else None, queryset=exames_pendentes_qs, prefix='ex')
         consulta_fs = ConsultaFormSet(request.POST if submitted_consultas else None, queryset=consultas_pendentes_qs, prefix='co')
         # Anexar request aos forms (para validação contextual)
@@ -1567,6 +2578,7 @@ def paciente_pedido(request, paciente_id):
             if exame_fs.is_valid():
                 aprovados_exames = 0
                 negados_exames = 0
+                pendenciados_exames = 0
                 aprovados_ids = []
                 # Verificar conflitos de agenda por data (antes de salvar)
                 datas_selecionadas = set()
@@ -1586,6 +2598,7 @@ def paciente_pedido(request, paciente_id):
                 with transaction.atomic():
                     for form in exame_fs.forms:
                         inst = form.instance
+                        prev_status = inst.status
                         if form.cleaned_data.get('autorizar'):
                             inst.status = 'autorizado'
                             inst.regulador = request.user
@@ -1594,12 +2607,40 @@ def paciente_pedido(request, paciente_id):
                             inst.local_realizacao = form.cleaned_data.get('local_realizacao')
                             inst.data_agendada = form.cleaned_data.get('data_agendada')
                             inst.hora_agendada = form.cleaned_data.get('hora_agendada')
-                            # médico atendente removido do fluxo de exames
+                            inst.medico_atendente = form.cleaned_data.get('medico_atendente')
                             inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
                             inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
                             inst.save()
                             aprovados_exames += 1
                             aprovados_ids.append(inst.id)
+                            # Registrar ação do usuário
+                            AcaoUsuario.objects.create(
+                                usuario=request.user,
+                                tipo_acao='autorizar_exame',
+                                exame=inst,
+                                paciente_nome=inst.paciente.nome,
+                                motivo=inst.motivo_decisao or ''
+                            )
+                            # Notificar UBS quando um item que estava pendente foi autorizado/agendado
+                            if prev_status == 'pendente':
+                                try:
+                                    usuarios = getattr(inst.ubs_solicitante, 'usuarios', None)
+                                    if usuarios is not None:
+                                        data_txt = inst.data_agendada.strftime('%d/%m/%Y') if inst.data_agendada else None
+                                        hora_txt = inst.hora_agendada.strftime('%H:%M') if inst.hora_agendada else None
+                                        when_txt = (
+                                            f" para {data_txt}{(' às ' + hora_txt) if hora_txt else ''}" if data_txt else ''
+                                        )
+                                        for vinc in usuarios.select_related('user').all():
+                                            Notificacao.objects.create(
+                                                user=vinc.user,
+                                                texto=(
+                                                    f"Exame de {inst.paciente.nome} em pendência foi agendado{when_txt}."
+                                                ),
+                                                url=str(reverse_lazy('paciente-pedido', kwargs={'paciente_id': inst.paciente_id})) + "?only=ex",
+                                            )
+                                except Exception:
+                                    pass
                         elif form.cleaned_data.get('negar'):
                             inst.status = 'negado'
                             inst.regulador = request.user
@@ -1608,10 +2649,70 @@ def paciente_pedido(request, paciente_id):
                             inst.local_realizacao = ''
                             inst.data_agendada = None
                             inst.hora_agendada = None
+                            inst.medico_atendente = None
                             inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
                             inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
                             inst.save()
                             negados_exames += 1
+                            # Registrar ação do usuário
+                            AcaoUsuario.objects.create(
+                                usuario=request.user,
+                                tipo_acao='negar_exame',
+                                exame=inst,
+                                paciente_nome=inst.paciente.nome,
+                                motivo=inst.motivo_decisao or ''
+                            )
+                        elif form.cleaned_data.get('pendenciar'):
+                            # Marcar como pendente e registrar motivo
+                            inst.status = 'pendente'
+                            inst.pendencia_motivo = form.cleaned_data.get('pendencia_motivo') or ''
+                            inst.pendencia_aberta_por = request.user
+                            inst.pendencia_aberta_em = timezone.now()
+                            # Limpar qualquer resposta anterior, voltando a aguardar a UBS
+                            inst.pendencia_resposta = ''
+                            inst.pendencia_respondida_em = None
+                            inst.pendencia_respondida_por = None
+                            # limpar dados de agendamento
+                            inst.local_realizacao = ''
+                            inst.data_agendada = None
+                            inst.hora_agendada = None
+                            inst.medico_atendente = None
+                            inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
+                            inst.save(update_fields=['status','pendencia_motivo','pendencia_aberta_por','pendencia_aberta_em','pendencia_resposta','pendencia_respondida_em','pendencia_respondida_por','local_realizacao','data_agendada','hora_agendada','medico_atendente','observacoes_regulacao','atualizado_em'])
+                            # Registrar abertura no histórico
+                            PendenciaMensagemExame.objects.create(
+                                exame=inst,
+                                autor=request.user,
+                                lado='regulacao' if not getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None) else 'ubs',
+                                tipo='abertura',
+                                texto=inst.pendencia_motivo,
+                            )
+                            pendenciados_exames += 1
+                            # Registrar ação do usuário
+                            AcaoUsuario.objects.create(
+                                usuario=request.user,
+                                tipo_acao='pendenciar_exame',
+                                exame=inst,
+                                paciente_nome=inst.paciente.nome,
+                                motivo=inst.pendencia_motivo or ''
+                            )
+                        else:
+                            # Caso no futuro exista uma ação explícita de "retornar à fila",
+                            # notificar a UBS quando um item que estava pendente voltar para a fila.
+                            if prev_status == 'pendente' and inst.status == 'fila':
+                                try:
+                                    usuarios = getattr(inst.ubs_solicitante, 'usuarios', None)
+                                    if usuarios is not None:
+                                        for vinc in usuarios.select_related('user').all():
+                                            Notificacao.objects.create(
+                                                user=vinc.user,
+                                                texto=(
+                                                    f"Exame de {inst.paciente.nome} em pendência retornou à fila de espera."
+                                                ),
+                                                url=str(reverse_lazy('paciente-pedido', kwargs={'paciente_id': inst.paciente_id})) + "?only=ex",
+                                            )
+                                except Exception:
+                                    pass
                 if aprovados_exames:
                     messages.success(request, f"{aprovados_exames} exame(s) autorizados e agendados para {paciente.nome}.")
                     # Exibir avisos de conflitos encontrados
@@ -1622,9 +2723,18 @@ def paciente_pedido(request, paciente_id):
                         ))
                 if negados_exames:
                     messages.warning(request, f"{negados_exames} exame(s) negados para {paciente.nome}.")
-                if not aprovados_exames and not negados_exames:
+                if pendenciados_exames:
+                    messages.warning(request, f"{pendenciados_exames} exame(s) marcados como pendentes para retorno da UBS.")
+                if not aprovados_exames and not negados_exames and not pendenciados_exames:
                     messages.info(request, 'Nenhum exame marcado para autorização.')
-                return redirect('paciente-pedido', paciente_id=paciente.id)
+                # Voltar preservando a aba e o filtro de pendências (se ativo)
+                only_param = (request.GET.get('only') or 'ex').strip() or 'ex'
+                pend_param = '1' if (request.GET.get('pend') == '1') else None
+                base_url = str(reverse_lazy('paciente-pedido', kwargs={'paciente_id': paciente.id}))
+                if pend_param:
+                    return redirect(f"{base_url}?only={only_param}&pend=1")
+                else:
+                    return redirect(f"{base_url}?only={only_param}")
             else:
                 messages.error(request, 'Corrija os erros nos exames para prosseguir.')
 
@@ -1632,6 +2742,7 @@ def paciente_pedido(request, paciente_id):
             if consulta_fs.is_valid():
                 aprovados_consultas = 0
                 negadas_consultas = 0
+                pendenciadas_consultas = 0
                 aprovados_ids = []
                 # Verificar conflitos de agenda por data (antes de salvar)
                 datas_selecionadas = set()
@@ -1651,6 +2762,7 @@ def paciente_pedido(request, paciente_id):
                 with transaction.atomic():
                     for form in consulta_fs.forms:
                         inst = form.instance
+                        prev_status = inst.status
                         if form.cleaned_data.get('autorizar'):
                             inst.status = 'autorizado'
                             inst.regulador = request.user
@@ -1666,6 +2778,34 @@ def paciente_pedido(request, paciente_id):
                             inst.save()
                             aprovados_consultas += 1
                             aprovados_ids.append(inst.id)
+                            # Registrar ação do usuário
+                            AcaoUsuario.objects.create(
+                                usuario=request.user,
+                                tipo_acao='autorizar_consulta',
+                                consulta=inst,
+                                paciente_nome=inst.paciente.nome,
+                                motivo=inst.motivo_decisao or ''
+                            )
+                            # Notificar UBS quando um item que estava pendente foi autorizado/agendado
+                            if prev_status == 'pendente':
+                                try:
+                                    usuarios = getattr(inst.ubs_solicitante, 'usuarios', None)
+                                    if usuarios is not None:
+                                        data_txt = inst.data_agendada.strftime('%d/%m/%Y') if inst.data_agendada else None
+                                        hora_txt = inst.hora_agendada.strftime('%H:%M') if inst.hora_agendada else None
+                                        when_txt = (
+                                            f" para {data_txt}{(' às ' + hora_txt) if hora_txt else ''}" if data_txt else ''
+                                        )
+                                        for vinc in usuarios.select_related('user').all():
+                                            Notificacao.objects.create(
+                                                user=vinc.user,
+                                                texto=(
+                                                    f"Consulta de {inst.paciente.nome} em pendência foi agendada{when_txt}."
+                                                ),
+                                                url=str(reverse_lazy('paciente-pedido', kwargs={'paciente_id': inst.paciente_id})) + "?only=co",
+                                            )
+                                except Exception:
+                                    pass
                         elif form.cleaned_data.get('negar'):
                             inst.status = 'negado'
                             inst.regulador = request.user
@@ -1678,6 +2818,63 @@ def paciente_pedido(request, paciente_id):
                             inst.motivo_decisao = form.cleaned_data.get('motivo_decisao') or ''
                             inst.save()
                             negadas_consultas += 1
+                            # Registrar ação do usuário
+                            AcaoUsuario.objects.create(
+                                usuario=request.user,
+                                tipo_acao='negar_consulta',
+                                consulta=inst,
+                                paciente_nome=inst.paciente.nome,
+                                motivo=inst.motivo_decisao or ''
+                            )
+                        elif form.cleaned_data.get('pendenciar'):
+                            inst.status = 'pendente'
+                            inst.pendencia_motivo = form.cleaned_data.get('pendencia_motivo') or ''
+                            inst.pendencia_aberta_por = request.user
+                            inst.pendencia_aberta_em = timezone.now()
+                            # Limpar qualquer resposta anterior, voltando a aguardar a UBS
+                            inst.pendencia_resposta = ''
+                            inst.pendencia_respondida_em = None
+                            inst.pendencia_respondida_por = None
+                            # limpar dados de agendamento
+                            inst.local_atendimento = ''
+                            inst.data_agendada = None
+                            inst.hora_agendada = None
+                            inst.observacoes_regulacao = form.cleaned_data.get('observacoes_regulacao') or ''
+                            inst.save(update_fields=['status','pendencia_motivo','pendencia_aberta_por','pendencia_aberta_em','pendencia_resposta','pendencia_respondida_em','pendencia_respondida_por','local_atendimento','data_agendada','hora_agendada','observacoes_regulacao','atualizado_em'])
+                            # Registrar abertura no histórico
+                            PendenciaMensagemConsulta.objects.create(
+                                consulta=inst,
+                                autor=request.user,
+                                lado='regulacao' if not getattr(getattr(request.user, 'perfil_ubs', None), 'ubs', None) else 'ubs',
+                                tipo='abertura',
+                                texto=inst.pendencia_motivo,
+                            )
+                            pendenciadas_consultas += 1
+                            # Registrar ação do usuário
+                            AcaoUsuario.objects.create(
+                                usuario=request.user,
+                                tipo_acao='pendenciar_consulta',
+                                consulta=inst,
+                                paciente_nome=inst.paciente.nome,
+                                motivo=inst.pendencia_motivo or ''
+                            )
+                        else:
+                            # Caso no futuro exista uma ação explícita de "retornar à fila",
+                            # notificar a UBS quando um item que estava pendente voltar para a fila.
+                            if prev_status == 'pendente' and inst.status == 'fila':
+                                try:
+                                    usuarios = getattr(inst.ubs_solicitante, 'usuarios', None)
+                                    if usuarios is not None:
+                                        for vinc in usuarios.select_related('user').all():
+                                            Notificacao.objects.create(
+                                                user=vinc.user,
+                                                texto=(
+                                                    f"Consulta de {inst.paciente.nome} em pendência retornou à fila de espera."
+                                                ),
+                                                url=str(reverse_lazy('paciente-pedido', kwargs={'paciente_id': inst.paciente_id})) + "?only=co",
+                                            )
+                                except Exception:
+                                    pass
                 if aprovados_consultas:
                     messages.success(request, f"{aprovados_consultas} consulta(s) autorizadas e agendadas para {paciente.nome}.")
                     # Exibir avisos de conflitos encontrados
@@ -1688,9 +2885,18 @@ def paciente_pedido(request, paciente_id):
                         ))
                 if negadas_consultas:
                     messages.warning(request, f"{negadas_consultas} consulta(s) negadas para {paciente.nome}.")
-                if not aprovados_consultas and not negadas_consultas:
+                if pendenciadas_consultas:
+                    messages.warning(request, f"{pendenciadas_consultas} consulta(s) marcadas como pendentes para retorno da UBS.")
+                if not aprovados_consultas and not negadas_consultas and not pendenciadas_consultas:
                     messages.info(request, 'Nenhuma consulta marcada para autorização.')
-                return redirect('paciente-pedido', paciente_id=paciente.id)
+                # Voltar preservando a aba e o filtro de pendências (se ativo)
+                only_param = (request.GET.get('only') or 'co').strip() or 'co'
+                pend_param = '1' if (request.GET.get('pend') == '1') else None
+                base_url = str(reverse_lazy('paciente-pedido', kwargs={'paciente_id': paciente.id}))
+                if pend_param:
+                    return redirect(f"{base_url}?only={only_param}&pend=1")
+                else:
+                    return redirect(f"{base_url}?only={only_param}")
             else:
                 messages.error(request, 'Corrija os erros nas consultas para prosseguir.')
     else:
@@ -1699,10 +2905,15 @@ def paciente_pedido(request, paciente_id):
         for f in list(exame_fs.forms) + list(consulta_fs.forms):
             setattr(f, 'request', request)
         if 'medico_atendente' in consulta_fs.empty_form.fields:
-            consulta_fs.empty_form.fields['medico_atendente'].queryset = MedicoSolicitante.objects.filter(ativo=True).order_by('nome')
+            consulta_fs.empty_form.fields['medico_atendente'].queryset = MedicoAmbulatorio.objects.filter(ativo=True).order_by('nome')
         for f in consulta_fs.forms:
             if 'medico_atendente' in f.fields:
-                f.fields['medico_atendente'].queryset = MedicoSolicitante.objects.filter(ativo=True).order_by('nome')
+                # Se a consulta já possui especialidade, filtrar por ela
+                espec = getattr(f.instance, 'especialidade', None)
+                if espec is not None:
+                    f.fields['medico_atendente'].queryset = MedicoAmbulatorio.objects.filter(ativo=True, especialidades=espec).order_by('nome')
+                else:
+                    f.fields['medico_atendente'].queryset = MedicoAmbulatorio.objects.filter(ativo=True).order_by('nome')
 
     # IDs autorizados (para botões de impressão)
     exames_aut_ids = list(exames_qs.filter(status='autorizado').values_list('id', flat=True))
@@ -1710,6 +2921,17 @@ def paciente_pedido(request, paciente_id):
     exames_aut_ids_csv = ','.join(str(i) for i in exames_aut_ids)
     consultas_aut_ids_csv = ','.join(str(i) for i in consultas_aut_ids)
 
+    # Informação sobre UBS do malote (para usuários da regulação)
+    ubs_malote = None
+    if not read_only:  # Se for usuário da regulação
+        malote_ubs_id = request.session.get('malote_ubs_id')
+        if malote_ubs_id:
+            try:
+                ubs_malote = UBS.objects.get(pk=int(malote_ubs_id))
+            except UBS.DoesNotExist:
+                pass
+
+    only = (request.GET.get('only') or '').strip()
     return render(request, 'regulacao/paciente_pedido.html', {
         'paciente': paciente,
         'exame_formset': exame_fs,
@@ -1723,6 +2945,9 @@ def paciente_pedido(request, paciente_id):
         'exames_aut_count': len(exames_aut_ids),
         'consultas_aut_count': len(consultas_aut_ids),
         'read_only': read_only,
+        'ubs_malote': ubs_malote,
+        'only': only,
+        'pend': pend_only,
     })
 
 
@@ -1873,10 +3098,10 @@ def importar_sigtap(request):
                     if name_terms and not any(term in _norm(nome) for term in name_terms):
                         continue
 
+                    # Não ativar automaticamente durante importação; fica inativo até o usuário ativar
                     obj, is_created = TipoExame.objects.get_or_create(codigo_sus=cod, defaults={
                         'nome': nome,
                         'codigo': cod,
-                        'ativo': True,
                     })
                     changed = False
                     if not is_created:
@@ -1886,9 +3111,7 @@ def importar_sigtap(request):
                         if not obj.codigo:
                             obj.codigo = cod
                             changed = True
-                        if not obj.ativo:
-                            obj.ativo = True
-                            changed = True
+                        # não alterar automaticamente o status 'ativo'
                     if set_valor and cod in valores:
                         try:
                             val = float(valores[cod])
@@ -1913,6 +3136,138 @@ def importar_sigtap(request):
             messages.error(request, f'Falha na importação: {e}')
             return redirect('importar-sigtap')
 
-    return render(request, 'regulacao/importar_sigtap.html', {
-        'form': form,
-    })
+@csrf_exempt
+@login_required
+@require_access('regulacao')
+@require_POST
+@require_POST
+@login_required
+def salvar_acao_ajax(request):
+    """View AJAX para salvar ações de pendência e negativa automaticamente."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"AJAX Request recebida - User: {request.user}, Method: {request.method}")
+        
+        # Verificar se é usuário da regulação
+        if is_ubs_user(request.user):
+            logger.warning(f"Usuário UBS tentou acessar: {request.user}")
+            return JsonResponse({'success': False, 'error': 'Usuários de UBS não podem autorizar ou negar solicitações.'})
+        
+        # Obter dados do POST
+        item_id = request.POST.get('item_id')
+        item_type = request.POST.get('item_type')  # 'exame' ou 'consulta'
+        action = request.POST.get('action')  # 'negar' ou 'pendenciar'
+        motivo = request.POST.get('motivo', '').strip()
+        
+        logger.info(f"Dados recebidos - ID: {item_id}, Type: {item_type}, Action: {action}, Motivo: {motivo[:50]}...")
+        
+        if not all([item_id, item_type, action, motivo]):
+            return JsonResponse({'success': False, 'error': 'Dados incompletos.'})
+        
+        if action not in ['negar', 'pendenciar']:
+            return JsonResponse({'success': False, 'error': 'Ação inválida.'})
+        
+        if item_type not in ['exame', 'consulta']:
+            return JsonResponse({'success': False, 'error': 'Tipo de item inválido.'})
+        
+        # Processar baseado no tipo
+        with transaction.atomic():
+            if item_type == 'exame':
+                regulacao = get_object_or_404(RegulacaoExame, pk=item_id)
+                
+                if action == 'negar':
+                    regulacao.status = 'negado'
+                    regulacao.motivo_decisao = motivo
+                    regulacao.data_regulacao = timezone.now()
+                    regulacao.regulador = request.user
+                    regulacao.save()
+                    
+                    # Registrar ação do usuário
+                    AcaoUsuario.objects.create(
+                        usuario=request.user,
+                        tipo_acao='negar_exame',
+                        exame=regulacao,
+                        paciente_nome=regulacao.paciente.nome,
+                        motivo=motivo
+                    )
+                    
+                elif action == 'pendenciar':
+                    regulacao.status = 'pendente'
+                    regulacao.pendencia_motivo = motivo
+                    regulacao.pendencia_aberta_em = timezone.now()
+                    regulacao.pendencia_aberta_por = request.user
+                    regulacao.pendencia_respondida_em = None
+                    regulacao.pendencia_resposta = ''
+                    regulacao.save()
+                    
+                    # Registrar ação do usuário
+                    AcaoUsuario.objects.create(
+                        usuario=request.user,
+                        tipo_acao='pendenciar_exame',
+                        exame=regulacao,
+                        paciente_nome=regulacao.paciente.nome,
+                        motivo=motivo
+                    )
+                    
+                    # Registrar mensagem de pendência
+                    PendenciaMensagemExame.objects.create(
+                        exame=regulacao,
+                        autor=request.user,
+                        lado='regulacao',
+                        tipo='abertura',
+                        texto=motivo,
+                    )
+                    
+            elif item_type == 'consulta':
+                regulacao = get_object_or_404(RegulacaoConsulta, pk=item_id)
+                
+                if action == 'negar':
+                    regulacao.status = 'negado'
+                    regulacao.motivo_decisao = motivo
+                    regulacao.data_regulacao = timezone.now()
+                    regulacao.regulador = request.user
+                    regulacao.save()
+                    
+                    # Registrar ação do usuário
+                    AcaoUsuario.objects.create(
+                        usuario=request.user,
+                        tipo_acao='negar_consulta',
+                        consulta=regulacao,
+                        paciente_nome=regulacao.paciente.nome,
+                        motivo=motivo
+                    )
+                    
+                elif action == 'pendenciar':
+                    regulacao.status = 'pendente'
+                    regulacao.pendencia_motivo = motivo
+                    regulacao.pendencia_aberta_em = timezone.now()
+                    regulacao.pendencia_aberta_por = request.user
+                    regulacao.pendencia_respondida_em = None
+                    regulacao.pendencia_resposta = ''
+                    regulacao.save()
+                    
+                    # Registrar ação do usuário
+                    AcaoUsuario.objects.create(
+                        usuario=request.user,
+                        tipo_acao='pendenciar_consulta',
+                        consulta=regulacao,
+                        paciente_nome=regulacao.paciente.nome,
+                        motivo=motivo
+                    )
+                    
+                    # Registrar mensagem de pendência
+                    PendenciaMensagemConsulta.objects.create(
+                        consulta=regulacao,
+                        autor=request.user,
+                        lado='regulacao',
+                        tipo='abertura',
+                        texto=motivo,
+                    )
+        
+        return JsonResponse({'success': True, 'message': f'Ação "{action}" salva com sucesso.'})
+        
+    except Exception as e:
+        logger.error(f"Erro na view AJAX: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Erro interno: {str(e)}'})

@@ -15,6 +15,9 @@ class GroupAccess(models.Model):
     can_users_admin = models.BooleanField(
         default=False, verbose_name="Administração de Usuários/Grupos"
     )
+    can_motorista = models.BooleanField(default=False, verbose_name="Motoristas")
+    can_rh = models.BooleanField(default=False, verbose_name="Recursos Humanos")
+    can_veiculos = models.BooleanField(default=False, verbose_name="Veículos / Abastecimentos")
 
     class Meta:
         verbose_name = "Acesso do Grupo"

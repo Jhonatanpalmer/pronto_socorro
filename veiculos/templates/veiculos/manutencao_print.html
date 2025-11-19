@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Imprimir Manutenção{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-printer"></i> Comprovante de Manutenção</h6>
+      <div class="d-print-none d-flex gap-2">
+        <a href="{% url 'manutencao-detail' obj.id %}" class="btn btn-light btn-sm"><i class="bi bi-arrow-left"></i> Voltar</a>
+        <button class="btn btn-success btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="mb-4">
+        <h5 class="fw-bold mb-1">Veículo</h5>
+        <div><strong>Modelo:</strong> {{ obj.veiculo.modelo }}</div>
+        <div><strong>Placa:</strong> {{ obj.veiculo.placa }}</div>
+        <div><strong>Tipo:</strong> {{ obj.veiculo.get_tipo_display }}</div>
+        <div><strong>Combustível:</strong> {{ obj.veiculo.get_combustivel_display }}</div>
+      </div>
+      <div class="mb-4">
+        <h5 class="fw-bold mb-1">Dados da manutenção</h5>
+        <div><strong>Tipo:</strong> {{ obj.get_tipo_display }}</div>
+        <div><strong>Status:</strong> {{ obj.get_status_display }}</div>
+        <div><strong>Local:</strong> {{ obj.local|default:'—' }}</div>
+        <div>
+          <strong>Data de envio:</strong>
+          {{ obj.data_envio|date:'d/m/Y' }}{% if obj.criado_em %} às {{ obj.criado_em|date:'H:i' }}{% endif %}
+        </div>
+        <div>
+          <strong>Data de devolução:</strong>
+          {% if obj.data_retorno %}
+            {{ obj.data_retorno|date:'d/m/Y' }}{% if obj.atualizado_em %} às {{ obj.atualizado_em|date:'H:i' }}{% endif %}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+      </div>
+      <div class="mb-4">
+        <h5 class="fw-bold mb-1">Problema reportado</h5>
+        <p class="mb-0">{{ obj.descricao_problema|linebreaksbr }}</p>
+      </div>
+      {% if obj.servicos_realizados %}
+      <div class="mb-4">
+        <h5 class="fw-bold mb-1">Serviços realizados</h5>
+        <p class="mb-0">{{ obj.servicos_realizados|linebreaksbr }}</p>
+      </div>
+      {% endif %}
+      <div class="row text-center mt-5">
+        <div class="col-md-6">
+          <div class="signature-space"></div>
+          <div class="signature-line"></div>
+          <div class="small text-muted mt-1">Responsável pelo veículo</div>
+        </div>
+        <div class="col-md-6">
+          <div class="signature-space"></div>
+          <div class="signature-line"></div>
+          <div class="small text-muted mt-1">Responsável pela manutenção</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+.signature-space { height: 70px; }
+.signature-line { border-top: 1px solid #000; width: 75%; margin: 0 auto; }
+@media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .d-print-none, .navbar, .footer { display: none !important; }
+  .card { border: none; box-shadow: none; }
+}
+</style>
+{% endblock %}

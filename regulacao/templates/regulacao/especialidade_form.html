@@ -16,6 +16,28 @@
           <label class="form-label">Descrição</label>
           {{ form.descricao }}
         </div>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Nome do médico (ambulatório)</label>
+            {{ form.novo_medico_nome }}
+            <div class="form-text">Opcional: ao salvar, cria e vincula este médico do ambulatório a esta especialidade.</div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">CRM do médico</label>
+            {{ form.novo_medico_crm }}
+          </div>
+        </div>
+
+        <div class="mb-3 mt-3">
+          <label class="form-label">Médicos do ambulatório</label>
+          {{ form.medicos }}
+          {% if form.medicos.errors %}
+            <div class="text-danger small">{{ form.medicos.errors }}</div>
+          {% endif %}
+          <div class="form-text">
+            Vincule um ou mais médicos que atendem esta especialidade. Você também pode <a href="{% url 'ambulatorio-medico-list' %}">gerenciar médicos do ambulatório</a>.
+          </div>
+        </div>
         <div class="form-check mb-3">
           {{ form.ativa }} <label class="form-check-label">Ativa</label>
         </div>

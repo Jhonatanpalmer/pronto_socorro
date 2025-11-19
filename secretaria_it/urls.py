@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from secretaria_it.views import (
     dashboard_view,
     users_list, user_create, user_update, user_delete,
@@ -20,6 +22,9 @@ urlpatterns = [
     path('pacientes/', include('pacientes.urls')),
     path('tfd/', include('tfd.urls')),
     path('regulacao/', include('regulacao.urls')),
+    path('veiculos/', include('veiculos.urls')),
+    path('motorista/', include('motorista.urls')),
+    path('rh/', include('rh.urls')),
 
     # Auth
     path('accounts/login/', auth_views.LoginView.as_view(template_name='secretaria_it/login.html'), name='login'),
@@ -38,3 +43,6 @@ urlpatterns = [
     # Django Admin (keep last so it doesn't swallow custom /admin/... routes)
     path('admin/', admin.site.urls),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

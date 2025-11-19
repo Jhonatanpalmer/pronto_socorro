@@ -55,6 +55,36 @@ def dashboard_view(request):
             'cor': 'warning'
         })
     
+    # App Veículos - Abastecimentos
+    if 'veiculos' in settings.INSTALLED_APPS and user_has_access(request.user, 'veiculos'):
+        apps.append({
+            'nome': 'Veículos - Abastecimentos',
+            'descricao': 'Registre e acompanhe abastecimentos dos veículos.',
+            'url': 'abastecimento-list',
+            'icone': 'bi-fuel-pump',
+            'cor': 'primary'
+        })
+    
+    # App RH
+    if 'rh' in settings.INSTALLED_APPS and user_has_access(request.user, 'rh'):
+        apps.append({
+            'nome': 'RH',
+            'descricao': 'Cadastro e gestão de funcionários (RH).',
+            'url': 'rh-funcionario-list',
+            'icone': 'bi-people-fill',
+            'cor': 'success'
+        })
+    
+    # App Motorista
+    if 'motorista' in settings.INSTALLED_APPS and user_has_access(request.user, 'motorista'):
+        apps.append({
+            'nome': 'Motoristas',
+            'descricao': 'Cadastro de motoristas e controle de viagens.',
+            'url': 'motorista-home',
+            'icone': 'bi-person-vcard',
+            'cor': 'info'
+        })
+
 
     # Aqui você pode adicionar outros apps existentes, apenas se tiver URLs válidas
 

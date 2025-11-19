@@ -2,53 +2,84 @@
 {% load widget_tweaks %}
 {% block title %}{% if object %}Editar Solicitação de Consulta{% else %}Nova Solicitação de Consulta{% endif %}{% endblock %}
 {% block content %}
+<style>
+  /* Dropdown de busca do paciente: apenas polimento local */
+  #resultado-paciente-regconsulta { max-height: 280px; overflow-y: auto; border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+  #resultado-paciente-regconsulta .list-group-item { cursor: pointer; }
+  #resultado-paciente-regconsulta .list-group-item:hover { background-color: rgba(13,110,253,.08); }
+  .form-text { color: #6c757d; }
+  .alert i { margin-right: .35rem; }
+  @media (max-width: 575.98px){ #resultado-paciente-regconsulta { max-height: 220px; } }
+</style>
+
 <div class="container py-4">
-  <div class="card">
-    <div class="card-header">
-      <h5 class="mb-0">{% if object %}Editar{% else %}Nova{% endif %} Solicitação de Consulta</h5>
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-calendar2-check"></i>
+        {% if object %}Editar{% else %}Nova{% endif %} Solicitação de Consulta
+      </h6>
     </div>
     <div class="card-body">
-      <form method="post">{% csrf_token %}
-  <div id="consulta-alerta" class="alert alert-warning d-none" role="alert"></div>
-  <div id="consulta-detalhes" class="alert alert-info d-none" role="alert"></div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div id="consulta-detalhes" class="alert alert-info d-none" role="alert" aria-live="polite">
+          <i class="bi bi-info-circle"></i>
+        </div>
+
         <div class="row g-3">
-          <div class="col-md-6">
+          <div class="col-12 col-md-6">
             <label class="form-label">Paciente</label>
             <div class="position-relative mb-2">
-              <input type="text" id="busca-paciente-regconsulta" class="form-control" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
-              <div id="resultado-paciente-regconsulta" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
+              <i class="bi bi-person input-icon"></i>
+              <input type="text" id="busca-paciente-regconsulta" class="form-control input-with-icon" placeholder="Digite nome, CPF ou CNS para buscar..." autocomplete="off" />
+              <div id="resultado-paciente-regconsulta" class="list-group position-absolute w-100" style="z-index: 1100;"></div>
               <div class="form-text">Digite ao menos 2 letras e selecione o paciente; o campo abaixo será preenchido.</div>
             </div>
             <div class="d-none">{{ form.paciente|add_class:'form-select' }}</div>
           </div>
-          <div class="col-md-6">
+
+          <div class="col-12 col-md-6">
             <label class="form-label">Especialidade</label>
             {{ form.especialidade|add_class:'form-select' }}
           </div>
-          <div class="col-md-6">
+
+          <div class="col-12 col-md-6">
             <label class="form-label">UBS Solicitante</label>
             {{ form.ubs_solicitante|add_class:'form-select' }}
           </div>
-          <div class="col-md-6">
+
+          <div class="col-12 col-md-6">
             <label class="form-label">Médico Solicitante</label>
             {{ form.medico_solicitante|add_class:'form-select' }}
           </div>
+
           <div class="col-12">
             <label class="form-label">Justificativa Clínica</label>
             {{ form.justificativa|add_class:'form-control' }}
           </div>
-          <div class="col-md-4">
+
+          <div class="col-12 col-md-4">
             <label class="form-label">Prioridade</label>
             {{ form.prioridade|add_class:'form-select' }}
           </div>
+
           <div class="col-12">
             <label class="form-label">Observações</label>
             {{ form.observacoes_solicitacao|add_class:'form-control' }}
           </div>
         </div>
-        <div class="d-flex justify-content-end gap-2 mt-3">
-          <a class="btn btn-secondary" href="{% url 'consulta-list' %}">Cancelar</a>
-          <button class="btn btn-success" type="submit">Salvar</button>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a class="btn btn-outline-secondary btn-icon" href="{% url 'consulta-list' %}" title="Cancelar e voltar">
+            <i class="bi bi-arrow-left"></i>
+            Voltar
+          </a>
+          <button class="btn btn-success btn-icon" type="submit">
+            <i class="bi bi-check2-circle"></i>
+            Salvar
+          </button>
         </div>
       </form>
     </div>
@@ -61,9 +92,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const list = document.getElementById('resultado-paciente-regconsulta');
   const select = document.getElementById('id_paciente');
   const espec = document.getElementById('id_especialidade');
-  const banner = document.getElementById('consulta-alerta');
   const detalhesBox = document.getElementById('consulta-detalhes');
   if (!input || !list || !select) return;
+  // Realçar datas (solicitado em / agendado(a) para) como badge
+  function realceDatas(texto){
+    if (!texto) return '';
+    // (solicitado em dd/mm/yyyy [hh:mm])
+    texto = texto.replace(/\((solicitado em \d{2}\/\d{2}\/\d{4}(?: \d{2}:\d{2})?)\)/gi, function(_,grp){
+      return ' <span class="badge bg-warning-subtle text-dark border">'+grp+'</span>';
+    });
+    // (agendado|agendada para ...)
+    texto = texto.replace(/\((agendad[ao]s?\s+para[^)]*)\)/gi, function(_,grp){
+      return ' <span class="badge bg-info-subtle text-dark border">'+grp+'</span>';
+    });
+    return texto;
+  }
 
   let timer = null;
 
@@ -84,10 +127,6 @@ document.addEventListener('DOMContentLoaded', function () {
         clearList();
         // Atualizar aviso de consultas existentes
         try {
-          if (banner){
-            banner.classList.add('d-none');
-            banner.textContent = '';
-          }
           if (detalhesBox){
             detalhesBox.classList.add('d-none');
             detalhesBox.innerHTML = '';
@@ -101,22 +140,11 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
               .then(r => r.ok ? r.json() : Promise.reject())
               .then(d => {
-                if (!d || !d.ok || !banner) return;
-                const fila = d.fila_count || 0;
-                const ag = d.agendadas_count || 0;
-                const same = d.same_especialidade;
-                let parts = [];
-                if (fila) parts.push(`${fila} em fila de espera`);
-                if (ag) parts.push(`${ag} agendada(s)`);
-                if (parts.length){
-                  let msg = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
-                  if (same === true){ msg += ' Já existe solicitação nesta mesma especialidade.'; }
-                  banner.textContent = msg;
-                  banner.classList.remove('d-none');
-                }
+                if (!d || !d.ok) return;
                 const detalhes = Array.isArray(d.detalhes) ? d.detalhes : [];
                 if (detalhes.length && detalhesBox){
-                  detalhesBox.innerHTML = `<div><strong>Detalhes:</strong></div><ul class="mb-0">${detalhes.map(t => `<li>${t}</li>`).join('')}</ul>`;
+                  const itens = detalhes.map(t => `<li>${realceDatas(t)}</li>`).join('');
+                  detalhesBox.innerHTML = `<div class="mb-1"><strong>Solicitações relacionadas</strong></div><ul class="mb-0">${itens}</ul>`;
                   detalhesBox.classList.remove('d-none');
                 }
               })
@@ -148,11 +176,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // Atualizar banner ao mudar especialidade (se paciente já selecionado)
   if (espec){
     espec.addEventListener('change', function(){
-      try {
-  if (!banner) return;
-        banner.classList.add('d-none');
-        banner.textContent = '';
-  if (detalhesBox){ detalhesBox.classList.add('d-none'); detalhesBox.innerHTML = ''; }
+  try {
+    if (detalhesBox){ detalhesBox.classList.add('d-none'); detalhesBox.innerHTML = ''; }
         const pid = parseInt(select.value || '0', 10);
         const eid = parseInt(espec.value || '0', 10);
         if (!pid) return;
@@ -163,21 +188,10 @@ document.addEventListener('DOMContentLoaded', function () {
           .then(r => r.ok ? r.json() : Promise.reject())
           .then(d => {
             if (!d || !d.ok) return;
-            const fila = d.fila_count || 0;
-            const ag = d.agendadas_count || 0;
-            const same = d.same_especialidade;
-            let parts = [];
-            if (fila) parts.push(`${fila} em fila de espera`);
-            if (ag) parts.push(`${ag} agendada(s)`);
-            if (parts.length){
-              let msg = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
-              if (same === true){ msg += ' Já existe solicitação nesta mesma especialidade.'; }
-              banner.textContent = msg;
-              banner.classList.remove('d-none');
-            }
             const detalhes = Array.isArray(d.detalhes) ? d.detalhes : [];
             if (detalhes.length && detalhesBox){
-              detalhesBox.innerHTML = `<div><strong>Detalhes:</strong></div><ul class="mb-0">${detalhes.map(t => `<li>${t}</li>`).join('')}</ul>`;
+              const itens = detalhes.map(t => `<li>${realceDatas(t)}</li>`).join('');
+              detalhesBox.innerHTML = `<div class="mb-1"><strong>Solicitações relacionadas</strong></div><ul class="mb-0">${itens}</ul>`;
               detalhesBox.classList.remove('d-none');
             }
           })
@@ -190,7 +204,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const pid = parseInt(select.value || '0', 10);
     const eid = espec ? parseInt(espec.value || '0', 10) : 0;
     if (pid > 0){
-      if (banner){ banner.classList.add('d-none'); banner.textContent = ''; }
       if (detalhesBox){ detalhesBox.classList.add('d-none'); detalhesBox.innerHTML = ''; }
       const url = new URL('{% url "consulta-alertas" %}', window.location.origin);
       url.searchParams.set('paciente_id', String(pid));
@@ -199,21 +212,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(d => {
           if (!d || !d.ok) return;
-          const fila = d.fila_count || 0;
-          const ag = d.agendadas_count || 0;
-          const same = d.same_especialidade;
-          let parts = [];
-          if (fila) parts.push(`${fila} em fila de espera`);
-          if (ag) parts.push(`${ag} agendada(s)`);
-          if (parts.length && banner){
-            let msg = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
-            if (same === true){ msg += ' Já existe solicitação nesta mesma especialidade.'; }
-            banner.textContent = msg;
-            banner.classList.remove('d-none');
-          }
           const detalhes = Array.isArray(d.detalhes) ? d.detalhes : [];
           if (detalhes.length && detalhesBox){
-            detalhesBox.innerHTML = `<div><strong>Detalhes:</strong></div><ul class="mb-0">${detalhes.map(t => `<li>${t}</li>`).join('')}</ul>`;
+            const itens = detalhes.map(t => `<li>${realceDatas(t)}</li>`).join('');
+            detalhesBox.innerHTML = `<div class="mb-1"><strong>Solicitações relacionadas</strong></div><ul class="mb-0">${itens}</ul>`;
             detalhesBox.classList.remove('d-none');
           }
         })

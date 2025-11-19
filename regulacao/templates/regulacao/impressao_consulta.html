@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Impressão - Consulta</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12pt; color: #000; }
+    .container { max-width: 800px; margin: 0 auto; padding: 12px; }
+    h1 { font-size: 18pt; margin: 0 0 8px; }
+    h2 { font-size: 14pt; margin: 16px 0 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 6px; vertical-align: top; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+    .muted { color: #333; }
+    .small { font-size: 10pt; }
+    @media print {
+      .no-print { display: none !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+  <script>
+    window.addEventListener('load', function(){
+      // abra a caixa de impressão automaticamente em desktop
+      if (window.matchMedia) {
+        setTimeout(function(){ window.print(); }, 300);
+      }
+    });
+  </script>
+  {% load tz %}
+</head>
+<body>
+  <div class="container">
+    <div class="no-print" style="text-align:right; margin-bottom: 8px;">
+      <button onclick="window.print()">Imprimir</button>
+    </div>
+    <h1>Comprovante de Consulta</h1>
+    <h2>Dados do Paciente</h2>
+    <div class="grid">
+      <div><strong>Nome:</strong> {{ paciente.nome }}</div>
+      <div><strong>CPF:</strong> {{ paciente.cpf }}</div>
+      <div><strong>CNS:</strong> {{ paciente.cns }}</div>
+      <div><strong>UBS Solicitante:</strong> {{ reg.ubs_solicitante.nome|default:reg.ubs_solicitante }}</div>
+    </div>
+
+    <h2>Agendamento</h2>
+    <div class="grid">
+      <div><strong>Especialidade:</strong> {{ reg.especialidade.nome|default:reg.especialidade }}</div>
+      <div><strong>Local:</strong> {{ reg.local_atendimento|default:"-" }}</div>
+      <div><strong>Data:</strong> {{ reg.data_agendada|date:"d/m/Y" }}</div>
+      <div><strong>Hora:</strong> {{ reg.hora_agendada|time:"H:i" }}</div>
+      {% if reg.medico_atendente %}
+      <div><strong>Médico Atendente:</strong> {{ reg.medico_atendente.nome|default:reg.medico_atendente }}</div>
+      {% endif %}
+      {% if reg.observacoes_regulacao %}
+      <div style="grid-column: 1/-1;"><strong>Observações:</strong> <span class="muted">{{ reg.observacoes_regulacao }}</span></div>
+      {% endif %}
+    </div>
+
+    <h2>Autorização</h2>
+    <div class="grid">
+      <div><strong>Autorizado por:</strong> {{ reg.regulador.get_full_name|default:reg.regulador }}</div>
+      <div><strong>Data/Hora:</strong> {% timezone "America/Sao_Paulo" %}{{ reg.data_regulacao|date:"d/m/Y H:i" }}{% endtimezone %}</div>
+    </div>
+
+    <p class="small muted" style="margin-top: 16px;">Impressão gerada em {% now "d/m/Y H:i" %}.</p>
+  </div>
+</body>
+</html>

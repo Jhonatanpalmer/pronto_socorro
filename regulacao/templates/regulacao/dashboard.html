@@ -66,7 +66,85 @@
                         <i class="bi bi-calendar2-week"></i>
                     </div>
                     <div class="text-muted mb-2">Exames e consultas agendados</div>
-                    <a href="{% url 'regulacao-agenda' %}" class="btn btn-success btn-sm">Ver Agenda</a>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{% url 'regulacao-agenda' %}" class="btn btn-success btn-sm">Ver Agenda</a>
+                        <a href="{% url 'o-que-fiz-hoje' %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-clipboard-data"></i> O que fiz hoje?
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pendências da UBS selecionada (Malote) -->
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="card app-card">
+                <div class="app-accent accent-warning"></div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Pendências da UBS</h5>
+                        <a href="{% url 'regulacao-agenda' %}" class="btn btn-sm btn-outline-secondary">Ver Agenda</a>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Consultas</strong>
+                                    <span class="badge bg-warning text-dark">{{ pend_co_count|default:0 }}</span>
+                                </div>
+                                <ul class="list-unstyled mb-0 small">
+                                    {% for c in pend_co_list %}
+                                    <li class="d-flex justify-content-between align-items-start py-1 border-bottom">
+                                        <div class="me-2">
+                                            <div class="fw-semibold text-truncate" style="max-width: 280px;">{{ c.paciente.nome }}</div>
+                                            <div class="text-muted">{{ c.especialidade.nome }}</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <a class="btn btn-sm btn-outline-primary" href="{% url 'paciente-pedido' c.paciente_id %}?only=co">Abrir pedido</a>
+                                            {% with last=c.msgs_ubs.0 %}
+                                              {% if last %}
+                                                <div class="text-muted small mt-1">Respondido por: {% firstof last.autor.get_full_name last.autor.username %} · {{ last.criado_em|date:'d/m/Y H:i' }}</div>
+                                              {% endif %}
+                                            {% endwith %}
+                                        </div>
+                                    </li>
+                                    {% empty %}
+                                    <li class="text-muted">Sem pendências de consultas.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Exames</strong>
+                                    <span class="badge bg-warning text-dark">{{ pend_ex_count|default:0 }}</span>
+                                </div>
+                                <ul class="list-unstyled mb-0 small">
+                                    {% for e in pend_ex_list %}
+                                    <li class="d-flex justify-content-between align-items-start py-1 border-bottom">
+                                        <div class="me-2">
+                                            <div class="fw-semibold text-truncate" style="max-width: 280px;">{{ e.paciente.nome }}</div>
+                                            <div class="text-muted">{{ e.tipo_exame.nome }}</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <a class="btn btn-sm btn-outline-primary" href="{% url 'paciente-pedido' e.paciente_id %}?only=ex">Abrir pedido</a>
+                                            {% with last=e.msgs_ubs.0 %}
+                                              {% if last %}
+                                                <div class="text-muted small mt-1">Respondido por: {% firstof last.autor.get_full_name last.autor.username %} · {{ last.criado_em|date:'d/m/Y H:i' }}</div>
+                                              {% endif %}
+                                            {% endwith %}
+                                        </div>
+                                    </li>
+                                    {% empty %}
+                                    <li class="text-muted">Sem pendências de exames.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

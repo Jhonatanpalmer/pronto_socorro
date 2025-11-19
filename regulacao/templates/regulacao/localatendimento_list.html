@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Locais de Atendimento{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">
+                <i class="bi bi-geo-alt text-success"></i>
+                Locais de Atendimento
+            </h2>
+            <p class="text-muted mb-0">Gerencie os locais onde os atendimentos são realizados</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'localatendimento-create' %}" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Novo Local
+            </a>
+            <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    {% if locais_list %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Telefone</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for local in locais_list %}
+                        <tr>
+                            <td>
+                                <strong>{{ local.nome }}</strong>
+                                {% if local.endereco %}
+                                <br><small class="text-muted">{{ local.endereco|truncatechars:60 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if local.tipo == 'ambulatorio' %}Ambulatório{% endif %}
+                                {% if local.tipo == 'centro_imagem' %}Centro de Imagem{% endif %}
+                                {% if local.tipo == 'laboratorio' %}Laboratório{% endif %}
+                                {% if local.tipo == 'clinica' %}Clínica{% endif %}
+                                {% if local.tipo == 'hospital' %}Hospital{% endif %}
+                                {% if local.tipo == 'outro' %}Outro{% endif %}
+                            </td>
+                            <td>{{ local.telefone|default:"-" }}</td>
+                            <td>
+                                {% if local.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'localatendimento-update' local.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <a href="{% url 'localatendimento-delete' local.pk %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                    <i class="bi bi-trash-fill"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info shadow-sm text-center">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Nenhum local cadastrado.
+        <a href="{% url 'localatendimento-create' %}" class="alert-link">Clique aqui para cadastrar o primeiro</a>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.db import connections
+from pacientes.services import get_esus_connection
 
 
 class Command(BaseCommand):
@@ -15,7 +15,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         limit = options["limit"]
-        with connections["esus"].cursor() as cursor:
+        conn = get_esus_connection()
+        with conn.cursor() as cursor:
             sql = "SELECT * FROM tb_cidadao"
             if limit and limit > 0:
                 sql += f" LIMIT {int(limit)}"

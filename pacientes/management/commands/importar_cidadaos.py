@@ -1,10 +1,11 @@
 from typing import Any, Dict, List, Optional
 
 from django.core.management.base import BaseCommand
-from django.db import connections, transaction
+from django.db import transaction
 from django.utils.dateparse import parse_date, parse_datetime
 
 from pacientes.models import Paciente, validate_cpf
+from pacientes.services import get_esus_connection
 from django.core.exceptions import ValidationError
 
 
@@ -39,7 +40,7 @@ ALT_NAMES = {
         "nu_telefone_contato",
     ],
     # Endereço (tentativa de composição)
-    "logradouro": ["logradouro", "ds_logradouro", "endereco", "rua"],
+    "logradouro": ["logradouro", "ds_logradouro", "rua"],
     "numero": ["numero", "nr_numero", "num_residencia", "nr_resid"],
     "bairro": ["bairro", "ds_bairro"],
     "municipio": ["municipio", "nm_municipio", "cidade"],
@@ -103,18 +104,6 @@ def to_date(value: Any) -> Optional[str]:
     return d.isoformat() if d else None
 
 
-def build_endereco(row: Dict[str, Any]) -> str:
-    logradouro = pick_first(row, ALT_NAMES["logradouro"]) or ""
-    numero = pick_first(row, ALT_NAMES["numero"]) or ""
-    bairro = pick_first(row, ALT_NAMES["bairro"]) or ""
-    municipio = pick_first(row, ALT_NAMES["municipio"]) or ""
-    uf = pick_first(row, ALT_NAMES["uf"]) or ""
-    partes = [str(p).strip() for p in [logradouro, numero, bairro, municipio, uf] if str(p).strip()]
-    endereco = ", ".join(partes)
-    # Campo do modelo tem max_length=30 (apesar de ser TextField), então truncamos
-    return endereco[:30]
-
-
 class Command(BaseCommand):
     help = (
         "Importa cidadãos do e-SUS (tb_cidadao) para o modelo Paciente. "
@@ -145,7 +134,8 @@ class Command(BaseCommand):
         updated = 0
         skipped = 0
 
-        with connections["esus"].cursor() as cursor:
+        conn = get_esus_connection()
+        with conn.cursor() as cursor:
             # Verifica colunas disponíveis
             cursor.execute(f"SELECT * FROM {qualified_table} LIMIT 0")
             colnames = [c[0] for c in cursor.description]
@@ -191,7 +181,6 @@ class Command(BaseCommand):
                         cns = normalize_cns(pick_first(row, ALT_NAMES["cns"]))
                         data_nasc = to_date(pick_first(row, ALT_NAMES["data_nascimento"]))
                         telefone = normalize_telefone(pick_first(row, ALT_NAMES["telefone"])) or ""
-                        endereco = build_endereco(row)
 
                         if not nome:
                             # Sem nome não conseguimos popular o modelo (obrigatório)
@@ -218,7 +207,6 @@ class Command(BaseCommand):
                             "nome": nome,
                             "cns": cns,
                             "data_nascimento": data_nasc,
-                            "endereco": endereco,
                             "telefone": telefone,
                         }
                         # cpf só define quando válido
@@ -249,7 +237,6 @@ class Command(BaseCommand):
                                     cpf=cpf,
                                     cns=cns,
                                     data_nascimento=data_nasc,
-                                    endereco=endereco,
                                     telefone=telefone,
                                 )
                                 created += 1

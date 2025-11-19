@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}{% if obj %}Editar Abastecimento{% else %}Novo Abastecimento{% endif %}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+  <h6 class="mb-0"><i class="bi bi-fuel-pump"></i> {% if obj %}Editar Abastecimento{% else %}Registrar Abastecimento{% endif %}</h6>
+      <a href="{% url 'abastecimento-list' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-list-ul"></i> Lista</a>
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Motorista</label>
+            {{ form.motorista|add_class:'form-select' }}
+            {% if form.motorista.errors %}<div class="invalid-feedback d-block">{{ form.motorista.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Veículo</label>
+            {{ form.veiculo|add_class:'form-select' }}
+            {% if form.veiculo.errors %}<div class="invalid-feedback d-block">{{ form.veiculo.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Tipo do Veículo</label>
+            {{ form.tipo_veiculo|add_class:'form-select' }}
+            {% if form.tipo_veiculo.errors %}<div class="invalid-feedback d-block">{{ form.tipo_veiculo.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Combustível</label>
+            {{ form.tipo_combustivel|add_class:'form-select' }}
+            {% if form.tipo_combustivel.errors %}<div class="invalid-feedback d-block">{{ form.tipo_combustivel.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Local de Abastecimento</label>
+            {{ form.local_abastecimento|add_class:'form-control'|attr:'placeholder:Ex.: Posto Central' }}
+            {% if form.local_abastecimento.errors %}<div class="invalid-feedback d-block">{{ form.local_abastecimento.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Data</label>
+            {{ form.data_hora|add_class:'form-control' }}
+            {% if form.data_hora.errors %}<div class="invalid-feedback d-block">{{ form.data_hora.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Observação</label>
+            {{ form.observacao|add_class:'form-control'|attr:'rows:3'|attr:'placeholder:Informações adicionais (opcional)' }}
+            {% if form.observacao.errors %}<div class="invalid-feedback d-block">{{ form.observacao.errors|striptags }}</div>{% endif %}
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a href="{% url 'abastecimento-list' %}" class="btn btn-outline-secondary btn-icon"><i class="bi bi-arrow-left"></i> Voltar</a>
+          <button type="submit" class="btn btn-success btn-icon"><i class="bi bi-check2-circle"></i> {% if obj %}Atualizar{% else %}Salvar{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -73,7 +73,7 @@
                 <tr>
                   <td>
                     <div class="fw-semibold text-truncate" style="max-width: 360px;" title="{{ g.paciente.nome }}">{{ g.paciente.nome }}</div>
-                    <a href="{% url 'paciente-pedido' g.paciente_id %}" class="btn btn-outline-secondary btn-sm mt-1">
+                    <a href="{% url 'paciente-pedido' g.paciente_id %}?only=co" class="btn btn-warning btn-sm mt-1 fw-semibold shadow-sm">
                       <i class="bi bi-box-arrow-up-right"></i> Ver pedido
                     </a>
                   </td>
@@ -99,6 +99,25 @@
                 {% endfor %}
               </tbody>
             </table>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+            <div>
+              Mostrando {{ consultas|length }} de {{ p_co.count }} paciente(s) — ordem: mais antigos primeiro
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <label for="per_co" class="me-1">por página</label>
+              <form method="get" class="d-inline">
+                <input type="hidden" name="only" value="co">
+                {% if q_co %}<input type="hidden" name="q_co" value="{{ q_co }}">{% endif %}
+                {% if q_ex %}<input type="hidden" name="q_ex" value="{{ q_ex }}">{% endif %}
+                {% if di %}<input type="hidden" name="di" value="{{ di }}">{% endif %}
+                {% if df %}<input type="hidden" name="df" value="{{ df }}">{% endif %}
+                <select id="per_co" name="per_co" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="this.form.submit()">
+                  <option value="5" {% if per_co == 5 %}selected{% endif %}>5</option>
+                  <option value="10" {% if per_co == 10 %}selected{% endif %}>10</option>
+                </select>
+              </form>
+            </div>
           </div>
           {% if consultas.has_other_pages %}
           <nav class="mt-2" aria-label="Paginação Consultas">
@@ -174,7 +193,7 @@
                 <tr>
                   <td>
                     <div class="fw-semibold text-truncate" style="max-width: 360px;" title="{{ g.paciente.nome }}">{{ g.paciente.nome }}</div>
-                    <a href="{% url 'paciente-pedido' g.paciente_id %}" class="btn btn-outline-secondary btn-sm mt-1">
+                    <a href="{% url 'paciente-pedido' g.paciente_id %}?only=ex" class="btn btn-warning btn-sm mt-1 fw-semibold shadow-sm">
                       <i class="bi bi-box-arrow-up-right"></i> Ver pedido
                     </a>
                   </td>
@@ -200,6 +219,25 @@
                 {% endfor %}
               </tbody>
             </table>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+            <div>
+              Mostrando {{ exames|length }} de {{ p_ex.count }} paciente(s) — ordem: mais antigos primeiro
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <label for="per_ex" class="me-1">por página</label>
+              <form method="get" class="d-inline">
+                <input type="hidden" name="only" value="ex">
+                {% if q_co %}<input type="hidden" name="q_co" value="{{ q_co }}">{% endif %}
+                {% if q_ex %}<input type="hidden" name="q_ex" value="{{ q_ex }}">{% endif %}
+                {% if di %}<input type="hidden" name="di" value="{{ di }}">{% endif %}
+                {% if df %}<input type="hidden" name="df" value="{{ df }}">{% endif %}
+                <select id="per_ex" name="per_ex" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="this.form.submit()">
+                  <option value="5" {% if per_ex == 5 %}selected{% endif %}>5</option>
+                  <option value="10" {% if per_ex == 10 %}selected{% endif %}>10</option>
+                </select>
+              </form>
+            </div>
           </div>
           {% if exames.has_other_pages %}
           <nav class="mt-2" aria-label="Paginação Exames">
@@ -233,6 +271,10 @@
     .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #0d6efd); }
     .accent-primary { --accent-grad: linear-gradient(90deg, #0d6efd, #6610f2); }
     .accent-warning { --accent-grad: linear-gradient(90deg, #ffc107, #fd7e14); }
+    .btn-warning { background-image: linear-gradient(180deg, #ffc107, #fd7e14); border: none; color: #111; }
+    .btn-warning:hover { filter: brightness(0.95); }
+    .table thead th { border-bottom-width: 2px; }
+    .card-header strong { font-size: 1.05rem; }
   </style>
 
   <script>

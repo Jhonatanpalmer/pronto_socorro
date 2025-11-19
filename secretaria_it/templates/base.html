@@ -11,55 +11,449 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* Base layout tweaks */
+        /* Variáveis de cores e tema */
+        :root {
+            --it-primary: #4e73df;
+            --it-primary-dark: #2e59d9;
+            --it-primary-light: #6f8df7;
+            --it-secondary: #858796;
+            --it-success: #1cc88a;
+            --it-success-dark: #13855c;
+            --it-info: #36b9cc;
+            --it-warning: #f6c23e;
+            --it-danger: #e74a3b;
+            --it-light: #f8f9fc;
+            --it-dark: #5a5c69;
+            --it-gradient-primary: linear-gradient(135deg, var(--it-primary) 0%, var(--it-primary-dark) 100%);
+            --it-gradient-success: linear-gradient(135deg, var(--it-success) 0%, var(--it-success-dark) 100%);
+            --it-gradient-blue-green: linear-gradient(135deg, var(--it-primary) 0%, var(--it-success) 100%);
+            --it-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            --it-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            --it-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+            --it-transition: all 0.3s ease;
+            --it-border-radius: 0.75rem;
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(78, 115, 223, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0); }
+        }
+
+        /* Estilos base e tipografia aprimorada */
         body {
             padding-top: 70px;
             background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+            font-family: 'Nunito', sans-serif;
+            color: var(--it-dark);
+            line-height: 1.6;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700;
+            color: var(--it-primary-dark);
+            margin-bottom: 1rem;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
+        }
+        
+        h1 {
+            font-size: 2.25rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        h2 {
+            font-size: 1.85rem;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+        }
+        
+        p {
+            margin-bottom: 1.2rem;
+            font-size: 1.05rem;
+        }
+        
+        .text-emphasis {
+            font-weight: 600;
+            color: var(--it-primary-dark);
+        }
+        
+        .text-large {
+            font-size: 1.15rem;
+        }
+        
+        .text-small {
+            font-size: 0.9rem;
+            letter-spacing: 0.01em;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
         footer {
-            background-color: #f8f9fa;
-            padding: 1rem 0;
+            background-color: var(--it-light);
+            padding: 1.5rem 0;
             text-align: center;
             margin-top: 3rem;
-            border-top: 1px solid #dee2e6;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            font-weight: 500;
         }
         
-        /* Vivid Navbar */
+        /* Navbar moderna */
         .navbar-gradient {
-            background-image: linear-gradient(90deg, #0d6efd 0%, #6610f2 100%);
-            box-shadow: 0 6px 18px rgba(13, 110, 253, 0.25);
+            background-image: var(--it-gradient-primary);
+            box-shadow: var(--it-shadow);
+            padding: 0.75rem 1rem;
         }
-        .navbar-gradient .navbar-brand {
-            font-weight: 600;
-            letter-spacing: .2px;
-        }
-        .navbar .nav-link {
-            transition: color .15s ease, opacity .15s ease;
-        }
-        .navbar .nav-link:hover { opacity: 0.9; }
         
-        /* Dropdown polish */
+        .navbar-gradient .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-size: 1.25rem;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .navbar .nav-link {
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: var(--it-transition);
+        }
+        
+        .navbar .nav-link:hover { 
+            background-color: rgba(255,255,255,0.1);
+            transform: translateY(-1px);
+        }
+        
+        /* Dropdown aprimorado */
         .dropdown-menu {
-            border-radius: .75rem;
-            box-shadow: 0 10px 24px rgba(0,0,0,.12);
+            border-radius: var(--it-border-radius);
+            box-shadow: var(--it-shadow);
+            border: none;
+            overflow: hidden;
+            animation: fadeIn 0.2s ease-out forwards;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Scrollbar personalizada para o dropdown */
+        .dropdown-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .dropdown-menu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .dropdown-menu::-webkit-scrollbar-thumb {
+            background: var(--it-primary);
+            border-radius: 3px;
+        }
+        
+        .dropdown-menu::-webkit-scrollbar-thumb:hover {
+            background: var(--it-primary-dark);
+        }
+        
+        .dropdown-item { 
+            padding: 0.75rem 1.25rem;
+            font-weight: 500;
+            transition: var(--it-transition);
+        }
+        
+        .dropdown-item i { 
+            width: 1.5rem;
+            color: var(--it-primary);
+            margin-right: 0.5rem;
+        }
+        
+        .dropdown-item:hover { 
+            background-color: var(--it-light);
+            transform: translateX(5px);
+        }
+        
+        .dropdown-item:active { 
+            background-color: var(--it-primary-light);
+            color: white;
+        }
+        
+        /* Cards modernos */
+        .card { 
+            border: none;
+            border-radius: var(--it-border-radius);
+            box-shadow: var(--it-shadow-sm);
+            transition: var(--it-transition);
             overflow: hidden;
         }
-        .dropdown-item i { width: 1.25rem; }
-        .dropdown-item:active { background-color: #e7f1ff; color: #0d6efd; }
         
-        /* Cards and tables */
-        .card { border: none; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
-        .table thead th { border-top: none; }
-        
-        /* Vivid primary button */
-        .btn-primary {
-            background-image: linear-gradient(180deg, #0d6efd 0%, #0b5ed7 100%);
-            border: none;
-            box-shadow: 0 8px 16px rgba(13,110,253,.25);
+        .card:hover {
+            box-shadow: var(--it-shadow);
+            transform: translateY(-3px);
         }
-        .btn-primary:hover { filter: brightness(1.03); }
-        .btn-outline-light.btn-sm { border-color: rgba(255,255,255,.8); }
+        
+        /* Botões modernos */
+        .btn {
+            border-radius: 0.5rem;
+            font-weight: 600;
+            padding: 0.5rem 1.25rem;
+            transition: var(--it-transition);
+            border: none;
+        }
+        
+        .btn-primary {
+            background-image: var(--it-gradient-primary);
+            box-shadow: 0 4px 10px rgba(78, 115, 223, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(78, 115, 223, 0.4);
+        }
+        
+        .btn-success {
+            background-image: var(--it-gradient-success);
+            box-shadow: 0 4px 10px rgba(28, 200, 138, 0.3);
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(28, 200, 138, 0.4);
+        }
+        
+        .btn-outline-light.btn-sm { 
+            border: 1px solid rgba(255,255,255,0.8);
+            font-weight: 500;
+        }
+        
+        /* Tabelas aprimoradas */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table thead th {
+            background: var(--it-gradient-primary);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 0.75rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .table thead th:first-child {
+            border-top-left-radius: 0.5rem;
+        }
+        
+        .table thead th:last-child {
+            border-top-right-radius: 0.5rem;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(78, 115, 223, 0.05);
+            transform: scale(1.01);
+            transition: var(--it-transition);
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--it-primary) var(--it-light);
+        }
+        
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-track {
+            background: var(--it-light);
+        }
+        
+        .table-responsive::-webkit-scrollbar-thumb {
+            background-color: var(--it-primary);
+            border-radius: 20px;
+        }
+        
+        .th-icon {
+            color: rgba(255,255,255,0.8);
+            margin-right: 0.5rem;
+        }
+
+        /* Estilos para cards de Regulação */
+        .pp-card, .ag-card {
+            border: none;
+            box-shadow: var(--it-shadow);
+            border-radius: var(--it-border-radius);
+            overflow: hidden;
+            transition: var(--it-transition);
+        }
+        
+        .pp-header, .ag-header {
+            background: var(--it-gradient-blue-green);
+            color: #fff;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .pp-header h6, .ag-header h6 {
+            margin: 0;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .pp-badge-ubs {
+            background: #cff4fc;
+            color: #055160;
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 0.5rem;
+        }
+        
+        /* Formulários modernos */
+        .form-control, .form-select {
+            border-radius: 0.5rem;
+            padding: 0.6rem 1rem;
+            border: 1px solid rgba(0,0,0,0.1);
+            transition: var(--it-transition);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--it-primary);
+            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--it-secondary);
+        }
+        
+        .input-with-icon {
+            padding-left: 2.75rem;
+        }
+        
+        /* Responsividade Aprimorada */
+        @media (max-width: 767.98px) {
+            body {
+                padding-top: 60px;
+                font-size: 0.95rem;
+            }
+            
+            h1, h2, h3 {
+                font-size: calc(1.2rem + 1vw);
+            }
+            
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            .navbar-gradient .navbar-brand {
+                font-size: 1.1rem;
+            }
+            
+            .navbar-collapse {
+                background: var(--it-gradient-primary);
+                border-radius: 0 0 1rem 1rem;
+                padding: 1rem;
+                box-shadow: var(--it-shadow);
+                margin: 0 -1rem;
+            }
+            
+            .btn {
+                padding: 0.4rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .card {
+                margin-bottom: 1rem;
+            }
+            
+            .pp-header, .ag-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+            }
+            
+            .table-responsive {
+                margin: 0 -0.5rem;
+                padding: 0 0.5rem;
+                width: calc(100% + 1rem);
+            }
+            
+            .form-control, .form-select {
+                font-size: 1rem;
+                height: calc(2.5rem + 2px);
+            }
+            
+            .input-group > .form-control {
+                min-height: 38px;
+            }
+            
+            /* Ajustes para telas muito pequenas */
+            .d-xs-none {
+                display: none !important;
+            }
+            
+            .w-xs-100 {
+                width: 100% !important;
+            }
+            
+            /* Melhorias para touch */
+            .btn, .nav-link, .form-control, select, input[type="checkbox"], input[type="radio"] {
+                min-height: 44px;
+            }
+        }
+        
+        /* Ajustes para tablets */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            .container {
+                max-width: 96%;
+            }
+            
+            .table-responsive {
+                overflow-x: auto;
+            }
+            
+            .card-deck {
+                display: flex;
+                flex-flow: row wrap;
+                margin-right: -0.5rem;
+                margin-left: -0.5rem;
+            }
+            
+            .card-deck .card {
+                flex: 1 0 calc(50% - 1rem);
+                margin: 0 0.5rem 1rem;
+            }
+        }
         
         /* Print: hide non-essential */
         @media print {
@@ -67,15 +461,15 @@
             .navbar, .footer, .sidebar, .btn, .d-print-none { display: none !important; }
             .container { max-width: 100% !important; }
         }
+        .counter { color: #6c757d; }
+        .pp-section-actions { border-top: 1px solid #e9ecef; }
     </style>
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top navbar-gradient">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'dashboard' %}">
-                <i class="bi bi-truck-front-fill"></i>Secretaria Municipal de Saúde
-            </a>
+            <a class="navbar-brand" href="{% url 'dashboard' %}">Secretaria Municipal de Saúde</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
                 <span class="navbar-toggler-icon"></span>
@@ -98,13 +492,6 @@
                             <i class="bi bi-clipboard-data"></i> Gerenciar
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navDropdown">
-                                                        <!-- Viagens -->
-                                                        {% if acc_viagens %}
-                                                            <li><a class="dropdown-item" href="{% url 'viagem-list' %}"><i class="bi bi-truck"></i> Viagens</a></li>
-                                                            <li><a class="dropdown-item" href="{% url 'viagem-create' %}"><i class="bi bi-plus-circle"></i> Nova Viagem</a></li>
-                                                            <li><hr class="dropdown-divider"></li>
-                                                        {% endif %}
-
                                                         <!-- Pacientes -->
                                                         {% if acc_pacientes or acc_regulacao or is_ubs_user %}
                                                             <li><a class="dropdown-item" href="{% url 'paciente_list' %}"><i class="bi bi-people"></i> Pacientes</a></li>
@@ -112,13 +499,6 @@
                                                             {% if acc_pacientes %}
                                                                 <li><a class="dropdown-item" href="{% url 'paciente_list' %}"><i class="bi bi-clock-history"></i> Histórico do Paciente</a></li>
                                                             {% endif %}
-                                                            <li><hr class="dropdown-divider"></li>
-                                                        {% endif %}
-
-                                                        <!-- TFD -->
-                                                        {% if acc_tfd %}
-                                                            <li><a class="dropdown-item" href="{% url 'tfd-list' %}"><i class="bi bi-file-earmark-text"></i> TFD</a></li>
-                                                            <li><a class="dropdown-item" href="{% url 'tfd-create' %}"><i class="bi bi-plus-circle"></i> Novo TFD</a></li>
                                                             <li><hr class="dropdown-divider"></li>
                                                         {% endif %}
 
@@ -133,6 +513,12 @@
                                                                 <!-- Regulação: apenas fila e agenda (sem criar pedidos) -->
                                                                 <li><a class="dropdown-item" href="{% url 'regulacao-fila' %}"><i class="bi bi-hourglass-split"></i> Fila de Espera</a></li>
                                                                 <li><a class="dropdown-item" href="{% url 'regulacao-agenda' %}"><i class="bi bi-calendar2-week"></i> Agenda</a></li>
+                                                                <li><a class="dropdown-item" href="{% url 'agendamedica-list' %}"><i class="bi bi-calendar2-event"></i> Agenda Médica (mensal)</a></li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li><a class="dropdown-item" href="{% url 'ubs-list' %}"><i class="bi bi-building"></i> Cadastro de UBS</a></li>
+                                                                <li><a class="dropdown-item" href="{% url 'localatendimento-list' %}"><i class="bi bi-geo-alt"></i> Cadastro de Atendimento</a></li>
+                                                                <li><a class="dropdown-item" href="{% url 'medico-list' %}"><i class="bi bi-person-badge"></i> Cadastro de Médicos</a></li>
+                                                                    <li><a class="dropdown-item" href="{% url 'especialidade-list' %}"><i class="bi bi-collection"></i> Especialidades</a></li>
                                                             {% endif %}
                                                         {% endif %}
 
@@ -141,6 +527,8 @@
                                                             <li><a class="dropdown-item" href="{% url 'tipo-exame-list' %}"><i class="bi bi-table"></i> Tabela de Exames</a></li>
                                                             <li><a class="dropdown-item" href="{% url 'importar-sigtap' %}"><i class="bi bi-cloud-arrow-down"></i> Importar SIGTAP</a></li>
                                                         {% endif %}
+
+                                                        {# RH menu items removidos conforme solicitação #}
 
                             {% if acc_users_admin or user.is_superuser %}
                                 <li><hr class="dropdown-divider"></li>
@@ -261,5 +649,6 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

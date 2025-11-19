@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Importar Profissionais MG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="p-4 p-md-5 rounded-3 mb-4" style="background-image: linear-gradient(90deg, #0d6efd, #6610f2); box-shadow: 0 8px 24px rgba(13,110,253,.25);">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 text-white">
+      <div class="display-6"><i class="bi bi-cloud-upload"></i></div>
+      <div class="flex-grow-1">
+        <h2 class="fw-bold mb-1">Importar Profissionais de MG</h2>
+        <div class="text-white-50">Faça o upload do pacote ZIP disponibilizado pelo CNES</div>
+      </div>
+      <div>
+        <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info shadow-sm">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+      <div class="text-info"><i class="bi bi-info-circle-fill fs-4"></i></div>
+      <div class="flex-grow-1">
+        <strong>Dicas rápidas:</strong>
+        <ul class="mb-0 small">
+          <li>Somente arquivos <code>.zip</code> do CNES são aceitos.</li>
+          <li>Os arquivos internos devem ser CSV ou TXT com cabeçalho.</li>
+          <li>Use o campo "Encoding" apenas se o arquivo utilizar outro padrão (default: latin-1).</li>
+          <li>Ao marcar "Limpar antes", todos os registros existentes serão removidos antes da importação.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="card shadow-sm app-card">
+    <div class="app-accent accent-indigo"></div>
+    <div class="card-body">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors|join:', ' }}</div>
+      {% endif %}
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">{{ form.arquivo.label }} *</label>
+          {{ form.arquivo|add_class:"form-control" }}
+          <div class="form-text">{{ form.arquivo.help_text }}</div>
+          {% if form.arquivo.errors %}
+          <div class="text-danger small">{{ form.arquivo.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.encoding.label }}</label>
+          {{ form.encoding|add_class:"form-control" }}
+          <div class="form-text">{{ form.encoding.help_text }}</div>
+        </div>
+        <div class="col-md-4 d-flex align-items-center">
+          <div class="form-check mt-4">
+            {{ form.limpar_antes|add_class:"form-check-input" }}
+            <label class="form-check-label">{{ form.limpar_antes.label }}</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-end gap-2">
+      <a href="{% url 'regulacao-dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</a>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Importar</button>
+    </div>
+  </form>
+
+  <style>
+    .app-card { border: none; border-radius: 1rem; overflow: hidden; }
+    .app-accent { height: 6px; width: 100%; background: var(--accent-grad, #0d6efd); }
+    .accent-indigo { --accent-grad: linear-gradient(90deg, #0d6efd, #6610f2); }
+  </style>
+</div>
+{% endblock %}

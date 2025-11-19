@@ -10,24 +10,23 @@
       Solicitação de Exame — Protocolo #{{ regulacao.numero_protocolo }}
     </h4>
     <div class="d-print-none">
-      <button type="button" class="btn btn-outline-secondary me-2" onclick="window.print()">
-        <i class="bi bi-printer"></i> Imprimir
-      </button>
-      {% if regulacao.status == 'autorizado' %}
-      <a class="btn btn-success me-2" href="{% url 'comprovante-exame' regulacao.pk %}">
-        <i class="bi bi-ticket-perforated"></i> Imprimir comprovante
-      </a>
-      {% endif %}
       <a class="btn btn-outline-secondary" href="{% url 'regulacao-list' %}">
         <i class="bi bi-arrow-left"></i> Voltar
       </a>
       {# Botão de Regular removido: autorização/agendamento agora é por paciente #}
+      {% if not is_ubs_user %}
       <a class="btn btn-outline-primary" href="{% url 'regulacao-update' regulacao.pk %}">
         <i class="bi bi-pencil"></i> Editar
       </a>
       <a class="btn btn-outline-danger" href="{% url 'regulacao-delete' regulacao.pk %}">
         <i class="bi bi-trash"></i> Excluir
       </a>
+      {% endif %}
+      {% if regulacao.status == 'autorizado' and regulacao.data_agendada %}
+      <a class="btn btn-primary" href="{% url 'impressao-exames-dia' regulacao.paciente.id regulacao.data_agendada|date:'Y-m-d' %}" target="_blank">
+        <i class="bi bi-printer"></i> Imprimir do dia
+      </a>
+      {% endif %}
     </div>
   </div>
 
@@ -94,7 +93,7 @@
       <div class="row g-4">
         <div class="col-md-6">
           <h6 class="text-muted">Agendamento</h6>
-          <p class="mb-1"><strong>Local:</strong> {{ regulacao.local_realizacao|default:'—' }}</p>
+          <p class="mb-1"><strong>Local do atendimento:</strong> {{ regulacao.local_realizacao|default:'—' }}</p>
           <p class="mb-1"><strong>Data:</strong> {{ regulacao.data_agendada|date:'d/m/Y' }}</p>
           <p class="mb-0"><strong>Hora:</strong> {{ regulacao.hora_agendada|time:'H:i' }}</p>
         </div>
@@ -111,4 +110,5 @@
     </div>
   </div>
 </div>
+ 
 {% endblock %}

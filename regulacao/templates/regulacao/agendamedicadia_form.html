@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="container py-3">
+  <h3>{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Agenda Médica (por dia)</h3>
+  <form method="post" class="mt-3">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Médico</label>
+        {{ form.medico|add_class:'form-select' }}
+        {% if form.medico.errors %}<div class="text-danger small">{{ form.medico.errors }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Especialidade</label>
+        {{ form.especialidade|add_class:'form-select' }}
+        {% if form.especialidade.errors %}<div class="text-danger small">{{ form.especialidade.errors }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Data</label>
+        {{ form.data|add_class:'form-control' }}
+        {% if form.data.errors %}<div class="text-danger small">{{ form.data.errors }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Capacidade</label>
+        {{ form.capacidade|add_class:'form-control' }}
+        {% if form.capacidade.errors %}<div class="text-danger small">{{ form.capacidade.errors }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Ativo</label><br>
+        {{ form.ativo }}
+      </div>
+    </div>
+    <div class="mt-3 d-flex gap-2">
+      <button class="btn btn-primary">Salvar</button>
+      <a href="{% url 'agendadia-list' %}" class="btn btn-secondary">Voltar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

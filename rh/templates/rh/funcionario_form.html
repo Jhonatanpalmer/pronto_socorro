@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}{% if obj %}Editar Funcionário (RH){% else %}Novo Funcionário (RH){% endif %}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-person-badge"></i> {% if obj %}Editar Funcionário{% else %}Novo Funcionário{% endif %}</h6>
+      <a href="{% url 'rh-funcionario-list' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-list-ul"></i> Lista</a>
+    </div>
+    <div class="card-body">
+  <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% if form.errors %}
+        <div class="alert alert-danger">
+          <strong>Corrija os erros abaixo:</strong>
+          <ul class="mb-0">
+            {% for field_name, errors in form.errors.items %}
+              {% for error in errors %}
+                <li>
+                  {% if field_name != '__all__' %}
+                    {% for field in form %}
+                      {% if field.name == field_name %}{{ field.label }}: {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                  {{ error }}
+                </li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nome</label>
+            {{ form.nome|add_class:'form-control' }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">CPF</label>
+            {{ form.cpf|add_class:'form-control'|attr:'maxlength:14'|attr:'placeholder:000.000.000-00'|attr:'inputmode:numeric' }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">RG</label>
+            {{ form.rg|add_class:'form-control'|attr:'maxlength:12'|attr:'placeholder:00.000.000-0'|attr:'inputmode:numeric' }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Nascimento</label>
+            {{ form.data_nascimento|add_class:'form-control' }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Telefone</label>
+            {{ form.telefone|add_class:'form-control'|attr:'maxlength:15'|attr:'placeholder:(00) 00000-0000'|attr:'inputmode:numeric' }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">E-mail</label>
+            {{ form.email|add_class:'form-control' }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Setor/Lotação</label>
+            {{ form.setor_lotacao|add_class:'form-control' }}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Cargo</label>
+            {{ form.cargo|add_class:'form-control' }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Situação</label>
+            {{ form.situacao|add_class:'form-select' }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Vínculo</label>
+            {{ form.vinculo|add_class:'form-select' }}
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Admissão</label>
+            {{ form.data_admissao|add_class:'form-control' }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Desligamento</label>
+            {{ form.data_desligamento|add_class:'form-control' }}
+          </div>
+          <div class="col-12">
+            <div class="row g-3">
+              <div class="col-md-2">
+                <label class="form-label">CEP</label>
+                {{ form.cep|add_class:'form-control'|attr:'maxlength:9'|attr:'placeholder:00000-000'|attr:'inputmode:numeric' }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Endereço</label>
+                {{ form.endereco|add_class:'form-control'|attr:'placeholder:Rua/Avenida' }}
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Número</label>
+                {{ form.numero|add_class:'form-control' }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Bairro</label>
+                {{ form.bairro|add_class:'form-control' }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Cidade</label>
+                {{ form.cidade|add_class:'form-control' }}
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">UF</label>
+                {{ form.uf|add_class:'form-control'|attr:'maxlength:2'|attr:'placeholder:MG' }}
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Observações</label>
+            {{ form.observacoes|add_class:'form-control' }}
+          </div>
+          <div class="col-12">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Documento RG (PDF/Imagem)</label>
+                {{ form.doc_rg|add_class:'form-control' }}
+                <div class="form-text">Tamanho máximo: 10MB</div>
+                {% if obj and obj.doc_rg %}
+                  <div class="form-text"><a href="{{ obj.doc_rg.url }}" target="_blank">Ver arquivo atual</a></div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Documento CTPS (PDF/Imagem)</label>
+                {{ form.doc_ctps|add_class:'form-control' }}
+                <div class="form-text">Tamanho máximo: 10MB</div>
+                {% if obj and obj.doc_ctps %}
+                  <div class="form-text"><a href="{{ obj.doc_ctps.url }}" target="_blank">Ver arquivo atual</a></div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Comprovante de Endereço (PDF/Imagem)</label>
+                {{ form.doc_comprovante_endereco|add_class:'form-control' }}
+                <div class="form-text">Tamanho máximo: 10MB</div>
+                {% if obj and obj.doc_comprovante_endereco %}
+                  <div class="form-text"><a href="{{ obj.doc_comprovante_endereco.url }}" target="_blank">Ver arquivo atual</a></div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a href="{% url 'rh-funcionario-list' %}" class="btn btn-outline-secondary btn-icon"><i class="bi bi-arrow-left"></i> Voltar</a>
+          <button type="submit" class="btn btn-success btn-icon"><i class="bi bi-check2-circle"></i> {% if obj %}Atualizar{% else %}Salvar{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple input masks for CPF and phone (format-only; backend validates)
+document.addEventListener('DOMContentLoaded', function(){
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  const cpf = document.querySelector('input[name="cpf"]');
+  const tel = document.querySelector('input[name="telefone"]');
+  const rg = document.querySelector('input[name="rg"]');
+  const cep = document.querySelector('input[name="cep"]');
+  const fileInputs = [
+    document.querySelector('input[name="doc_rg"]'),
+    document.querySelector('input[name="doc_ctps"]'),
+    document.querySelector('input[name="doc_comprovante_endereco"]'),
+  ].filter(Boolean);
+  function maskCPF(v){
+    v = v.replace(/\D/g, '').slice(0,11);
+    if (v.length > 9) return v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+    if (v.length > 6) return v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    if (v.length > 3) return v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+    return v;
+  }
+  function maskTel(v){
+    v = v.replace(/\D/g, '').slice(0,11);
+    if (v.length > 10) return v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    if (v.length > 6) return v.replace(/(\d{2})(\d{0,5})(\d{0,4})/, '($1) $2-$3');
+    if (v.length > 2) return v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    return v;
+  }
+  function maskRG(v){
+    v = v.replace(/\D/g, '').slice(0,9);
+    if (v.length > 8) return v.replace(/(\d{2})(\d{3})(\d{3})(\d{0,1})/, '$1.$2.$3-$4');
+    if (v.length > 5) return v.replace(/(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    if (v.length > 2) return v.replace(/(\d{2})(\d{0,3})/, '$1.$2');
+    return v;
+  }
+  function maskCEP(v){
+    v = v.replace(/\D/g, '').slice(0,8);
+    if (v.length > 5) return v.replace(/(\d{5})(\d{0,3})/, '$1-$2');
+    return v;
+  }
+  if (cpf) cpf.addEventListener('input', e => { e.target.value = maskCPF(e.target.value); });
+  if (tel) tel.addEventListener('input', e => { e.target.value = maskTel(e.target.value); });
+  if (rg) rg.addEventListener('input', e => { e.target.value = maskRG(e.target.value); });
+  if (cep) cep.addEventListener('input', e => { e.target.value = maskCEP(e.target.value); });
+
+  // Client-side file size validation (defense-in-depth; server enforces too)
+  function humanSize(bytes){
+    const units = ['B','KB','MB','GB'];
+    let i=0, n=bytes;
+    while (n >= 1024 && i < units.length-1){ n/=1024; i++; }
+    return `${n.toFixed(1)} ${units[i]}`;
+  }
+  fileInputs.forEach(input => {
+    input.addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      if (f && f.size > MAX_SIZE){
+        alert(`Arquivo muito grande: ${humanSize(f.size)}. Limite: 10MB.`);
+        e.target.value = '';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

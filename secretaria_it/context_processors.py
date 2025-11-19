@@ -23,6 +23,9 @@ def group_flags(request) -> Dict[str, bool]:
         'acc_viagens': user_has_access(user, 'viagens'),
         'acc_tfd': user_has_access(user, 'tfd'),
         'acc_regulacao': user_has_access(user, 'regulacao'),
+        'acc_rh': user_has_access(user, 'rh'),
+    'acc_veiculos': user_has_access(user, 'veiculos'),
+    'acc_motorista': user_has_access(user, 'motorista'),
         'acc_users_admin': user_has_access(user, 'users_admin'),
         # UBS persona
         'is_ubs_user': is_ubs_user(user),

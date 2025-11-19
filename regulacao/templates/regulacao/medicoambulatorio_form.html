@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Editar Médico do Ambulatório{% else %}Novo Médico do Ambulatório{% endif %}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">{% if object %}Editar{% else %}Novo{% endif %} Médico do Ambulatório</h5>
+    </div>
+    <div class="card-body">
+      <form method="post">{% csrf_token %}
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Nome</label>
+            {{ form.nome }}
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">CRM</label>
+            {{ form.crm }}
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="form-check mt-4">
+              {{ form.ativo }} <label class="form-check-label">Ativo</label>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Telefone</label>
+            {{ form.telefone }}
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">E-mail</label>
+            {{ form.email }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Especialidades que atende</label>
+            {{ form.especialidades }}
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a class="btn btn-secondary" href="{% url 'ambulatorio-medico-list' %}">Cancelar</a>
+          <button class="btn btn-success" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -7,40 +7,133 @@
 {% block content %}
 <div class="container py-4">
     <style>
-      /* Página: Nova Solicitação de Exame */
-      .dual-list { min-height: 280px; max-height: 320px; overflow: auto; }
-      .sticky-actions { position: sticky; bottom: 0; background: var(--bs-body-bg); z-index: 2; }
+      /* Página: Nova Solicitação de Exame - Design Profissional Azul/Verde */
+      .dual-list { 
+        min-height: 280px; 
+        max-height: 320px; 
+        overflow: auto; 
+        border: 2px solid #e3f2fd;
+        border-radius: 8px;
+        background: #fafafa;
+      }
+      .sticky-actions { 
+        position: sticky; 
+        bottom: 0; 
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); 
+        z-index: 2; 
+        border-radius: 12px;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+      }
+      .form-section {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: 1px solid #e1e8ed;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      }
+      .section-header {
+        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 2px 6px rgba(21, 101, 192, 0.3);
+      }
+      .section-header.green {
+        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+        box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+      }
+      .btn-professional {
+        border-radius: 8px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .btn-professional:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      .form-control {
+        border-radius: 8px;
+        border: 2px solid #e3f2fd;
+        transition: all 0.3s ease;
+      }
+      .form-control:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
+      }
+      .alert-professional {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      }
+      .dual-list .list-group-item {
+        border-color: #e3f2fd;
+        transition: all 0.2s ease;
+      }
+      .dual-list .list-group-item:hover {
+        background-color: #e3f2fd;
+        border-color: #1976d2;
+      }
       @media (max-width: 767.98px) {
         .dual-list { min-height: 200px; max-height: 260px; }
+        .form-section { padding: 1rem; }
       }
     </style>
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-10 col-xl-9">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-warning-subtle text-dark border-0">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <h4 class="card-title mb-0">
-                            <i class="bi bi-clipboard-check"></i>
-                            {% if object %}Editar Solicitação de Regulação{% else %}Nova Solicitação de Exame{% endif %}
-                        </h4>
+        <div class="col-12 col-lg-11 col-xl-10">
+            <div class="card border-0" style="box-shadow: 0 8px 32px rgba(0,0,0,0.12); border-radius: 16px;">
+                <div class="card-header border-0" style="background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); border-radius: 16px 16px 0 0;">
+                    <div class="d-flex align-items-center justify-content-between py-2">
+                        <h3 class="card-title mb-0 text-white fw-bold">
+                            <i class="bi bi-clipboard2-pulse-fill me-2" style="font-size: 1.5rem;"></i>
+                            {% if object %}
+                                <span class="text-warning">
+                                    <i class="bi bi-pencil-square me-1"></i>
+                                    Editar Solicitação de Regulação
+                                </span>
+                            {% else %}
+                                Nova Solicitação de Exame
+                            {% endif %}
+                        </h3>
+                        <div class="badge bg-light text-primary px-3 py-2" style="font-size: 0.9rem;">
+                            <i class="bi bi-shield-check me-1"></i>
+                            Sistema de Regulação
+                        </div>
                     </div>
                 </div>
-                <div class="card-body pt-3">
-                    <div class="alert alert-secondary small" role="alert">
-                        Preencha os campos abaixo. Itens marcados com <span class="text-danger">*</span> são obrigatórios.
+                <div class="card-body p-4">
+                    <div class="alert alert-professional alert-info border-0 mb-4" role="alert" style="background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e8 100%);">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill text-primary me-3" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <strong>Instruções:</strong> Preencha os campos abaixo com atenção. 
+                                Itens marcados com <span class="text-danger fw-bold">*</span> são obrigatórios.
+                            </div>
+                        </div>
                     </div>
                     <form method="post">
                         {% csrf_token %}
-                        <div id="exame-alerta" class="alert alert-warning d-none" role="alert"></div>
                         <div id="exame-detalhes" class="alert alert-info d-none" role="alert"></div>
                         
                         <!-- Informações do Paciente -->
-                        <h6 class="text-uppercase text-muted mt-2 mb-2">1. Paciente</h6>
+                        <div class="form-section">
+                            <div class="section-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-person-fill me-2"></i>
+                                    1. Informações do Paciente
+                                </h5>
+                            </div>
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <div class="mb-3">
                                     <label for="{{ form.paciente.id_for_label }}" class="form-label">
-                                        <strong>Paciente <span class="text-danger">*</span></strong>
+                                        <strong>
+                                            <i class="bi bi-person-vcard text-primary me-2"></i>
+                                            Paciente <span class="text-danger">*</span>
+                                        </strong>
                                     </label>
                                     <!-- Busca rápida com autocomplete para Paciente (não carrega todos no select) -->
                                     <div class="position-relative mb-2">
@@ -62,7 +155,10 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="{{ form.prioridade.id_for_label }}" class="form-label">
-                                        <strong>Prioridade</strong>
+                                        <strong>
+                                            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                                            Prioridade
+                                        </strong>
                                     </label>
                                     {{ form.prioridade }}
                                     {% if form.prioridade.errors %}
@@ -75,30 +171,59 @@
                                 </div>
                             </div>
                         </div>
+                        </div>
 
                         <!-- Informações do(s) Exame(s) -->
-                        <hr class="text-muted">
-                        <h6 class="text-uppercase text-muted mt-3 mb-2">2. Exames Solicitados</h6>
+                        <div class="form-section">
+                            <div class="section-header green">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-clipboard2-data-fill me-2"></i>
+                                    2. Exames Solicitados
+                                </h5>
+                            </div>
                         {% if form.tipos_exame %}
                         <div class="mb-3">
-                            <label class="form-label"><strong>Tipos de Exame <span class="text-danger">*</span></strong></label>
+                            <label class="form-label">
+                                <strong>
+                                    <i class="bi bi-clipboard-data text-success me-2"></i>
+                                    Tipos de Exame <span class="text-danger">*</span>
+                                </strong>
+                            </label>
                             <!-- Mantém o select original (para submissão), mas escondido -->
                             <div class="d-none">
                                 {{ form.tipos_exame }}
                             </div>
                             <div class="row g-3 align-items-stretch">
                                 <div class="col-md-5">
-                                    <input type="text" id="search-exames" class="form-control" placeholder="Buscar exames..." autocomplete="off">
-                                    <small class="text-muted">Duplo clique para adicionar</small>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-funnel text-success"></i>
+                                        </span>
+                                        <input type="text" id="search-exames" class="form-control" placeholder="Buscar exames..." autocomplete="off">
+                                    </div>
+                                    <small class="text-success">
+                                        <i class="bi bi-mouse2 me-1"></i>
+                                        Duplo clique para adicionar
+                                    </small>
                                     <ul id="lista-disponiveis" class="list-group mt-2 dual-list"></ul>
                                 </div>
-                                <div class="col-md-2 d-flex flex-column align-items-center justify-content-center gap-2">
-                                    <button type="button" id="btn-add" class="btn btn-outline-primary btn-sm" title="Adicionar todos visíveis"><i class="bi bi-chevron-double-right"></i></button>
-                                    <button type="button" id="btn-remove" class="btn btn-outline-secondary btn-sm" title="Remover todos selecionados"><i class="bi bi-chevron-double-left"></i></button>
+                                <div class="col-md-2 d-flex flex-column align-items-center justify-content-center gap-3">
+                                    <button type="button" id="btn-add" class="btn btn-professional" style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); color: white; border: none;" title="Adicionar todos visíveis">
+                                        <i class="bi bi-arrow-right-circle-fill"></i>
+                                    </button>
+                                    <button type="button" id="btn-remove" class="btn btn-professional" style="background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); color: white; border: none;" title="Remover todos selecionados">
+                                        <i class="bi bi-arrow-left-circle-fill"></i>
+                                    </button>
                                 </div>
                                 <div class="col-md-5 d-flex flex-column">
-                                    <label class="form-label small text-muted">Selecionados</label>
-                                    <small class="text-muted d-block">Duplo clique para remover</small>
+                                    <label class="form-label small text-success fw-bold">
+                                        <i class="bi bi-check-circle-fill me-1"></i>
+                                        Selecionados
+                                    </label>
+                                    <small class="text-primary">
+                                        <i class="bi bi-mouse2 me-1"></i>
+                                        Duplo clique para remover
+                                    </small>
                                     <ul id="lista-selecionados" class="list-group dual-list mt-2 flex-grow-1"></ul>
                                 </div>
                             </div>
@@ -200,13 +325,22 @@
                             {% endif %}
                         </div>
                         {% endif %}
+                        </div>
 
                         <!-- Justificativa Clínica -->
-                        <hr class="text-muted">
-                        <h6 class="text-uppercase text-muted mt-3 mb-2">3. Justificativa Clínica</h6>
+                        <div class="form-section">
+                            <div class="section-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-journal-text me-2"></i>
+                                    3. Justificativa Clínica
+                                </h5>
+                            </div>
                         <div class="mb-3">
                             <label for="{{ form.justificativa.id_for_label }}" class="form-label">
-                                <strong>Justificativa Clínica <span class="text-danger">*</span></strong>
+                                <strong>
+                                    <i class="bi bi-journal-medical text-primary me-2"></i>
+                                    Justificativa Clínica <span class="text-danger">*</span>
+                                </strong>
                             </label>
                             {{ form.justificativa }}
                             {% if form.justificativa.help_text %}
@@ -220,15 +354,24 @@
                             </div>
                             {% endif %}
                         </div>
+                        </div>
 
                         <!-- Informações da Solicitação -->
-                        <hr class="text-muted">
-                        <h6 class="text-uppercase text-muted mt-3 mb-2">4. Informações da Solicitação</h6>
+                        <div class="form-section">
+                            <div class="section-header green">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-building-fill me-2"></i>
+                                    4. Informações da Solicitação
+                                </h5>
+                            </div>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.ubs_solicitante.id_for_label }}" class="form-label">
-                                        <strong>UBS Solicitante <span class="text-danger">*</span></strong>
+                                        <strong>
+                                            <i class="bi bi-hospital text-success me-2"></i>
+                                            UBS Solicitante <span class="text-danger">*</span>
+                                        </strong>
                                     </label>
                                     {{ form.ubs_solicitante }}
                                     {% if form.ubs_solicitante.errors %}
@@ -243,7 +386,10 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.medico_solicitante.id_for_label }}" class="form-label">
-                                        <strong>Médico Solicitante <span class="text-danger">*</span></strong>
+                                        <strong>
+                                            <i class="bi bi-person-badge text-primary me-2"></i>
+                                            Médico Solicitante <span class="text-danger">*</span>
+                                        </strong>
                                     </label>
                                     {{ form.medico_solicitante }}
                                     {% if form.medico_solicitante.errors %}
@@ -260,7 +406,10 @@
                         <!-- Observações -->
                         <div class="mb-3">
                             <label for="{{ form.observacoes_solicitacao.id_for_label }}" class="form-label">
-                                <strong>Observações da Solicitação</strong>
+                                <strong>
+                                    <i class="bi bi-chat-left-text text-info me-2"></i>
+                                    Observações da Solicitação
+                                </strong>
                             </label>
                             {{ form.observacoes_solicitacao }}
                             {% if form.observacoes_solicitacao.help_text %}
@@ -274,14 +423,17 @@
                             </div>
                             {% endif %}
                         </div>
+                        </div>
 
                         <!-- Campos de Regulação (só aparecem ao editar e se for admin) -->
                         {% if object and object.pk and user.is_staff %}
-                        <hr>
-                        <h5 class="text-muted mb-3">
-                            <i class="bi bi-gear-fill"></i>
-                            Informações de Regulação (Apenas Administradores)
-                        </h5>
+                        <div class="form-section" style="background: linear-gradient(135deg, #fff3e0 0%, #f3e5f5 100%);">
+                            <div class="section-header" style="background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-shield-lock-fill me-2"></i>
+                                    Informações de Regulação (Apenas Administradores)
+                                </h5>
+                            </div>
                         
                         <div class="row">
                             <div class="col-md-6">
@@ -332,15 +484,23 @@
                             </div>
                             {% endif %}
                         </div>
+                        </div>
                         {% endif %}
 
-                        <div class="sticky-actions border-top pt-3 mt-4 d-flex flex-column flex-sm-row gap-2 justify-content-end bg-body">
-                            <a href="{% url 'regulacao-list' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Cancelar
+                        <div class="sticky-actions border-0 pt-4 mt-4 d-flex flex-column flex-sm-row gap-3 justify-content-end">
+                            <a href="{% url 'regulacao-list' %}" class="btn btn-professional btn-outline-secondary">
+                                <i class="bi bi-arrow-left-circle me-2"></i> 
+                                Cancelar
                             </a>
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-lg"></i>
-                                {% if object %}Salvar Alterações{% else %}Criar Solicitação{% endif %}
+                            <button type="submit" class="btn btn-professional text-white" style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); border: none;">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                {% if object %}
+                                    <i class="bi bi-pencil-square me-1"></i>
+                                    Salvar Alterações
+                                {% else %}
+                                    <i class="bi bi-plus-circle-fill me-1"></i>
+                                    Criar Solicitação
+                                {% endif %}
                             </button>
                         </div>
                     </form>
@@ -422,15 +582,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
         // Helpers para alertas
-        const alerta = document.getElementById('exame-alerta');
         const detalhes = document.getElementById('exame-detalhes');
+        // Realçar datas com badges: (solicitado em ...) e (agendado/a para ...)
+        function realceDatas(texto){
+            if (!texto) return '';
+            texto = texto.replace(/\((solicitado em \d{2}\/\d{2}\/\d{4}(?: \d{2}:\d{2})?)\)/gi, function(_,grp){
+                return ' <span class="badge bg-warning-subtle text-dark border">'+grp+'</span>';
+            });
+            texto = texto.replace(/\((agendad[ao]s?\s+para[^)]*)\)/gi, function(_,grp){
+                return ' <span class="badge bg-info-subtle text-dark border">'+grp+'</span>';
+            });
+            return texto;
+        }
         function coletarTiposSelecionados(){
                 const hiddenSelect = document.getElementById('id_tipos_exame');
                 if (!hiddenSelect) return [];
                 return Array.from(hiddenSelect.options).filter(o => o.selected).map(o => o.value);
         }
         function atualizarAlertas(){
-                if (alerta){ alerta.classList.add('d-none'); alerta.textContent = ''; }
                 if (detalhes){ detalhes.classList.add('d-none'); detalhes.innerHTML=''; }
                 const pid = parseInt((select.value||'0'), 10);
                 if (!pid) return;
@@ -447,10 +616,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         let parts = [];
                         if (fila) parts.push(`${fila} em fila de espera`);
                         if (ag) parts.push(`${ag} agendado(s)`);
-                        if (parts.length && alerta){
-                            alerta.textContent = `Atenção: este paciente já possui ${parts.join(' e ')}.`;
-                            alerta.classList.remove('d-none');
-                        }
                         const det = Array.isArray(d.detalhes) ? d.detalhes : [];
                         if (det.length && detalhes){
                             let confl = '';
@@ -458,7 +623,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (d.same_tipos && confs.length){
                                 confl = `<div class="text-danger"><strong>Conflito de tipo:</strong> ${confs.join(', ')}</div>`;
                             }
-                            detalhes.innerHTML = `${confl}<div><strong>Detalhes:</strong></div><ul class="mb-0">${det.map(t => `<li>${t}</li>`).join('')}</ul>`;
+                            const itens = det.map(t => `<li>${realceDatas(t)}</li>`).join('');
+                            detalhes.innerHTML = `${confl}<div class="mb-1"><strong>Solicitações relacionadas</strong></div><ul class="mb-0">${itens}</ul>`;
                             detalhes.classList.remove('d-none');
                         }
                     })

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Editar {{ campo|default:'obs'|title }} — {{ tipo|title }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Editar {{ campo|default:'obs'|title }} — {{ tipo|title }}</h4>
+    {% if back_url %}
+      <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Voltar para o pedido
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <div class="text-muted small">Paciente</div>
+          <div class="fw-semibold">{{ obj.paciente.nome }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted small">Protocolo</div>
+          <div class="fw-semibold">#{{ obj.numero_protocolo }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted small">Status</div>
+          <span class="badge {{ obj.get_status_badge_class }}">{{ obj.get_status_display }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" class="card shadow-sm">
+    {% csrf_token %}
+    <div class="card-header bg-light">
+      <strong>
+        {% if campo == 'obs' %}Observações{% elif campo == 'motivo' %}Motivo (se negar){% else %}Pendência (motivo){% endif %}
+      </strong>
+    </div>
+    <div class="card-body">
+      {% if campo == 'obs' %}
+        <div class="mb-3">
+          <label class="form-label">Observações</label>
+          {{ form.observacoes_regulacao }}
+          <div class="form-text">Use para observações gerais (visível internamente).</div>
+        </div>
+      {% elif campo == 'motivo' %}
+        <div class="mb-3">
+          <label class="form-label">Motivo (se negar)</label>
+          {{ form.motivo_decisao }}
+          <div class="form-text">Preencha quando a ação for Negar.</div>
+        </div>
+      {% else %}
+        <div class="mb-3">
+          <label class="form-label">Pendência (motivo)</label>
+          {{ form.pendencia_motivo }}
+          <div class="form-text">Preencha quando a ação for Pendenciar (visível para a UBS).</div>
+        </div>
+      {% endif %}
+    </div>
+    <div class="card-footer d-flex justify-content-end gap-2">
+      <a class="btn btn-outline-secondary" href="{{ back_url }}">Cancelar</a>
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

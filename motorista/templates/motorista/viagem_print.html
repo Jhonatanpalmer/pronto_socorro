@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Impressão - Viagens de Motoristas{% endblock %}
+{% block content %}
+<div class="container py-3 d-print-block">
+  <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+    <h5 class="mb-0">Impressão - Viagens de Motoristas</h5>
+    <div class="d-flex gap-2">
+      <a href="{% url 'motorista-viagem-list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Voltar</a>
+      <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+    </div>
+  </div>
+  <form method="get" class="card mb-3 d-print-none">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-6">
+          <label class="form-label small mb-1" for="destinos-select">Destinos</label>
+          <select id="destinos-select" name="destinos" class="form-select form-select-sm" multiple size="6">
+            {% for destino in destinos_disponiveis %}
+            <option value="{{ destino }}" {% if destino in destinos_selecionados %}selected{% endif %}>{{ destino }}</option>
+            {% empty %}
+            <option disabled>Sem destinos cadastrados ainda</option>
+            {% endfor %}
+          </select>
+          <small class="text-muted">Selecione um ou mais destinos e clique em aplicar.</small>
+        </div>
+        <div class="col-lg-6 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm">Aplicar filtro</button>
+          <a href="{% url 'motorista-viagem-print' %}" class="btn btn-light btn-sm">Limpar</a>
+        </div>
+      </div>
+    </div>
+  </form>
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Código</th>
+              <th>Motorista</th>
+              <th>Período</th>
+              <th>Origem</th>
+              <th>Destino</th>
+              <th>Veículo</th>
+              <th>Qtde diárias</th>
+              <th>Valor total diárias</th>
+              <th>Dias de viagem</th>
+              <th>Justificativa horas extras</th>
+              <th>Motivo da viagem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in viagens %}
+            <tr>
+              <td>{{ v.codigo }}</td>
+              <td>{{ v.motorista.nome_completo }}</td>
+              <td>{{ v.data_inicio|date:'d/m/Y' }} — {{ v.data_fim|date:'d/m/Y' }}</td>
+              <td>{{ v.origem }}</td>
+              <td>{{ v.destino }}</td>
+              <td>{{ v.veiculo }}</td>
+              <td>{{ v.quantidade_diarias }}</td>
+              <td class="valor-diarias" data-v="{{ v.valor_total_diarias }}">{{ v.valor_total_diarias }}</td>
+              <td>{{ v.dias_viagem }}</td>
+              <td style="max-width: 320px; white-space: pre-wrap;">{{ v.justificativa_horas_extras }}</td>
+              <td style="max-width: 320px; white-space: pre-wrap;">{{ v.motivo_viagem }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="11" class="text-center text-muted">Nenhuma viagem encontrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+  .sidebar, .navbar, .pp-header, .btn, .d-print-none { display: none !important; }
+  .container { max-width: 100% !important; padding: 0 !important; }
+  .card { border: none !important; }
+  table { font-size: 11px; }
+  thead th { position: sticky; top: 0; background: #fff; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  document.querySelectorAll('.valor-diarias').forEach(td => {
+    const v = parseFloat(td.getAttribute('data-v')) || 0;
+    td.textContent = fmt.format(v);
+  });
+});
+</script>
+{% endblock %}

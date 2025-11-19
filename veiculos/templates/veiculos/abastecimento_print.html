@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Imprimir Abastecimento{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-fuel-pump"></i> Comprovante de Abastecimento</h6>
+      <div class="d-print-none d-flex align-items-center gap-2">
+        <a href="{% url 'abastecimento-list' %}" class="btn btn-light btn-sm"><i class="bi bi-arrow-left"></i> Voltar</a>
+        <button onclick="window.print()" class="btn btn-success btn-sm"><i class="bi bi-printer"></i> Imprimir</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- Cabeçalho do documento -->
+      <div class="doc-header d-flex justify-content-between align-items-start mb-4">
+        <div>
+          <div class="h5 mb-1">Secretaria Municipal de Saúde</div>
+          <div class="text-muted">Comprovante de Abastecimento</div>
+        </div>
+        <div class="text-end">
+          <div class="small text-muted">Comprovante Nº</div>
+          <div class="fw-semibold">#{{ a.id }}</div>
+          <div class="small text-muted mt-2">Emitido em</div>
+          <div class="fw-semibold">{% now 'd/m/Y H:i' %}</div>
+        </div>
+      </div>
+
+      <!-- Dados do abastecimento -->
+      <table class="kv-table mb-3">
+        <tbody>
+          <tr>
+            <th>Data e hora</th>
+            <td>{{ a.data_hora|date:'d/m/Y H:i' }}</td>
+          </tr>
+          <tr>
+            <th>Local do abastecimento</th>
+            <td>{{ a.local_abastecimento }}</td>
+          </tr>
+          <tr>
+            <th>Veículo</th>
+            <td>{{ a.veiculo.modelo }} — {{ a.veiculo.placa }}</td>
+          </tr>
+          <tr>
+            <th>Tipo do veículo</th>
+            <td>{{ a.get_tipo_veiculo_display }}</td>
+          </tr>
+          <tr>
+            <th>Motorista</th>
+            <td>{{ a.motorista }}</td>
+          </tr>
+          <tr>
+            <th>Combustível</th>
+            <td>{{ a.get_tipo_combustivel_display }}</td>
+          </tr>
+          {% if a.registrado_por %}
+          <tr>
+            <th>Registrado por</th>
+            <td>
+              {% firstof a.registrado_por.get_full_name a.registrado_por.username %}
+            </td>
+          </tr>
+          {% endif %}
+          {% if a.observacao %}
+          <tr>
+            <th>Observação</th>
+            <td>{{ a.observacao }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <!-- Assinatura do responsável -->
+      <div class="mt-5 pt-4">
+        <div class="text-center">
+          <div class="signature-space"></div>
+          <div class="signature-line"></div>
+          <div class="small text-muted mt-1">Assinatura do responsável</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Assinatura */
+.signature-space { height: 70px; }
+.signature-line { border-top: 1px solid #000; width: 320px; margin: 0 auto; }
+
+/* Tipografia e tabela de dados */
+.kv-table { width: 100%; border-collapse: collapse; }
+.kv-table th, .kv-table td { padding: .6rem .8rem; vertical-align: top; }
+.kv-table th { width: 32%; color: #6c757d; font-weight: 600; background-color: #f8f9fa; border-top: 1px solid #e9ecef; border-bottom: 1px solid #e9ecef; }
+.kv-table td { border-top: 1px solid #e9ecef; border-bottom: 1px solid #e9ecef; }
+.doc-header .h5 { font-weight: 700; }
+
+@media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pp-header, .navbar, .d-print-none { display: none !important; }
+  .card { box-shadow: none !important; border: none; }
+  .container { padding: 0 !important; }
+  .kv-table th { background-color: #f1f3f5 !important; -webkit-print-color-adjust: exact; }
+  @page { margin: 14mm; }
+}
+</style>
+{% endblock %}

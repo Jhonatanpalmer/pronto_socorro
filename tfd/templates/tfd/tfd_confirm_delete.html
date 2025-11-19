@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}Excluir TFD{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="alert alert-danger shadow-sm">
+    <h5 class="mb-3"><i class="bi bi-exclamation-triangle-fill"></i> Confirmar exclusão</h5>
+    <p class="mb-3">Tem certeza que deseja excluir este TFD? Esta ação não pode ser desfeita.</p>
+
+    <dl class="row small">
+      <dt class="col-sm-3">Paciente</dt>
+      <dd class="col-sm-9">{% if object.paciente %}{{ object.paciente.nome }}{% else %}{{ object.paciente_nome }}{% endif %}</dd>
+
+      <dt class="col-sm-3">Período</dt>
+      <dd class="col-sm-9">
+        {% if object.data_inicio %}{{ object.data_inicio|date:"d/m/Y" }}{% endif %}
+        {% if object.data_fim and object.data_fim != object.data_inicio %} - {{ object.data_fim|date:"d/m/Y" }}{% endif %}
+      </dd>
+
+      <dt class="col-sm-3">Origem</dt>
+      <dd class="col-sm-9">{{ object.cidade_origem }}</dd>
+
+      <dt class="col-sm-3">Destino</dt>
+      <dd class="col-sm-9">{{ object.cidade_destino }}</dd>
+
+      <dt class="col-sm-3">Valor Total</dt>
+      <dd class="col-sm-9">{{ object.valor_total|br_currency }}</dd>
+    </dl>
+
+    <form method="post" class="mt-3">
+      {% csrf_token %}
+      <a href="{% url 'tfd-list' %}" class="btn btn-outline-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-danger ms-2">Excluir</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

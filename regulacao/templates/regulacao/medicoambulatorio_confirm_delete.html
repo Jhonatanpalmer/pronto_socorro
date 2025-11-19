@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Excluir Médico do Ambulatório{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Excluir Médico do Ambulatório</h5>
+    </div>
+    <div class="card-body">
+      <p>Tem certeza que deseja excluir o médico "{{ object.nome }} (CRM {{ object.crm }})"?</p>
+      <form method="post">{% csrf_token %}
+        <a class="btn btn-secondary" href="{% url 'ambulatorio-medico-list' %}">Cancelar</a>
+        <button class="btn btn-danger" type="submit">Excluir</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{{ view.object|default_if_none:'Nova Agenda' }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      <i class="bi bi-calendar2-plus"></i>
+      {% if view.object %}Editar Agenda{% else %}Nova Agenda{% endif %}
+    </h4>
+    <div><a class="btn btn-outline-secondary btn-icon" href="{% url 'agendamedica-list' %}"><i class="bi bi-arrow-left"></i> Voltar</a></div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Médico</label>
+            {{ form.medico }}
+            {% if form.medico.errors %}<div class="text-danger small">{{ form.medico.errors }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Especialidade</label>
+            {{ form.especialidade }}
+            {% if form.especialidade.errors %}<div class="text-danger small">{{ form.especialidade.errors }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Dia da semana</label>
+            {{ form.dia_semana }}
+            {% if form.dia_semana.errors %}<div class="text-danger small">{{ form.dia_semana.errors }}</div>{% endif %}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Capacidade</label>
+            {{ form.capacidade }}
+            {% if form.capacidade.errors %}<div class="text-danger small">{{ form.capacidade.errors }}</div>{% endif %}
+          </div>
+          <div class="col-md-3 d-flex align-items-center">
+            <div class="form-check mt-4">
+              {{ form.ativo }} <label class="form-check-label">Ativo</label>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 d-flex justify-content-end gap-2">
+          <button type="submit" class="btn btn-primary btn-icon"><i class="bi bi-save"></i> Salvar</button>
+          <a href="{% url 'agendamedica-list' %}" class="btn btn-outline-secondary btn-icon"><i class="bi bi-x-circle"></i> Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

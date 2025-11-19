@@ -303,10 +303,11 @@ class Command(BaseCommand):
                     continue
 
                 # Upsert por codigo_sus
+                # Criar sem ativar automaticamente; ativação será manual pela tela
                 obj, is_created = TipoExame.objects.get_or_create(codigo_sus=cod, defaults={
                     'nome': nome,
                     'codigo': cod,
-                    'ativo': True,
+                    # não definir 'ativo' aqui; ficará com default do modelo (False)
                 })
                 # Atualizar campos se já existir
                 changed = False
@@ -317,9 +318,7 @@ class Command(BaseCommand):
                     if not obj.codigo:
                         obj.codigo = cod
                         changed = True
-                    if not obj.ativo:
-                        obj.ativo = True
-                        changed = True
+                    # Não alterar automaticamente o status 'ativo'
                 # Valor (opcional)
                 if set_valor and cod in valores:
                     try:

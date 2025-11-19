@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}Novo Atestado{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h3 class="mb-3">{% if obj %}Editar Atestado Médico{% else %}Cadastrar Atestado Médico{% endif %}</h3>
+  <form method="post" enctype="multipart/form-data" class="row g-3">
+    {% csrf_token %}
+    <div class="col-md-6">
+      <label class="form-label">Funcionário</label>
+      {% render_field form.funcionario class="form-select" %}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Data inicial</label>
+  {% render_field form.data_inicio class="form-control" %}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Data final</label>
+  {% render_field form.data_fim class="form-control" %}
+    </div>
+    <div class="col-12">
+      <div class="bg-light border rounded-3 p-3 shadow-sm">
+        <div class="row g-3 align-items-center">
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted text-uppercase small">Nome</span>
+            <p class="mb-0 fw-semibold" id="funcionario-info-nome">-</p>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted text-uppercase small">CPF</span>
+            <p class="mb-0 fw-semibold" id="funcionario-info-cpf">-</p>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted text-uppercase small">Cargo</span>
+            <p class="mb-0 fw-semibold" id="funcionario-info-cargo">-</p>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted text-uppercase small">Setor / Lotação</span>
+            <p class="mb-0 fw-semibold" id="funcionario-info-setor">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Dias</label>
+  {% render_field form.dias class="form-control" readonly="readonly" %}
+    </div>
+    <div class="col-md-3 col-lg-4">
+      <label class="form-label">CID</label>
+  {% url 'rh-cid-lookup' as cid_lookup_url %}
+  {% render_field form.cid class="form-control" data-cid-lookup-url=cid_lookup_url %}
+    </div>
+    <div class="col-md-6 col-lg-5 align-self-end">
+      <label class="form-label text-muted small mb-1">Descrição do CID</label>
+      <div id="cid-description" class="border rounded-3 bg-white px-3 py-2 shadow-sm">Informe um CID para consultar.</div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Médico</label>
+  {% render_field form.medico class="form-control" %}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">CRM</label>
+  {% render_field form.crm class="form-control" %}
+    </div>
+    <div class="col-12">
+      <label class="form-label">Motivo/Observações</label>
+  {% render_field form.motivo class="form-control" %}
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Arquivo do Atestado (PDF/JPG/PNG)</label>
+  {% render_field form.arquivo class="form-control" %}
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">{% if obj %}Salvar alterações{% else %}Salvar{% endif %}</button>
+      <a href="{% url 'rh-atestado-list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+  {{ funcionarios_info|json_script:"funcionarios-info-data" }}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const selectFuncionario = document.getElementById('id_funcionario');
+  const nomeInfo = document.getElementById('funcionario-info-nome');
+  const cpfInfo = document.getElementById('funcionario-info-cpf');
+  const cargoInfo = document.getElementById('funcionario-info-cargo');
+  const setorInfo = document.getElementById('funcionario-info-setor');
+  const dataScript = document.getElementById('funcionarios-info-data');
+  const inputCid = document.getElementById('id_cid');
+  const cidDescriptionBox = document.getElementById('cid-description');
+  const inputInicio = document.getElementById('id_data_inicio');
+  const inputFim = document.getElementById('id_data_fim');
+  const inputDias = document.getElementById('id_dias');
+  let funcionariosInfo = {};
+  let cidLookupTimeout = null;
+  let cidAbortController = null;
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const defaultCidMessage = 'Informe um CID para consultar.';
+  const cidLookupUrl = inputCid ? inputCid.dataset.cidLookupUrl : '';
+
+  if (dataScript) {
+    try {
+      funcionariosInfo = JSON.parse(dataScript.textContent) || {};
+    } catch (err) {
+      funcionariosInfo = {};
+    }
+  }
+
+  function formatCPF(cpf) {
+    if (!cpf) {
+      return '-';
+    }
+    const digits = String(cpf).replace(/\D/g, '');
+    if (digits.length !== 11) {
+      return cpf;
+    }
+    return digits.slice(0, 3) + '.' + digits.slice(3, 6) + '.' + digits.slice(6, 9) + '-' + digits.slice(9);
+  }
+
+  function setInfo(element, value) {
+    if (element) {
+      element.textContent = value ? value : '-';
+    }
+  }
+
+  function atualizarFuncionario() {
+    if (!selectFuncionario) {
+      return;
+    }
+    const selecionado = selectFuncionario.value || '';
+    const dados = funcionariosInfo[selecionado] || null;
+    setInfo(nomeInfo, dados && dados.nome ? dados.nome : '-');
+    setInfo(cpfInfo, dados && dados.cpf ? formatCPF(dados.cpf) : '-');
+    setInfo(cargoInfo, dados && dados.cargo ? dados.cargo : '-');
+    setInfo(setorInfo, dados && dados.setor_lotacao ? dados.setor_lotacao : '-');
+  }
+
+  if (selectFuncionario) {
+    selectFuncionario.addEventListener('change', atualizarFuncionario);
+    atualizarFuncionario();
+  }
+
+  function setCidDescription(message, status) {
+    if (!cidDescriptionBox) {
+      return;
+    }
+    const text = message || defaultCidMessage;
+    cidDescriptionBox.textContent = text;
+    cidDescriptionBox.classList.remove('text-danger', 'text-success', 'text-muted');
+    if (status === 'success') {
+      cidDescriptionBox.classList.add('text-success');
+    } else if (status === 'pending') {
+      cidDescriptionBox.classList.add('text-muted');
+    } else if (status === 'error' || status === 'not-found') {
+      cidDescriptionBox.classList.add('text-danger');
+    }
+  }
+
+  async function consultarCid(code) {
+    if (!cidLookupUrl) {
+      return;
+    }
+
+    if (cidAbortController) {
+      cidAbortController.abort();
+    }
+    cidAbortController = new AbortController();
+
+    setCidDescription('Consultando CID…', 'pending');
+
+    try {
+      const response = await fetch(`${cidLookupUrl}?code=${encodeURIComponent(code)}`, {
+        signal: cidAbortController.signal,
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error('CID lookup failed');
+      }
+      const data = await response.json();
+      const found = Boolean(data && data.found);
+      const description = data && data.description ? data.description : '';
+      if (found) {
+        setCidDescription(description, 'success');
+      } else {
+        setCidDescription(description || 'CID não encontrado.', 'not-found');
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return;
+      }
+      setCidDescription('Não foi possível consultar o CID no momento.', 'error');
+    }
+  }
+
+  function agendarConsultaCid() {
+    if (!inputCid) {
+      return;
+    }
+
+    const raw = (inputCid.value || '').trim().toUpperCase();
+    inputCid.value = raw;
+
+    if (cidLookupTimeout) {
+      clearTimeout(cidLookupTimeout);
+      cidLookupTimeout = null;
+    }
+
+    if (!raw) {
+      setCidDescription(defaultCidMessage, 'idle');
+      return;
+    }
+
+    if (raw.length < 3) {
+      setCidDescription('Digite pelo menos 3 caracteres para pesquisar.', 'error');
+      return;
+    }
+
+    cidLookupTimeout = setTimeout(function () {
+      consultarCid(raw);
+    }, 350);
+  }
+
+  if (inputCid) {
+    inputCid.addEventListener('input', agendarConsultaCid);
+    inputCid.addEventListener('blur', agendarConsultaCid);
+    agendarConsultaCid();
+  } else {
+    setCidDescription(defaultCidMessage, 'idle');
+  }
+
+  if (inputInicio && inputFim && inputDias) {
+    function parseAsUTC(value) {
+      const parts = value.split('-').map(Number);
+      if (parts.length !== 3 || parts.some(function (part) { return Number.isNaN(part); })) {
+        return null;
+      }
+      const [year, month, day] = parts;
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+
+    function atualizarDias() {
+      const inicio = parseAsUTC(inputInicio.value);
+      const fim = parseAsUTC(inputFim.value);
+
+      if (!inicio || !fim || fim < inicio) {
+        inputDias.value = '';
+        return;
+      }
+
+      const diff = Math.round((fim - inicio) / DAY_MS) + 1;
+      inputDias.value = diff;
+    }
+
+    ['change', 'input', 'blur'].forEach(function (evt) {
+      inputInicio.addEventListener(evt, atualizarDias);
+      inputFim.addEventListener(evt, atualizarDias);
+    });
+
+    atualizarDias();
+  }
+});
+</script>
+{% endblock %}

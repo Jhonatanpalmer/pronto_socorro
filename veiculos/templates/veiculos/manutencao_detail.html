@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Manutenção do Veículo{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card mb-3">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-wrench-adjustable"></i> Manutenção – {{ veiculo.modelo }} ({{ veiculo.placa }})</h6>
+      <div class="d-flex gap-2">
+        <a href="{% url 'manutencao-list' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-list-ul"></i> Lista</a>
+        <a href="{% url 'manutencao-update' obj.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-pencil"></i> Editar</a>
+        <a href="{% url 'manutencao-print' obj.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-printer"></i> Imprimir</a>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="text-muted small">Tipo</div>
+          <div class="fw-semibold">{{ obj.get_tipo_display }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted small">Status</div>
+          <div>
+            {% if obj.status == 'concluida' %}
+              <span class="badge bg-success">Concluída</span>
+            {% elif obj.status == 'em_andamento' %}
+              <span class="badge bg-primary">Em andamento</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Pendente</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted small">Local</div>
+          <div>{{ obj.local|default:'—' }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted small">Data de envio</div>
+          <div>
+            {{ obj.data_envio|date:'d/m/Y' }}
+            {% if obj.criado_em %}
+              <span class="text-muted">às {{ obj.criado_em|date:'H:i' }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted small">Data de devolução</div>
+          <div>
+            {% if obj.data_retorno %}
+              {{ obj.data_retorno|date:'d/m/Y' }}
+              {% if obj.atualizado_em %}
+                <span class="text-muted">às {{ obj.atualizado_em|date:'H:i' }}</span>
+              {% endif %}
+            {% else %}
+              Não informada
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted small">Criação</div>
+          <div>{{ obj.criado_em|date:'d/m/Y H:i' }}</div>
+        </div>
+        <div class="col-12">
+          <div class="text-muted small">Problema reportado</div>
+          <p class="mb-0">{{ obj.descricao_problema|linebreaksbr }}</p>
+        </div>
+        {% if obj.servicos_realizados %}
+        <div class="col-12">
+          <div class="text-muted small">Serviços realizados</div>
+          <p class="mb-0">{{ obj.servicos_realizados|linebreaksbr }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if obj.em_aberto %}
+      <hr>
+      <form method="post" action="{% url 'manutencao-finalize' obj.id %}" class="row g-2 align-items-end">
+        {% csrf_token %}
+        <div class="col-12 col-md-4">
+          <label class="form-label">Data de devolução</label>
+          <input type="date" name="data_retorno" class="form-control" value="{{ obj.data_retorno|date:'Y-m-d' }}">
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Serviços realizados</label>
+          <textarea name="servicos_realizados" rows="3" class="form-control" placeholder="Informe o que foi feito">{{ obj.servicos_realizados }}</textarea>
+        </div>
+        <div class="col-12 col-md-2 d-grid">
+          <button type="submit" class="btn btn-success mt-md-4"><i class="bi bi-check2-circle"></i> Concluir</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-light fw-semibold"><i class="bi bi-clock-history me-1"></i> Últimos abastecimentos</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Motorista</th>
+                  <th>Local</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in abastecimentos %}
+                <tr>
+                  <td>{{ a.data_hora|date:'d/m/Y H:i' }}</td>
+                  <td>{{ a.motorista }}</td>
+                  <td>{{ a.local_abastecimento }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted text-center py-3">Nenhum abastecimento encontrado.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-light fw-semibold"><i class="bi bi-geo"></i> Últimas viagens</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Data</th>
+                  <th>Destino</th>
+                  <th>Paciente</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for viagem in viagens %}
+                <tr>
+                  <td>{{ viagem.data_viagem|date:'d/m/Y' }}</td>
+                  <td>{{ viagem.destino }}</td>
+                  <td>{{ viagem.paciente }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted text-center py-3">Nenhuma viagem registrada.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

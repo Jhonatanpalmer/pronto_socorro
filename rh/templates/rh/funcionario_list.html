@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Funcionários (RH){% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-people-fill"></i> Funcionários (RH)</h6>
+      <div class="d-flex gap-2">
+        <a href="{% url 'rh-funcionario-create' %}" class="btn btn-light btn-sm text-success fw-semibold" title="Cadastrar Funcionário">
+          <i class="bi bi-person-plus-fill"></i> Funcionario
+        </a>
+        <a href="{% url 'rh-atestado-create' %}" class="btn btn-light btn-sm text-primary fw-semibold" title="Cadastrar Atestado">
+          <i class="bi bi-file-earmark-medical"></i> Atestado
+        </a>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <form method="get" class="p-3 border-bottom bg-body-tertiary">
+        <div class="row g-2 g-lg-3">
+          <div class="col-md-4 col-lg-3">
+            <label for="filtro-nome" class="form-label mb-1 small text-muted">Nome</label>
+            <input type="text" id="filtro-nome" name="nome" value="{{ filter_nome }}" class="form-control form-control-sm" placeholder="Buscar por nome">
+          </div>
+          <div class="col-md-4 col-lg-3">
+            <label for="filtro-cpf" class="form-label mb-1 small text-muted">CPF</label>
+            <input type="text" id="filtro-cpf" name="cpf" value="{{ filter_cpf }}" class="form-control form-control-sm" placeholder="Somente números">
+          </div>
+          <div class="col-md-4 col-lg-3">
+            <label for="filtro-cargo" class="form-label mb-1 small text-muted">Cargo</label>
+            <input type="text" id="filtro-cargo" name="cargo" value="{{ filter_cargo }}" class="form-control form-control-sm" placeholder="Buscar por cargo">
+          </div>
+          <div class="col-md-4 col-lg-3">
+            <label for="filtro-situacao" class="form-label mb-1 small text-muted">Situação</label>
+            <select id="filtro-situacao" name="situacao" class="form-select form-select-sm">
+              <option value="">Todas</option>
+              {% for value, label in situacao_choices %}
+                <option value="{{ value }}" {% if value == filter_situacao %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4 col-lg-3">
+            <label for="filtro-vinculo" class="form-label mb-1 small text-muted">Vínculo</label>
+            <select id="filtro-vinculo" name="vinculo" class="form-select form-select-sm">
+              <option value="">Todos</option>
+              {% for value, label in vinculo_choices %}
+                <option value="{{ value }}" {% if value == filter_vinculo %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4 col-lg-3">
+            <label for="filtro-setor" class="form-label mb-1 small text-muted">Setor/Lotação</label>
+            <input type="text" id="filtro-setor" name="setor" value="{{ filter_setor }}" class="form-control form-control-sm" placeholder="Buscar por setor">
+          </div>
+        </div>
+        <input type="hidden" name="page_size" value="{{ page_size }}">
+        <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
+          <a href="{% url 'rh-atestado-list' %}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+            <i class="bi bi-file-earmark-medical"></i> Visualizar atestados
+          </a>
+          <a href="{% url 'rh-funcionario-list' %}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+          <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        </div>
+      </form>
+      <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 p-3 border-bottom bg-light">
+        <div class="small text-muted">Total: {{ page_obj.paginator.count }} funcionário(s)</div>
+        <form method="get" class="d-flex align-items-center gap-2">
+          {% for key, value in request.GET.items %}
+            {% if key != 'page_size' and key != 'page' %}
+              <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+          {% endfor %}
+          <label for="page-size" class="form-label mb-0 small text-muted">Itens por página</label>
+          <select id="page-size" name="page_size" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for option in page_size_options %}
+              <option value="{{ option }}" {% if option == page_size %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover table-striped sticky-head align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Nome</th>
+              <th>CPF</th>
+              <th>Cargo</th>
+              <th>Situação</th>
+              <th>Vínculo</th>
+              <th>Setor/Lotação</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in lista %}
+            <tr>
+              <td>{{ f.nome }}</td>
+              <td>{{ f.cpf }}</td>
+              <td>{{ f.cargo }}</td>
+              <td>
+                {% if f.situacao == 'ativo' %}
+                  <span class="badge bg-success">{{ f.get_situacao_display }}</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ f.get_situacao_display }}</span>
+                {% endif %}
+              </td>
+              <td>{{ f.get_vinculo_display }}</td>
+              <td>{{ f.setor_lotacao|default:'—' }}</td>
+              <td class="text-end">
+                <div class="btn-group" role="group" aria-label="Ações do funcionário">
+                  <a href="{% url 'rh-funcionario-update' f.id %}" class="btn btn-sm btn-outline-primary" title="Editar funcionário"><i class="bi bi-pencil"></i></a>
+                  <a href="{% url 'rh-funcionario-delete' f.id %}" class="btn btn-sm btn-outline-danger" title="Excluir funcionário"><i class="bi bi-trash"></i></a>
+                  <a href="{% url 'rh-atestado-create' %}?funcionario={{ f.id }}" class="btn btn-sm btn-outline-success" title="Cadastrar atestado médico"><i class="bi bi-file-earmark-medical"></i></a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center py-3 text-muted">Nenhum funcionário cadastrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if page_obj.has_other_pages %}
+      <div class="p-3 border-top">
+        <nav aria-label="Paginação de funcionários">
+          <ul class="pagination justify-content-center mb-0">
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+              <a class="page-link" href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}{% else %}#{% endif %}" tabindex="-1">Anterior</a>
+            </li>
+            {% for num in page_range %}
+              {% if num == '…' %}
+                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+              {% elif num == page_obj.number %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+              {% else %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+              <a class="page-link" href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}{% else %}#{% endif %}">Próxima</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

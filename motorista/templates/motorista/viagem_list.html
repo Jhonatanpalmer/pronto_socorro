@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Viagens de Motoristas{% endblock %}
+{% block extra_css %}
+<style>
+  .viagens-table tbody tr {
+    border-bottom: 2px dashed #d7e3ef;
+  }
+  .viagens-table tbody tr:last-child {
+    border-bottom: none;
+  }
+  .viagens-table tbody tr td {
+    background-color: #fdfefe;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-geo-alt"></i> Viagens de Motoristas</h6>
+      <div class="d-flex gap-2">
+        <a href="{% url 'motorista-viagem-print' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-printer"></i> Imprimir</a>
+        <a href="{% url 'motorista-viagem-create' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-plus-lg"></i> Nova</a>
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="get" class="row g-2 mb-3">
+        <div class="col-12 col-md-3">
+          <label class="form-label">Motorista</label>
+          <select name="motorista" class="form-select">
+            <option value="">Todos</option>
+            {% for m in motoristas %}
+              <option value="{{ m.id }}" {% if filtros.motorista == m.id|stringformat:'s' %}selected{% endif %}>{{ m.nome_completo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">Veículo</label>
+          <select name="veiculo" class="form-select">
+            <option value="">Todos</option>
+            {% for v in veiculos %}
+              <option value="{{ v.id }}" {% if filtros.veiculo == v.id|stringformat:'s' %}selected{% endif %}>{{ v.modelo }} — {{ v.placa }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-2">
+          <label class="form-label">Destino</label>
+          <input type="text" name="destino" value="{{ filtros.destino }}" class="form-control" placeholder="Ex.: Belo Horizonte" />
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label">Início</label>
+          <input type="date" name="inicio" value="{{ filtros.inicio }}" class="form-control" />
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label">Fim</label>
+          <input type="date" name="fim" value="{{ filtros.fim }}" class="form-control" />
+        </div>
+        <div class="col-12 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filtrar</button>
+          <a href="{% url 'motorista-viagem-list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle"></i> Limpar</a>
+        </div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle viagens-table">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th>Código</th>
+              <th>Motorista</th>
+              <th>Período</th>
+              <th>Origem</th>
+              <th>Destino</th>
+              <th>Veículo</th>
+              <th>Diárias (R$)</th>
+              <th>Horas extras (R$)</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in viagens %}
+            <tr>
+              <td>{{ v.codigo }}</td>
+              <td>{{ v.motorista.nome_completo }}</td>
+              <td>{{ v.data_inicio|date:'d/m/Y' }} — {{ v.data_fim|date:'d/m/Y' }}</td>
+              <td>{{ v.origem }}</td>
+              <td>{{ v.destino }}</td>
+              <td>{{ v.veiculo }}</td>
+              <td class="valor-diarias" data-v="{{ v.valor_total_diarias }}">{{ v.valor_total_diarias }}</td>
+              <td class="valor-horas" data-v="{{ v.valor_total_horas_extras }}">{{ v.valor_total_horas_extras }}</td>
+              <td class="text-end">
+                <a href="{% url 'motorista-viagem-print-single' v.pk %}" class="btn btn-sm btn-outline-secondary btn-icon" title="Imprimir"><i class="bi bi-printer"></i></a>
+                <a href="{% url 'motorista-viagem-update' v.pk %}" class="btn btn-sm btn-outline-primary btn-icon" title="Editar"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'motorista-viagem-delete' v.pk %}" class="btn btn-sm btn-outline-danger btn-icon" title="Excluir"><i class="bi bi-trash"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="text-center text-muted">Nenhuma viagem registrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3">
+          <div class="text-muted small">
+            Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }} viagens
+          </div>
+          <nav aria-label="Paginação de viagens">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                <a class="page-link" href="{% if page_obj.has_previous %}?{% if query_string %}{{ query_string }}&{% endif %}page=1{% else %}#{% endif %}" tabindex="-1">Primeira</a>
+              </li>
+              <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                <a class="page-link" href="{% if page_obj.has_previous %}?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}{% else %}#{% endif %}" tabindex="-1">Anterior</a>
+              </li>
+              {% for num in page_obj.paginator.page_range %}
+                {% if num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+                  <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{% if page_obj.has_next %}?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}{% else %}#{% endif %}">Próxima</a>
+              </li>
+              <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{% if page_obj.has_next %}?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.paginator.num_pages }}{% else %}#{% endif %}">Última</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  document.querySelectorAll('.valor-diarias, .valor-horas').forEach(td => {
+    const raw = (td.getAttribute('data-v') || '').toString().trim();
+    // Não remover pontos (podem ser decimais). Converter vírgula decimal em ponto.
+    const s = raw.replace(/[R$\s]/g, '').replace(',', '.');
+    const v = parseFloat(s);
+    td.textContent = fmt.format(isNaN(v) ? 0 : v);
+  });
+});
+</script>
+{% endblock %}

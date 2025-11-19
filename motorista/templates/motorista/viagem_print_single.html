@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Imprimir Viagem {{ v.codigo }}{% endblock %}
+{% block content %}
+<div class="container py-3 d-print-block">
+  <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+    <h5 class="mb-0">Imprimir Viagem {{ v.codigo }}</h5>
+    <div class="d-flex gap-2">
+      <a href="{% url 'motorista-viagem-list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Voltar</a>
+      <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-12"><strong>Código:</strong> {{ v.codigo }}</div>
+        <div class="col-12"><strong>Motorista:</strong> {{ v.motorista.nome_completo }}</div>
+        <div class="col-12"><strong>Período:</strong> {{ v.data_inicio|date:'d/m/Y' }} — {{ v.data_fim|date:'d/m/Y' }}</div>
+        <div class="col-md-6"><strong>Origem:</strong> {{ v.origem }}</div>
+        <div class="col-md-6"><strong>Destino:</strong> {{ v.destino }}</div>
+        <div class="col-12"><strong>Veículo:</strong> {{ v.veiculo }}</div>
+        <div class="col-md-4"><strong>Quantidade de diárias:</strong> {{ v.quantidade_diarias }}</div>
+        <div class="col-md-4"><strong>Valor total de diárias:</strong> <span id="total-diarias" data-v="{{ v.valor_total_diarias }}">{{ v.valor_total_diarias }}</span></div>
+        <div class="col-md-4"><strong>Dias de viagem:</strong> {{ v.dias_viagem }}</div>
+        <div class="col-12"><strong>Justificativa das horas extras:</strong><br>{{ v.justificativa_horas_extras|linebreaksbr }}</div>
+        <div class="col-12"><strong>Motivo da viagem:</strong><br>{{ v.motivo_viagem|linebreaksbr }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+  .sidebar, .navbar, .pp-header, .btn, .d-print-none { display: none !important; }
+  .container { max-width: 100% !important; padding: 0 !important; }
+  .card { border: none !important; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const el = document.getElementById('total-diarias');
+  if (el){
+    const v = parseFloat(el.getAttribute('data-v')) || 0;
+    el.textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  }
+});
+</script>
+{% endblock %}

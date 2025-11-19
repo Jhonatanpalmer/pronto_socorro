@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ form.instance.pk|yesno:'Editar local,Novo local' }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">
+                <i class="bi bi-geo-alt text-success"></i>
+                {{ form.instance.pk|yesno:'Editar Local de Atendimento,Novo Local de Atendimento' }}
+            </h2>
+            <p class="text-muted mb-0">Preencha as informações abaixo</p>
+        </div>
+        <div>
+            <a href="{% url 'localatendimento-list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nome</label>
+                        {{ form.nome }}
+                        {% if form.nome.errors %}<div class="text-danger small">{{ form.nome.errors }}</div>{% endif %}
+                    </div>
+                                        <div class="col-md-3">
+                                                <label class="form-label">Tipo</label>
+                                                <div class="input-group">
+                                                    {{ form.tipo }}
+                                                    <button class="btn btn-outline-secondary" type="button" id="btnNovoTipo" title="Cadastrar novo tipo">Novo tipo</button>
+                                                </div>
+                                                {% if form.tipo.errors %}<div class="text-danger small">{{ form.tipo.errors }}</div>{% endif %}
+                                                <div id="novoTipoWrap" class="mt-2 d-none">
+                                                    <label class="form-label small text-muted">Novo tipo</label>
+                                                    <div class="input-group">
+                                                        {{ form.novo_tipo }}
+                                                        <button type="button" id="btnSalvarNovoTipo" class="btn btn-success">
+                                                            <i class="bi bi-check2-circle"></i> Salvar tipo
+                                                        </button>
+                                                    </div>
+                                                    {% if form.novo_tipo.errors %}<div class="text-danger small">{{ form.novo_tipo.errors }}</div>{% endif %}
+                                                    <div class="form-text">Ex.: Ambulatório, Centro de Imagem, Laboratório…</div>
+                                                    <div id="novoTipoStatus" class="small mt-2 d-none">
+                                                        <span class="text-success"><i class="bi bi-check-circle-fill"></i> Novo tipo preparado. Clique em "Salvar" no final do formulário para concluir.</span>
+                                                        <button type="button" id="btnEditarNovoTipo" class="btn btn-link btn-sm p-0 ms-2">Editar</button>
+                                                    </div>
+                                                </div>
+                                        </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Telefone</label>
+                        {{ form.telefone }}
+                        {% if form.telefone.errors %}<div class="text-danger small">{{ form.telefone.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Endereço</label>
+                        {{ form.endereco }}
+                        {% if form.endereco.errors %}<div class="text-danger small">{{ form.endereco.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            {{ form.ativo }}
+                            <label class="form-check-label">Ativo</label>
+                        </div>
+                        {% if form.ativo.errors %}<div class="text-danger small">{{ form.ativo.errors }}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2"></i> Salvar
+                    </button>
+                    <a href="{% url 'localatendimento-list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function(){
+        const sel = document.getElementById('{{ form.tipo.id_for_label }}');
+        const btn = document.getElementById('btnNovoTipo');
+        const wrap = document.getElementById('novoTipoWrap');
+        const btnSalvarNovoTipo = document.getElementById('btnSalvarNovoTipo');
+        const statusNovoTipo = document.getElementById('novoTipoStatus');
+        const btnEditarNovoTipo = document.getElementById('btnEditarNovoTipo');
+        let injectedOptionValue = null; // guarda o valor slug do novo tipo injetado
+        function humanize(text){
+            const t = (text || '').trim().replace(/_/g, ' ');
+            return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+        function slugify(text){
+            return (text || '').toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 20);
+        }
+        function ensureInjectedOption(slug, display){
+            if (!sel) return;
+            // remove anterior se existir com value injetado
+            if (injectedOptionValue){
+                const prev = sel.querySelector(`option[value="${injectedOptionValue}"]`);
+                if (prev) prev.remove();
+            }
+            const opt = document.createElement('option');
+            opt.value = slug;
+            opt.textContent = display || humanize(slug);
+            sel.appendChild(opt);
+            injectedOptionValue = slug;
+            sel.value = slug;
+        }
+        function toggleNovoTipo(show){
+            if(!wrap) return;
+            wrap.classList.toggle('d-none', !show);
+        }
+        if(btn){
+            btn.addEventListener('click', function(){
+                toggleNovoTipo(true);
+                const input = wrap ? wrap.querySelector('input,textarea,select') : null;
+                if(input){ input.focus(); }
+            });
+        }
+        if(sel){
+            sel.addEventListener('change', function(){
+                toggleNovoTipo(false);
+                // se usuário mudar o select após ter salvo o novo tipo, reabilitar edição e esconder status
+                if (statusNovoTipo && !statusNovoTipo.classList.contains('d-none')) {
+                    const input = wrap ? wrap.querySelector('input') : null;
+                    if (input) { input.disabled = false; input.classList.remove('is-invalid'); }
+                    statusNovoTipo.classList.add('d-none');
+                }
+            });
+            toggleNovoTipo(false);
+        }
+
+        // Salvar tipo (client-side): valida, marca select como 'novo', bloqueia input e mostra status
+        if (btnSalvarNovoTipo) {
+            btnSalvarNovoTipo.addEventListener('click', function(){
+                const input = wrap ? wrap.querySelector('input') : null;
+                if (!input) return;
+                const val = (input.value || '').trim();
+                if (!val) {
+                    input.focus();
+                    input.classList.add('is-invalid');
+                    setTimeout(() => input.classList.remove('is-invalid'), 1200);
+                    return;
+                }
+                const slug = slugify(val);
+                if (!slug) {
+                    input.focus();
+                    input.classList.add('is-invalid');
+                    setTimeout(() => input.classList.remove('is-invalid'), 1200);
+                    return;
+                }
+                ensureInjectedOption(slug, `Novo tipo: ${val}`);
+                toggleNovoTipo(false);
+                input.disabled = true;
+                if (statusNovoTipo) statusNovoTipo.classList.remove('d-none');
+            });
+        }
+
+        // Editar novamente o novo tipo
+        if (btnEditarNovoTipo) {
+            btnEditarNovoTipo.addEventListener('click', function(){
+                const input = wrap ? wrap.querySelector('input') : null;
+                if (!input) return;
+                input.disabled = false;
+                input.focus();
+                if (statusNovoTipo) statusNovoTipo.classList.add('d-none');
+                // volta a permitir edição do campo; mantém opção injetada selecionada até salvar novamente
+                toggleNovoTipo(true);
+            });
+        }
+    })();
+    </script>
+{% endblock %}

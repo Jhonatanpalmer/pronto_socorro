@@ -1,230 +1,446 @@
 {% extends 'base.html' %}
+{% load widget_tweaks %}
 
 {% block title %}Pedido do Paciente — {{ paciente.nome }}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-person-vcard"></i> Pedido do Paciente</h4>
+<div class="container-fluid py-4" id="pp-container">
+  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
     <div>
-      <a class="btn btn-outline-primary me-2" href="{% url 'paciente_historico' paciente.id %}"><i class="bi bi-clock-history"></i> Histórico</a>
+      <h4 class="mb-1"><i class="bi bi-person-vcard"></i> Pedido do Paciente</h4>
+      <div class="text-muted small">
+        {% if paciente.cpf %}<span class="me-3">CPF: {{ paciente.cpf }}</span>{% endif %}
+        {% if paciente.cns %}<span class="me-3">CNS: {{ paciente.cns }}</span>{% endif %}
+        {% if paciente.data_nascimento %}<span class="me-3">Nascimento: {{ paciente.data_nascimento|date:'d/m/Y' }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary" href="{% url 'paciente_historico' paciente.id %}"><i class="bi bi-clock-history"></i> Histórico</a>
       <a class="btn btn-outline-secondary" href="{% url 'regulacao-list' %}"><i class="bi bi-arrow-left"></i> Voltar</a>
     </div>
   </div>
 
-  <div class="card shadow-sm mb-3">
+  <div class="card pp-card shadow-sm mb-4">
     <div class="card-body">
-      <h5 class="mb-2">{{ paciente.nome }}</h5>
-      <div class="text-muted small">
-        {% if paciente.cpf %}<span class="me-3">CPF: {{ paciente.cpf }}</span>{% endif %}
-        {% if paciente.cns %}<span class="me-3">CNS: {{ paciente.cns }}</span>{% endif %}
+      <div class="row g-3 align-items-center">
+        <div class="col-lg-7">
+          <div class="fw-semibold text-uppercase text-muted small">Paciente</div>
+          <h5 class="mb-1">{{ paciente.nome }}</h5>
+          <div class="text-muted small">
+            {% if paciente.telefone %}<span class="me-3"><i class="bi bi-telephone"></i> {{ paciente.telefone }}</span>{% endif %}
+            {% if paciente.nome_mae %}<span class="me-3"><i class="bi bi-person-heart"></i> Mãe: {{ paciente.nome_mae }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="row text-center gy-3">
+            <div class="col-4">
+              <div class="text-muted small text-uppercase">Exames pendentes</div>
+              <div class="fw-semibold fs-3 text-warning">{{ exames_pendentes_count }}</div>
+            </div>
+            <div class="col-4">
+              <div class="text-muted small text-uppercase">Consultas pendentes</div>
+              <div class="fw-semibold fs-3 text-info">{{ consultas_pendentes_count }}</div>
+            </div>
+            {% with exames_total=exames_todos|length consultas_total=consultas_todas|length %}
+            <div class="col-4">
+              <div class="text-muted small text-uppercase">Solicitações</div>
+              <div class="fw-semibold fs-3">{{ exames_total|add:consultas_total }}</div>
+            </div>
+            {% endwith %}
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Form de Exames -->
-  <form method="post" class="mb-4">
+  <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
+    <span class="text-muted small text-uppercase">Modo de exibição:</span>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Filtros de exibição">
+      <a class="btn btn-outline-secondary {% if only != 'ex' and only != 'co' %}active{% endif %}" href="{% url 'paciente-pedido' paciente.id %}{% if pend %}?pend=1{% endif %}">
+        <i class="bi bi-layout-three-columns"></i> Exames + Consultas
+      </a>
+      <a class="btn btn-outline-warning text-dark {% if only == 'ex' %}active{% endif %}" href="{% url 'paciente-pedido' paciente.id %}?only=ex{% if pend %}&pend=1{% endif %}">
+        <i class="bi bi-flask"></i> Somente Exames
+      </a>
+      <a class="btn btn-outline-info text-dark {% if only == 'co' %}active{% endif %}" href="{% url 'paciente-pedido' paciente.id %}?only=co{% if pend %}&pend=1{% endif %}">
+        <i class="bi bi-person-lines-fill"></i> Somente Consultas
+      </a>
+    </div>
+  </div>
+
+  {% if only != 'co' %}
+  <form method="post" class="mb-4" id="pp-exames-form">
     {% csrf_token %}
-    <div class="card shadow-sm">
-      <div class="card-header bg-warning text-dark">
-        <strong>Autorizar e Agendar Exames Pendentes</strong>
-        <span class="badge bg-dark ms-2">{{ exames_pendentes_count }} pendente(s)</span>
+    <div class="card pp-card">
+      <div class="pp-header">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+          <h6 class="mb-0">
+            <i class="bi bi-clipboard-check"></i> Autorizar e Agendar Exames Pendentes
+            <span class="badge bg-dark ms-2">{{ exames_pendentes_count }} fila(s)</span>
+            {% if ubs_malote %}
+            <br><small class="text-muted">Você está na {{ ubs_malote.nome }}</small>
+            {% endif %}
+          </h6>
+          {% if not read_only %}
+          <div class="d-inline-block ms-auto" id="ex-pend-filter-form">
+            <div class="form-check form-switch small">
+              <input class="form-check-input" type="checkbox" role="switch" id="pendExSwitch" {% if pend %}checked{% endif %}>
+              <label class="form-check-label" for="pendExSwitch">Aguardando resposta</label>
+            </div>
+          </div>
+          {% endif %}
+        </div>
       </div>
       <div class="card-body">
         {% if exames_pendentes_count == 0 %}
-        <div class="alert alert-info">Não há exames em fila/pendente para este paciente.</div>
+          <div class="alert alert-info"><i class="bi bi-info-circle"></i> Não há exames em fila/pendente para este paciente.</div>
         {% else %}
-        {{ exame_formset.management_form }}
-        {% if read_only %}<fieldset disabled>{% endif %}
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Ação</th>
-                <th>Exame</th>
-                <th>UBS</th>
-                <th>Solicitado em</th>
-                <th>Local</th>
-                <th>Data</th>
-                <th>Hora</th>
-                <th>Laboratório Autorizado</th>
-                <th>Obs</th>
-                <th>Motivo (se negar)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for form in exame_formset.forms %}
-              <tr>
-                <td>
-                  <div class="form-check">
-                    {{ form.autorizar }} <label class="form-check-label small">Autorizar</label>
-                  </div>
-                  <div class="form-check">
-                    {{ form.negar }} <label class="form-check-label small text-danger">Negar</label>
-                  </div>
-                  {{ form.id }}
-                </td>
-                <td>
-                  <div class="fw-semibold">{{ form.instance.tipo_exame.nome }}</div>
-                  <div class="text-muted small">Prot. #{{ form.instance.numero_protocolo }}</div>
-                </td>
-                <td><span class="badge bg-info text-dark">{{ form.instance.ubs_solicitante.nome }}</span></td>
-                <td class="text-muted small">{{ form.instance.data_solicitacao|date:'d/m/Y H:i' }}</td>
-                <td>{{ form.local_realizacao }}</td>
-                <td>{{ form.data_agendada }}</td>
-                <td>{{ form.hora_agendada }}</td>
-                <td>{{ form.local_realizacao }}</td>
-                <td>{{ form.observacoes_regulacao }}</td>
-                <td>{{ form.motivo_decisao }}</td>
-              </tr>
-              {% if form.errors %}
-              <tr>
-                <td colspan="9">
-                  <div class="text-danger small">
-                    {% for error in form.non_field_errors %}
-                      <div>{{ error }}</div>
-                    {% endfor %}
-                    {% for field, errors in form.errors.items %}
-                      {% for error in errors %}
-                        <div>{{ error }}</div>
-                      {% endfor %}
-                    {% endfor %}
-                  </div>
-                </td>
-              </tr>
-              {% endif %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% if read_only %}</fieldset>{% endif %}
-        {% endif %}
-      </div>
-    </div>
-    {% if not read_only %}
-    <div class="d-flex justify-content-end gap-2 mt-3">
-      <button type="submit" name="submit_exames" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar exames selecionados</button>
-      <button type="submit" name="deny_exames" class="btn btn-danger"><i class="bi bi-x-octagon"></i> Negar exames selecionados</button>
-    </div>
-    {% endif %}
-  </form>
-
-  <!-- Form de Consultas -->
-  <form method="post" class="mb-4">
-    {% csrf_token %}
-    <div class="card shadow-sm">
-      <div class="card-header bg-info text-dark">
-        <strong>Autorizar e Agendar Consultas Pendentes</strong>
-        <span class="badge bg-dark ms-2">{{ consultas_pendentes_count }} pendente(s)</span>
-      </div>
-      <div class="card-body">
-        {% if consultas_pendentes_count == 0 %}
-          <div class="alert alert-info">Não há consultas em fila/pendente para este paciente.</div>
-        {% else %}
-          {{ consulta_formset.management_form }}
+          {{ exame_formset.management_form }}
           {% if read_only %}<fieldset disabled>{% endif %}
-          <div class="table-responsive">
-            <table class="table table-sm align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Ação</th>
-                <th>Especialidade</th>
-                <th>UBS</th>
-                <th>Solicitado em</th>
-                <th>Local</th>
-                <th>Data</th>
-                <th>Hora</th>
-                <th>Médico Atendente</th>
-                <th>Obs</th>
-                <th>Motivo (se negar)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for form in consulta_formset.forms %}
-              <tr>
-                <td>
-                  <div class="form-check">
-                    {{ form.autorizar }} <label class="form-check-label small">Autorizar</label>
-                  </div>
-                  <div class="form-check">
-                    {{ form.negar }} <label class="form-check-label small text-danger">Negar</label>
-                  </div>
-                  {{ form.id }}
-                </td>
-                <td>
-                  <div class="fw-semibold">{{ form.instance.especialidade.nome }}</div>
-                  <div class="text-muted small">Prot. #{{ form.instance.numero_protocolo }}</div>
-                </td>
-                <td><span class="badge bg-info text-dark">{{ form.instance.ubs_solicitante.nome }}</span></td>
-                <td class="text-muted small">{{ form.instance.data_solicitacao|date:'d/m/Y H:i' }}</td>
-                <td>{{ form.local_atendimento }}</td>
-                <td>{{ form.data_agendada }}</td>
-                <td>{{ form.hora_agendada }}</td>
-                <td>{{ form.medico_atendente }}</td>
-                <td>{{ form.observacoes_regulacao }}</td>
-                <td>{{ form.motivo_decisao }}</td>
-              </tr>
-              {% if form.errors %}
-              <tr>
-                <td colspan="9">
-                  <div class="text-danger small">
-                    {% for error in form.non_field_errors %}
-                      <div>{{ error }}</div>
-                    {% endfor %}
-                    {% for field, errors in form.errors.items %}
-                      {% for error in errors %}
+          <div class="table-responsive" id="exames">
+            <table class="table table-sm table-hover table-striped sticky-head align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th><i class="bi bi-lightning-charge th-icon"></i> Ação</th>
+                  <th><i class="bi bi-bezier th-icon"></i> Exame</th>
+                  <th><i class="bi bi-calendar-event th-icon"></i> Solicitado em</th>
+                  <th><i class="bi bi-geo-alt th-icon"></i> Local / Tipo</th>
+                  <th><i class="bi bi-person-badge th-icon"></i> Médico</th>
+                  <th><i class="bi bi-calendar2-day th-icon"></i> Data</th>
+                  <th><i class="bi bi-clock th-icon"></i> Hora</th>
+                  <th><i class="bi bi-card-text th-icon"></i> Obs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for form in exame_formset.forms %}
+                <tr data-espec-id="{{ form.instance.tipo_exame.especialidade_id }}" data-item-id="{{ form.instance.pk }}" data-item-type="exame">
+                  <td>
+                    <div class="d-none">
+                      {{ form.autorizar }}
+                      {{ form.negar }}
+                      {{ form.pendenciar }}
+                      {{ form.motivo_decisao }}
+                      {{ form.pendencia_motivo }}
+                    </div>
+                    <div class="d-flex flex-column gap-1" style="min-width: 90px;">
+                      <button type="button" class="btn btn-outline-success btn-sm action-btn" data-kind="ex" data-action="autorizar"><i class="bi bi-check2-circle"></i></button>
+                      <button type="button" class="btn btn-outline-danger btn-sm action-btn" data-kind="ex" data-action="negar"><i class="bi bi-x-octagon"></i></button>
+                      <button type="button" class="btn btn-outline-warning btn-sm text-dark action-btn" data-kind="ex" data-action="pendenciar"><i class="bi bi-hourglass-split"></i></button>
+                    </div>
+                    {{ form.id }}
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ form.instance.tipo_exame.nome }}</div>
+                    <div class="text-muted small">Prot. #{{ form.instance.numero_protocolo }}</div>
+                    {% if form.instance.ubs_solicitante %}
+                    <div class="badge bg-info text-dark mt-1">{{ form.instance.ubs_solicitante.nome }}</div>
+                    {% endif %}
+                    {% if not read_only and form.instance.justificativa %}
+                      <button type="button" class="btn btn-link btn-sm p-0 pp-open-justif" data-target="#just-ex-{{ form.instance.pk }}" data-kind="Exame" data-prot="{{ form.instance.numero_protocolo }}">Ver justificativa</button>
+                      <div id="just-ex-{{ form.instance.pk }}" class="d-none" style="white-space: pre-wrap;">{{ form.instance.justificativa }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted small">{{ form.instance.data_solicitacao|date:'d/m/Y H:i' }}</td>
+                  <td>
+                    <div class="d-flex flex-column gap-1">
+                      <div class="input-group input-group-sm pp-local-group">
+                        <span class="input-group-text"><i class="bi bi-tags"></i></span>
+                        {{ form.local_tipo|add_class:'form-select form-select-sm ex-tipo-select' }}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="pp-medico-wrap">
+                      {{ form.medico_atendente|add_class:'form-select form-select-sm pp-medico bg-light fw-bold' }}
+                    </div>
+                    <div class="form-text small text-muted agenda-hint d-none">—</div>
+                  </td>
+                  <td>{{ form.data_agendada|add_class:'form-control form-control-sm pp-date' }}</td>
+                  <td>{{ form.hora_agendada|add_class:'form-control form-control-sm' }}</td>
+                  <td>
+                    <div class="pp-preview-edit">
+                      <div class="small text-muted flex-grow-1">{{ form.instance.observacoes_regulacao|default:'—'|truncatechars:60 }}</div>
+                      {% if not read_only %}
+                      <a class="btn btn-xs btn-modern btn-secondary ms-1 pp-edit-obs" href="{% url 'texto-exame-editar' form.instance.pk %}?campo=obs&next={{ request.get_full_path|urlencode }}#obs" title="Editar observações"><i class="bi bi-pencil"></i></a>
+                      {% endif %}
+                    </div>
+                    {% if form.instance.status == 'pendente' %}
+                      <div class="mt-1 d-flex flex-column gap-1">
+                        <div>
+                          {% if form.instance.pendencia_respondida_em %}
+                            <span class="badge text-bg-info"><i class="bi bi-arrow-repeat"></i> Aguardando resposta da Regulação</span>
+                          {% else %}
+                            <span class="badge text-bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Aguardando resposta da UBS Solicitante</span>
+                          {% endif %}
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                          {% if form.instance.pendencia_resposta %}
+                            <span class="text-muted small">Última resposta: {{ form.instance.pendencia_resposta|truncatechars:60 }}</span>
+                          {% endif %}
+                          <a class="btn btn-sm btn-warning text-dark" href="{% url 'pendencia-exame-responder' form.instance.pk %}?next={{ request.get_full_path|urlencode }}">
+                            Ver conversa
+                          </a>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% if form.errors %}
+                <tr>
+                  <td colspan="11">
+                    <div class="text-danger small">
+                      {% for error in form.non_field_errors %}
                         <div>{{ error }}</div>
                       {% endfor %}
-                    {% endfor %}
-                  </div>
-                </td>
-              </tr>
-              {% endif %}
-              {% endfor %}
-            </tbody>
-          </table>
+                      {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                          <div>{{ error }}</div>
+                        {% endfor %}
+                      {% endfor %}
+                    </div>
+                  </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
           {% if read_only %}</fieldset>{% endif %}
         {% endif %}
       </div>
     </div>
     {% if not read_only %}
-    <div class="d-flex justify-content-end gap-2 mt-3">
-      <button type="submit" name="submit_consultas" class="btn btn-success"><i class="bi bi-check2-all"></i> Autorizar consultas selecionadas</button>
-      <button type="submit" name="deny_consultas" class="btn btn-danger"><i class="bi bi-x-octagon"></i> Negar consultas selecionadas</button>
+    <div class="d-flex flex-column flex-md-row justify-content-end gap-2 mt-3 pp-section-actions {% if only == 'ex' %}sticky-bottom{% endif %}">
+      <button type="submit" name="submit_exames" class="btn btn-success btn-icon"><i class="bi bi-check2-all"></i> Salvar autorizações de exames</button>
     </div>
     {% endif %}
   </form>
+  {% endif %}
 
-  <div class="card shadow-sm mt-4">
-    <div class="card-header"><strong>Todas as solicitações do paciente</strong></div>
-    <div class="card-body">
-      <div class="d-flex justify-content-end gap-2 mb-3">
-        {% if exames_aut_count and exames_aut_count > 0 %}
-          <a class="btn btn-outline-primary btn-sm" href="{% url 'comprovantes-exames' %}?ids={{ exames_aut_ids_csv }}" target="_blank"><i class="bi bi-printer"></i> Imprimir exames autorizados</a>
-          <a class="btn btn-outline-primary btn-sm" href="{% url 'comprovantes-exames' %}?ids={{ exames_aut_ids_csv }}&detalhes=1" target="_blank"><i class="bi bi-printer-fill"></i> Imprimir exames (detalhes)</a>
-        {% endif %}
-        {% if consultas_aut_count and consultas_aut_count > 0 %}
-          <a class="btn btn-outline-success btn-sm" href="{% url 'comprovantes-consultas' %}?ids={{ consultas_aut_ids_csv }}" target="_blank"><i class="bi bi-printer"></i> Imprimir consultas autorizadas</a>
-          <a class="btn btn-outline-success btn-sm" href="{% url 'comprovantes-consultas' %}?ids={{ consultas_aut_ids_csv }}&detalhes=1" target="_blank"><i class="bi bi-printer-fill"></i> Imprimir consultas (detalhes)</a>
+  {% if only != 'ex' %}
+  <form method="post" class="mb-4" id="pp-consultas-form">
+    {% csrf_token %}
+    <div class="card pp-card">
+      <div class="pp-header">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+          <h6 class="mb-0"><i class="bi bi-person-lines-fill"></i> Autorizar e Agendar Consultas Pendentes
+            <span class="badge bg-dark ms-2">{{ consultas_pendentes_count }} fila(s)</span>
+            {% if ubs_malote %}
+            <br><small class="text-muted">Você está na {{ ubs_malote.nome }}</small>
+            {% endif %}
+          </h6>
+          {% if not read_only %}
+          <div class="d-inline-block ms-auto" id="co-pend-filter-form">
+            <div class="form-check form-switch small">
+              <input class="form-check-input" type="checkbox" role="switch" id="pendCoSwitch" {% if pend %}checked{% endif %}>
+              <label class="form-check-label" for="pendCoSwitch">Aguardando resposta</label>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        {% if consultas_pendentes_count == 0 %}
+          <div class="alert alert-info"><i class="bi bi-info-circle"></i> Não há consultas em fila/pendente para este paciente.</div>
+        {% else %}
+          {{ consulta_formset.management_form }}
+          {% if read_only %}<fieldset disabled>{% endif %}
+          <div class="table-responsive" id="consultas">
+            <table class="table table-sm table-hover table-striped sticky-head align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th><i class="bi bi-lightning-charge th-icon"></i> Ação</th>
+                  <th><i class="bi bi-award th-icon"></i> Especialidade</th>
+                  <th><i class="bi bi-calendar-event th-icon"></i> Solicitado em</th>
+                  <th><i class="bi bi-geo-alt th-icon"></i> Local de Atendimento</th>
+                  <th><i class="bi bi-person-badge th-icon"></i> Médico Atendente</th>
+                  <th><i class="bi bi-calendar2-day th-icon"></i> Data</th>
+                  <th><i class="bi bi-clock th-icon"></i> Hora</th>
+                  <th><i class="bi bi-card-text th-icon"></i> Obs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for form in consulta_formset.forms %}
+                <tr data-espec-id="{{ form.instance.especialidade_id }}" data-item-id="{{ form.instance.pk }}" data-item-type="consulta">
+                  <td>
+                    <div class="d-none">
+                      {{ form.autorizar }}
+                      {{ form.negar }}
+                      {{ form.pendenciar }}
+                      {{ form.motivo_decisao }}
+                      {{ form.pendencia_motivo }}
+                    </div>
+                    <div class="d-flex flex-column gap-1" style="min-width: 90px;">
+                      <button type="button" class="btn btn-outline-success btn-sm action-btn" data-kind="co" data-action="autorizar"><i class="bi bi-check2-circle"></i></button>
+                      <button type="button" class="btn btn-outline-danger btn-sm action-btn" data-kind="co" data-action="negar"><i class="bi bi-x-octagon"></i></button>
+                      <button type="button" class="btn btn-outline-warning btn-sm text-dark action-btn" data-kind="co" data-action="pendenciar"><i class="bi bi-hourglass-split"></i></button>
+                    </div>
+                    {{ form.id }}
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ form.instance.especialidade.nome }}</div>
+                    <div class="text-muted small">Prot. #{{ form.instance.numero_protocolo }}</div>
+                    {% if not read_only and form.instance.justificativa %}
+                      <button type="button" class="btn btn-link btn-sm p-0 pp-open-justif" data-target="#just-co-{{ form.instance.pk }}" data-kind="Consulta" data-prot="{{ form.instance.numero_protocolo }}">Ver justificativa</button>
+                      <div id="just-co-{{ form.instance.pk }}" class="d-none" style="white-space: pre-wrap;">{{ form.instance.justificativa }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted small">{{ form.instance.data_solicitacao|date:'d/m/Y H:i' }}</td>
+                  <td>
+                    <div class="d-flex flex-column gap-1">
+                      <div class="input-group input-group-sm pp-local-group">
+                        <span class="input-group-text"><i class="bi bi-tags"></i></span>
+                        {{ form.local_tipo|add_class:'form-select form-select-sm co-tipo-select' }}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="pp-medico-wrap">
+                      {{ form.medico_atendente|add_class:'form-select form-select-sm pp-medico bg-light fw-bold' }}
+                    </div>
+                    <div class="form-text small text-muted agenda-hint d-none">—</div>
+                  </td>
+                  <td>{{ form.data_agendada|add_class:'form-control form-control-sm pp-date' }}</td>
+                  <td>{{ form.hora_agendada|add_class:'form-control form-control-sm' }}</td>
+                  <td>
+                    <div class="pp-preview-edit">
+                      <div class="small text-muted flex-grow-1">{{ form.instance.observacoes_regulacao|default:'—'|truncatechars:60 }}</div>
+                      {% if not read_only %}
+                      <a class="btn btn-xs btn-modern btn-secondary ms-1 pp-edit-obs" href="{% url 'texto-consulta-editar' form.instance.pk %}?campo=obs&next={{ request.get_full_path|urlencode }}#obs" title="Editar observações"><i class="bi bi-pencil"></i></a>
+                      {% endif %}
+                    </div>
+                    {% if form.instance.status == 'pendente' %}
+                      <div class="mt-1 d-flex flex-column gap-1">
+                        <div>
+                          {% if form.instance.pendencia_respondida_em %}
+                            <span class="badge text-bg-info"><i class="bi bi-arrow-repeat"></i> Aguardando resposta da Regulação</span>
+                          {% else %}
+                            <span class="badge text-bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Aguardando resposta da UBS Solicitante</span>
+                          {% endif %}
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                          {% if form.instance.pendencia_resposta %}
+                            <span class="text-muted small">Última resposta: {{ form.instance.pendencia_resposta|truncatechars:60 }}</span>
+                          {% endif %}
+                          <a class="btn btn-sm btn-warning text-dark" href="{% url 'pendencia-consulta-responder' form.instance.pk %}?next={{ request.get_full_path|urlencode }}">
+                            Ver conversa
+                          </a>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% if form.errors %}
+                <tr>
+                  <td colspan="11">
+                    <div class="text-danger small">
+                      {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                      {% endfor %}
+                      {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                          <div>{{ error }}</div>
+                        {% endfor %}
+                      {% endfor %}
+                    </div>
+                  </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if read_only %}</fieldset>{% endif %}
         {% endif %}
       </div>
+    </div>
+    {% if not read_only %}
+    <div class="d-flex flex-column flex-md-row justify-content-end gap-2 mt-3 pp-section-actions sticky-bottom">
+      <button type="submit" name="submit_consultas" class="btn btn-success btn-icon"><i class="bi bi-check2-all"></i> Salvar autorizações de consultas</button>
+    </div>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  {% if not read_only %}
+  <div class="card pp-card mt-4" id="pp-view-all-prompt">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <div><strong>Deseja visualizar todas as solicitações do paciente?</strong></div>
+      <div>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="pp-view-all-btn"><i class="bi bi-list-ul"></i> Sim, visualizar</button>
+      </div>
+    </div>
+  </div>
+  <div id="pp-all-requests-wrap" class="d-none">
+  {% endif %}
+  <div class="card pp-card mt-4">
+    <div class="pp-header"><h6><i class="bi bi-list-ul"></i> Todas as solicitações do paciente</h6></div>
+    <div class="card-body">
+      {% if not read_only %}
+      <div id="pp-filters" class="mb-3">
+        <div class="row g-2">
+          <div class="col-sm-6 col-md-4 col-lg-3">
+            <input type="text" id="f_nome" class="form-control form-control-sm" placeholder="Nome do paciente" value="">
+          </div>
+          <div class="col-sm-6 col-md-4 col-lg-3">
+            <input type="text" id="f_protocolo" class="form-control form-control-sm" placeholder="Protocolo">
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <select id="f_status" class="form-select form-select-sm">
+              <option value="">Status (todos)</option>
+              <option value="fila">Fila</option>
+              <option value="pendente">Pendente</option>
+              <option value="autorizado">Autorizado</option>
+              <option value="negado">Negado</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <input type="date" id="f_sol_di" class="form-control form-control-sm" placeholder="Solicitado de">
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <input type="date" id="f_sol_df" class="form-control form-control-sm" placeholder="Solicitado até">
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-6 col-md-3 col-lg-2">
+            <input type="date" id="f_age_di" class="form-control form-control-sm" placeholder="Agendado de">
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <input type="date" id="f_age_df" class="form-control form-control-sm" placeholder="Agendado até">
+          </div>
+          <div class="col-6 col-md-3 col-lg-2">
+            <select id="f_pend" class="form-select form-select-sm">
+              <option value="">Pendência (todas)</option>
+              <option value="com">Com pendência</option>
+              <option value="sem">Sem pendência</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-6 col-lg-4 ms-auto text-end">
+            <button type="button" id="pp-clear-filters" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eraser"></i> Limpar filtros</button>
+            <button type="button" id="pp-hide-all" class="btn btn-sm btn-outline-dark ms-1"><i class="bi bi-eye-slash"></i> Ocultar</button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="table-responsive">
-        <table class="table table-sm align-middle">
+        <table class="table table-sm table-hover table-striped sticky-head align-middle">
           <thead class="table-light">
             <tr>
-              <th>Protocolo</th>
-              <th>Tipo</th>
-              <th>Nome</th>
-              <th>Status</th>
-              <th>Pedido</th>
-              <th>Solicitado em</th>
-              <th>Agendamento</th>
+              <th><i class="bi bi-hash th-icon"></i> Protocolo</th>
+              <th><i class="bi bi-tags th-icon"></i> Tipo</th>
+              <th><i class="bi bi-card-heading th-icon"></i> Nome</th>
+              <th><i class="bi bi-activity th-icon"></i> Status</th>
+              <th><i class="bi bi-receipt th-icon"></i> Pedido</th>
+              <th><i class="bi bi-calendar-event th-icon"></i> Solicitado em</th>
+              <th><i class="bi bi-geo th-icon"></i> Agendamento</th>
+              <th><i class="bi bi-exclamation-circle th-icon"></i> Pendência</th>
             </tr>
           </thead>
           <tbody>
+            {% if only != 'co' %}
             {% for r in exames_todos %}
-            <tr>
+            <tr class="pp-row" data-tipo="ex" data-nome="{{ paciente.nome }}" data-protocolo="{{ r.numero_protocolo }}" data-status="{{ r.status }}" data-solicitado="{{ r.data_solicitacao|date:'Y-m-d' }}" data-agendada="{% if r.data_agendada %}{{ r.data_agendada|date:'Y-m-d' }}{% endif %}" data-pend="{% if r.status == 'pendente' %}1{% else %}0{% endif %}">
               <td>#{{ r.numero_protocolo }}</td>
               <td><span class="badge bg-warning text-dark">Exame</span></td>
               <td>{{ r.tipo_exame.nome }}</td>
@@ -237,10 +453,18 @@
                 {{ r.data_agendada|date:'d/m/Y' }} {{ r.hora_agendada|time:'H:i' }}
                 {% else %}—{% endif %}
               </td>
+              <td>
+                {% if r.status == 'pendente' %}
+                  <span class="text-warning" title="Pendência">{{ r.pendencia_motivo|default:'—' }}</span>
+                  {% if r.pendencia_resposta %}<div class="text-muted small">UBS: {{ r.pendencia_resposta|truncatechars:60 }}</div>{% endif %}
+                {% else %}—{% endif %}
+              </td>
             </tr>
             {% endfor %}
+            {% endif %}
+            {% if only != 'ex' %}
             {% for c in consultas_todas %}
-            <tr>
+            <tr class="pp-row" data-tipo="co" data-nome="{{ paciente.nome }}" data-protocolo="{{ c.numero_protocolo }}" data-status="{{ c.status }}" data-solicitado="{{ c.data_solicitacao|date:'Y-m-d' }}" data-agendada="{% if c.data_agendada %}{{ c.data_agendada|date:'Y-m-d' }}{% endif %}" data-pend="{% if c.status == 'pendente' %}1{% else %}0{% endif %}">
               <td>#{{ c.numero_protocolo }}</td>
               <td><span class="badge bg-info text-dark">Consulta</span></td>
               <td>{{ c.especialidade.nome }}</td>
@@ -253,76 +477,965 @@
                 {{ c.data_agendada|date:'d/m/Y' }} {{ c.hora_agendada|time:'H:i' }}
                 {% else %}—{% endif %}
               </td>
+              <td>
+                {% if c.status == 'pendente' %}
+                  <span class="text-warning" title="Pendência">{{ c.pendencia_motivo|default:'—' }}</span>
+                  {% if c.pendencia_resposta %}<div class="text-muted small">UBS: {{ c.pendencia_resposta|truncatechars:60 }}</div>{% endif %}
+                {% else %}—{% endif %}
+              </td>
             </tr>
-            {% empty %}
-            <tr><td colspan="7" class="text-center text-muted">Nenhuma solicitação.</td></tr>
             {% endfor %}
+            {% endif %}
+            {% if only == 'ex' and not exames_todos or only == 'co' and not consultas_todas or not exames_todos and not consultas_todas %}
+            <tr><td colspan="8" class="text-center text-muted">Nenhuma solicitação.</td></tr>
+            {% endif %}
+            <tr id="pp-no-results" class="d-none"><td colspan="8" class="text-center text-muted">Nenhuma solicitação encontrada com os filtros.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
+  {% if not read_only %}
+  </div>
+  {% endif %}
 </div>
+
 <script>
-// Toggle required attributes when 'autorizar' is checked (somente quando não for read_only)
 {% if not read_only %}
 document.addEventListener('DOMContentLoaded', function() {
-  try {
-    const examRows = document.querySelectorAll('table tbody tr');
-    examRows.forEach((row) => {
-      const autorizar = row.querySelector('input[type="checkbox"][name^="ex-"][name$="-autorizar"]');
-      const negar = row.querySelector('input[type="checkbox"][name^="ex-"][name$="-negar"]');
+  const storageKey = (function(){
+    const url = new URL(window.location.href);
+    const patientMatch = url.pathname.match(/paciente\/(\d+)\/pedido\//);
+    const pid = patientMatch ? patientMatch[1] : 'na';
+    return `pp_state_${pid}`;
+  })();
+
+  function loadState(){
+    try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { return {}; }
+  }
+  function saveState(state){
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
+  }
+  function clearState(){ try { localStorage.removeItem(storageKey); } catch {} }
+  clearState();
+
+  function getRowKey(row, kind){
+    const pkInput = row.querySelector(`input[type="hidden"][name^="${kind}-"][name$="-id"]`);
+    return pkInput ? `${kind}-${pkInput.value}` : null;
+  }
+
+  function setupTable(kind){
+    const rows = document.querySelectorAll('table tbody tr');
+    rows.forEach((row) => {
+      const autorizar = row.querySelector(`input[type="checkbox"][name^="${kind}-"][name$="-autorizar"]`);
+      const negar = row.querySelector(`input[type="checkbox"][name^="${kind}-"][name$="-negar"]`);
+      const pendenciar = row.querySelector(`input[type="checkbox"][name^="${kind}-"][name$="-pendenciar"]`);
+      const buttons = row.querySelectorAll('button.action-btn');
       if (!autorizar && !negar) return;
-      const local = row.querySelector('input[name^="ex-"][name$="-local_realizacao"]');
-      const data = row.querySelector('input[name^="ex-"][name$="-data_agendada"]');
-      const hora = row.querySelector('input[name^="ex-"][name$="-hora_agendada"]');
-      const motivo = row.querySelector('textarea[name^="ex-"][name$="-motivo_decisao"]');
-      const toggle = () => {
-        const reqAuth = !!(autorizar && autorizar.checked);
-        const reqDeny = !!(negar && negar.checked);
-        if (local) local.required = reqAuth;
-        if (data) data.required = reqAuth;
-        if (hora) hora.required = reqAuth;
-        if (motivo) motivo.required = reqDeny;
-        // exclusividade
-        if (autorizar && negar) {
-          if (this === autorizar && autorizar.checked) negar.checked = false;
-          if (this === negar && negar.checked) autorizar.checked = false;
+      const data = row.querySelector(`input[name^="${kind}-"][name$="-data_agendada"]`);
+      const hora = row.querySelector(`input[name^="${kind}-"][name$="-hora_agendada"]`);
+      const medico = row.querySelector('select.pp-medico');
+      const motivo = row.querySelector(`textarea[name^="${kind}-"][name$="-motivo_decisao"]`);
+      const pendMotivo = row.querySelector(`textarea[name^="${kind}-"][name$="-pendencia_motivo"]`);
+      function applySelect(v){
+        if (autorizar) autorizar.checked = (v === 'autorizar');
+        if (negar) negar.checked = (v === 'negar');
+        if (pendenciar) pendenciar.checked = (v === 'pendenciar');
+        row.classList.toggle('table-active', !!v);
+        row.classList.remove('table-success','table-danger','table-warning');
+        if (v === 'autorizar') row.classList.add('table-success');
+        else if (v === 'negar') row.classList.add('table-danger');
+        else if (v === 'pendenciar') row.classList.add('table-warning');
+        toggleRequired();
+        const editObsBtn = row.querySelector('.pp-edit-obs');
+        const editMotivoBtn = row.querySelector('.pp-edit-motivo');
+        const editPendBtn = row.querySelector('.pp-edit-pendencia');
+        const scheduleInputs = [data, hora];
+        if (medico) scheduleInputs.push(medico);
+        if (v === 'autorizar') {
+          scheduleInputs.forEach(el => { if (el) { el.disabled = false; el.closest('.input-group')?.classList.remove('disabled'); } });
+          if (editObsBtn) editObsBtn.classList.remove('disabled');
+          if (editMotivoBtn) editMotivoBtn.classList.add('disabled');
+          if (editPendBtn) editPendBtn.classList.add('disabled');
+        } else if (v === 'negar') {
+          scheduleInputs.forEach(el => { if (el) { el.disabled = true; el.closest('.input-group')?.classList.add('disabled'); } });
+          if (editObsBtn) editObsBtn.classList.add('disabled');
+          if (editMotivoBtn) editMotivoBtn.classList.remove('disabled');
+          if (editPendBtn) editPendBtn.classList.add('disabled');
+        } else if (v === 'pendenciar') {
+          scheduleInputs.forEach(el => { if (el) { el.disabled = true; el.closest('.input-group')?.classList.add('disabled'); } });
+          if (editObsBtn) editObsBtn.classList.add('disabled');
+          if (editMotivoBtn) editMotivoBtn.classList.add('disabled');
+          if (editPendBtn) editPendBtn.classList.remove('disabled');
+        } else {
+          scheduleInputs.forEach(el => { if (el) { el.disabled = false; el.closest('.input-group')?.classList.remove('disabled'); } });
+          if (editObsBtn) editObsBtn.classList.remove('disabled');
+          if (editMotivoBtn) editMotivoBtn.classList.remove('disabled');
+          if (editPendBtn) editPendBtn.classList.remove('disabled');
         }
-      };
-      if (autorizar) autorizar.addEventListener('change', toggle);
-      if (negar) negar.addEventListener('change', toggle);
-      toggle.call(null);
-    });
-    const consultaRows = document.querySelectorAll('table tbody tr');
-    consultaRows.forEach((row) => {
-      const autorizar = row.querySelector('input[type="checkbox"][name^="co-"][name$="-autorizar"]');
-      const negar = row.querySelector('input[type="checkbox"][name^="co-"][name$="-negar"]');
-      if (!autorizar && !negar) return;
-      const local = row.querySelector('input[name^="co-"][name$="-local_atendimento"]');
-      const data = row.querySelector('input[name^="co-"][name$="-data_agendada"]');
-      const hora = row.querySelector('input[name^="co-"][name$="-hora_agendada"]');
-      const medico = row.querySelector('select[name^="co-"][name$="-medico_atendente"]');
-      const motivo = row.querySelector('textarea[name^="co-"][name$="-motivo_decisao"]');
-      const toggle = () => {
+        buttons.forEach(btn => {
+          const isActive = btn.dataset.action === v;
+          btn.classList.toggle('active', isActive);
+          if (isActive) {
+            if (v === 'autorizar') { btn.classList.remove('btn-outline-success'); btn.classList.add('btn-success'); }
+            if (v === 'negar') { btn.classList.remove('btn-outline-danger'); btn.classList.add('btn-danger'); }
+            if (v === 'pendenciar') { btn.classList.remove('btn-outline-warning'); btn.classList.add('btn-warning'); }
+          } else {
+            btn.classList.remove('btn-success','btn-danger','btn-warning');
+            if (btn.dataset.action === 'autorizar') btn.classList.add('btn-outline-success');
+            if (btn.dataset.action === 'negar') btn.classList.add('btn-outline-danger');
+            if (btn.dataset.action === 'pendenciar') btn.classList.add('btn-outline-warning');
+          }
+        });
+        const key = getRowKey(row, kind);
+        if (key) {
+          const st = loadState();
+          st[key] = st[key] || {};
+          st[key].action = v || '';
+          st[key].data = data ? data.value : st[key].data || '';
+          st[key].hora = hora ? hora.value : st[key].hora || '';
+          if (medico) st[key].medico = medico.value;
+          const tipoSelect = row.querySelector(`select[name^="${kind}-"][name$="-local_tipo"]`);
+          if (tipoSelect) st[key].tipo = tipoSelect.value;
+          saveState(st);
+        }
+      }
+      function toggleRequired(){
         const reqAuth = !!(autorizar && autorizar.checked);
         const reqDeny = !!(negar && negar.checked);
-        if (local) local.required = reqAuth;
+        const reqPend = !!(pendenciar && pendenciar.checked);
         if (data) data.required = reqAuth;
         if (hora) hora.required = reqAuth;
         if (medico) medico.required = reqAuth;
         if (motivo) motivo.required = reqDeny;
-        if (autorizar && negar) {
-          if (this === autorizar && autorizar.checked) negar.checked = false;
-          if (this === negar && negar.checked) autorizar.checked = false;
+        if (pendMotivo) pendMotivo.required = reqPend;
+      }
+      buttons.forEach(btn => btn.addEventListener('click', function(){ 
+        const action = btn.dataset.action || '';
+        const isActive = btn.classList.contains('btn-success') || btn.classList.contains('btn-danger') || btn.classList.contains('btn-warning');
+        if (isActive) {
+          applySelect('');
+        } else {
+          if (action === 'negar') {
+            window.currentActionButton = btn;
+            window.currentRow = row;
+            window.currentKind = kind;
+            const modal = new bootstrap.Modal(document.getElementById('negarModal'));
+            document.getElementById('motivoNegar').value = '';
+            modal.show();
+          } else if (action === 'pendenciar') {
+            window.currentActionButton = btn;
+            window.currentRow = row;
+            window.currentKind = kind;
+            const modal = new bootstrap.Modal(document.getElementById('pendenciarModal'));
+            document.getElementById('motivoPendencia').value = '';
+            modal.show();
+          } else {
+            applySelect(action);
+          }
         }
-      };
-      if (autorizar) autorizar.addEventListener('change', toggle);
-      if (negar) negar.addEventListener('change', toggle);
-      toggle.call(null);
+      }));
+      if (autorizar) autorizar.addEventListener('change', toggleRequired);
+      if (negar) negar.addEventListener('change', toggleRequired);
+      if (pendenciar) pendenciar.addEventListener('change', toggleRequired);
+      const key = getRowKey(row, kind);
+      if (key) {
+        const st = loadState();
+        const rk = st[key] || {};
+        const tipoSelect = row.querySelector(`select[name^="${kind}-"][name$="-local_tipo"]`);
+        if (tipoSelect && rk.tipo !== undefined) tipoSelect.value = rk.tipo;
+        if (data && rk.data !== undefined) data.value = rk.data;
+        if (hora && rk.hora !== undefined) hora.value = rk.hora;
+        if (medico && rk.medico !== undefined) medico.value = rk.medico;
+        applySelect(rk.action || '');
+        row.applySelectFunction = applySelect;
+      } else {
+        applySelect('');
+        row.applySelectFunction = applySelect;
+      }
+      [
+        row.querySelector(`select[name^="${kind}-"][name$="-local_tipo"]`),
+        data,
+        hora,
+        medico
+      ].forEach((el) => {
+        if (!el) return;
+        el.addEventListener('change', function(){
+          const key2 = getRowKey(row, kind);
+          if (!key2) return;
+          const st2 = loadState();
+          st2[key2] = st2[key2] || {};
+          if (el === data) st2[key2].data = el.value;
+          else if (el === hora) st2[key2].hora = el.value;
+          else if (el === medico) st2[key2].medico = el.value;
+          else st2[key2].tipo = el.value;
+          saveState(st2);
+        });
+      });
     });
-  } catch (e) { /* noop */ }
+  }
+  setupTable('ex');
+  setupTable('co');
+
+  const justModalEl = document.getElementById('ppJustifModal');
+  let justModal;
+  if (justModalEl) {
+    try { justModal = new bootstrap.Modal(justModalEl); } catch(e) {}
+  }
+  document.querySelectorAll('.pp-open-justif').forEach((btn) => {
+    btn.addEventListener('click', function(){
+      const sel = btn.getAttribute('data-target');
+      const tgt = sel ? document.querySelector(sel) : null;
+      if (!tgt || !justModalEl) return;
+      const kind = btn.getAttribute('data-kind') || 'Solicitação';
+      const prot = btn.getAttribute('data-prot') || '';
+      const title = prot ? `${kind} · Protocolo #${prot}` : kind;
+      const body = tgt.textContent || tgt.innerText || '';
+      const titleEl = justModalEl.querySelector('.modal-title');
+      const bodyEl = justModalEl.querySelector('.modal-body');
+      if (titleEl) titleEl.textContent = `Justificativa Clínica — ${title}`;
+      if (bodyEl) {
+        bodyEl.textContent = '';
+        bodyEl.appendChild(document.createTextNode(body));
+      }
+      if (justModal) justModal.show();
+    });
+  });
+
+  const viewAllBtn = document.getElementById('pp-view-all-btn');
+  const wrapAll = document.getElementById('pp-all-requests-wrap');
+  const hideAllBtn = document.getElementById('pp-hide-all');
+  if (viewAllBtn && wrapAll) {
+    viewAllBtn.addEventListener('click', function(){
+      wrapAll.classList.remove('d-none');
+      const nomeInput = document.getElementById('f_nome');
+      if (nomeInput && !nomeInput.value) nomeInput.value = '{{ paciente.nome|escapejs }}';
+      const y = wrapAll.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      applyFilters();
+    });
+  }
+  if (hideAllBtn && wrapAll) {
+    hideAllBtn.addEventListener('click', function(){
+      wrapAll.classList.add('d-none');
+    });
+  }
+
+  const $nome = document.getElementById('f_nome');
+  const $prot = document.getElementById('f_protocolo');
+  const $status = document.getElementById('f_status');
+  const $sdi = document.getElementById('f_sol_di');
+  const $sdf = document.getElementById('f_sol_df');
+  const $adi = document.getElementById('f_age_di');
+  const $adf = document.getElementById('f_age_df');
+  const $pend = document.getElementById('f_pend');
+  const clearBtn = document.getElementById('pp-clear-filters');
+
+  function toDate(val){
+    if (!val) return null;
+    const d = new Date(val + 'T00:00:00');
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function inRange(dateStr, diStr, dfStr){
+    if (!diStr && !dfStr) return true;
+    if (!dateStr) return false;
+    const d = toDate(dateStr), di = toDate(diStr), df = toDate(dfStr);
+    if (!d) return false;
+    if (di && d < di) return false;
+    if (df && d > df) return false;
+    return true;
+  }
+  function applyFilters(){
+    const nome = ($nome?.value || '').trim().toLowerCase();
+    const prot = ($prot?.value || '').trim().toLowerCase();
+    const st = ($status?.value || '').trim();
+    const sdi = $sdi?.value || '';
+    const sdf = $sdf?.value || '';
+    const adi = $adi?.value || '';
+    const adf = $adf?.value || '';
+    const pend = ($pend?.value || '').trim();
+    let shown = 0;
+    document.querySelectorAll('#pp-all-requests-wrap .pp-row').forEach((tr) => {
+      const dn = (tr.dataset.nome || '').toLowerCase();
+      const dp = (tr.dataset.protocolo || '').toLowerCase();
+      const ds = tr.dataset.status || '';
+      const dsol = tr.dataset.solicitado || '';
+      const dage = tr.dataset.agendada || '';
+      const dpend = tr.dataset.pend || '';
+      let ok = true;
+      if (nome && !dn.includes(nome)) ok = false;
+      if (ok && prot && !dp.includes(prot)) ok = false;
+      if (ok && st && ds !== st) ok = false;
+      if (ok && !inRange(dsol, sdi, sdf)) ok = false;
+      if (ok && (adi || adf)) {
+        if (!inRange(dage, adi, adf)) ok = false;
+      }
+      if (ok && pend === 'com' && dpend !== '1') ok = false;
+      if (ok && pend === 'sem' && dpend !== '0') ok = false;
+      tr.classList.toggle('d-none', !ok);
+      if (ok) shown += 1;
+    });
+    const noRes = document.getElementById('pp-no-results');
+    if (noRes) noRes.classList.toggle('d-none', shown !== 0);
+  }
+
+  function getScheduleContext(row){
+    const itemType = (row.dataset.itemType || '').toLowerCase();
+    const dateInput = row.querySelector('input.pp-date');
+    const medSelect = row.querySelector('select.pp-medico');
+    const hints = row.querySelectorAll('.agenda-hint');
+    const raw = row.getAttribute('data-espec-id') || '';
+    const parsed = parseInt(raw, 10);
+    const especId = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    return {itemType, dateInput, medSelect, hints, especId};
+  }
+
+  function ensureDateSelect(dateInput){
+    if (!dateInput) return null;
+    try { dateInput.type = 'hidden'; } catch {}
+    let sel = dateInput.parentElement.querySelector('select.pp-date-select');
+    if (!sel){
+      sel = document.createElement('select');
+      sel.className = 'form-select form-select-sm pp-date-select';
+      sel.style.minWidth = '170px';
+      dateInput.parentElement.insertBefore(sel, dateInput.nextSibling);
+    }
+    return sel;
+  }
+
+  function setHints(hints, text){
+    hints.forEach((h) => {
+      if (!h) return;
+      if (text) {
+        h.innerHTML = text;
+        h.classList.remove('d-none');
+      } else {
+        h.classList.add('d-none');
+      }
+    });
+  }
+
+  function setAllowedDates(dateInput, allowedDates){
+    if (!dateInput) return;
+    const list = Array.isArray(allowedDates) ? Array.from(new Set(allowedDates)).sort() : [];
+    const currentHash = dateInput.dataset.allowedDates || '';
+    const newHash = list.join(',');
+    const sel = ensureDateSelect(dateInput);
+    if (sel && currentHash === newHash) {
+      if (list.length) {
+        sel.disabled = false;
+        sel.value = list.includes(dateInput.value) ? dateInput.value : '';
+      } else {
+        sel.disabled = true;
+        sel.value = '';
+      }
+      return;
+    }
+    sel.innerHTML = '';
+    if (list.length) {
+      dateInput.dataset.allowedDates = newHash;
+      sel.disabled = false;
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '— Selecione —';
+      sel.appendChild(placeholder);
+      list.forEach((d) => {
+        const option = document.createElement('option');
+        option.value = d;
+        try {
+          const [Y, M, D] = d.split('-');
+          option.textContent = `${D}/${M}/${Y}`;
+        } catch {
+          option.textContent = d;
+        }
+        sel.appendChild(option);
+      });
+      if (list.includes(dateInput.value)) {
+        sel.value = dateInput.value;
+      } else {
+        sel.value = '';
+        dateInput.value = '';
+      }
+    } else {
+      delete dateInput.dataset.allowedDates;
+      dateInput.value = '';
+      sel.disabled = true;
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Sem datas';
+      sel.appendChild(option);
+    }
+    if (!sel.dataset.bound){
+      sel.addEventListener('change', function(){
+        dateInput.value = sel.value || '';
+      });
+      sel.dataset.bound = '1';
+    }
+  }
+
+  async function fetchAgenda(medId, especId, dateStr){
+    const url = new URL('{% url "agendamedica-info" %}', window.location.origin);
+    url.searchParams.set('medico', medId);
+    url.searchParams.set('especialidade', especId);
+    if (dateStr) url.searchParams.set('data', dateStr);
+    const response = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) throw new Error('Erro ao obter agenda');
+    return await response.json();
+  }
+
+  const agendaCache = new Map();
+  function fetchAgendaCached(medId, especId){
+    const key = `${medId || 0}-${especId || 0}`;
+    if (!agendaCache.has(key)) {
+      agendaCache.set(key, fetchAgenda(medId || 0, especId || 0, ''));
+    }
+    return agendaCache.get(key);
+  }
+
+  function collectMedIds(selectEl){
+    if (!selectEl) return [];
+    const ids = [];
+    selectEl.querySelectorAll('option').forEach((opt) => {
+      const id = parseInt(opt.value, 10);
+      if (Number.isFinite(id) && id > 0) ids.push(id);
+    });
+    return ids;
+  }
+
+  function missingSpecialtyMessage(itemType){
+    return itemType === 'exame'
+      ? 'Associe uma especialidade ao tipo de exame para liberar a agenda.'
+      : 'Especialidade não encontrada para esta solicitação.';
+  }
+
+  document.querySelectorAll('#pp-all-requests-wrap table, form').forEach((scope) => {
+    scope.querySelectorAll('tbody tr').forEach((row) => {
+      const {itemType, dateInput, medSelect, hints, especId} = getScheduleContext(row);
+      if (!dateInput) return;
+      const dateSelect = ensureDateSelect(dateInput);
+
+      function clearSchedule(message){
+        setAllowedDates(dateInput, []);
+        if (dateSelect) {
+          dateSelect.value = '';
+          dateSelect.disabled = true;
+        }
+        dateInput.value = '';
+        setHints(hints, message || '');
+      }
+
+      async function update(fromUser){
+        if (!especId) {
+          clearSchedule(missingSpecialtyMessage(itemType));
+          return;
+        }
+
+        if (!medSelect || !medSelect.options.length) {
+          clearSchedule('Cadastre médicos do ambulatório para esta especialidade.');
+          return;
+        }
+
+        try {
+          let hintText = '';
+          const medId = medSelect.value ? parseInt(medSelect.value, 10) : 0;
+
+          if (medId) {
+            const summary = await fetchAgendaCached(medId, especId);
+            if (!summary.ok) {
+              clearSchedule('');
+              return;
+            }
+            const allowed = summary.datas_agenda && summary.datas_agenda.length
+              ? summary.datas_agenda
+              : (summary.datas_disponiveis || []);
+            setAllowedDates(dateInput, allowed);
+
+            if (dateSelect && allowed.length && !allowed.includes(dateInput.value)) {
+              const next = allowed.find((d) => d >= dateInput.value) || allowed[0];
+              dateInput.value = next || '';
+              dateSelect.value = dateInput.value || '';
+            }
+
+            if (!dateInput.value && !fromUser) {
+              const suggested = summary.proxima_data_sugerida || allowed[0] || '';
+              dateInput.value = suggested || '';
+              if (dateSelect) dateSelect.value = dateInput.value || '';
+            }
+
+            if (dateInput.value) {
+              const detail = await fetchAgenda(medId, especId, dateInput.value);
+              if (detail && detail.vagas_restantes != null) {
+                const cls = detail.vagas_restantes <= 0 ? 'text-danger fw-semibold' : 'text-success fw-semibold';
+                hintText = `Vagas restantes: <span class="${cls}">${detail.vagas_restantes}</span>`;
+              }
+            } else if (!allowed.length) {
+              hintText = 'Nenhuma data disponível na agenda deste médico.';
+            } else {
+              hintText = 'Selecione uma data disponível para visualizar vagas.';
+            }
+          } else {
+            const medIds = collectMedIds(medSelect);
+            if (!medIds.length) {
+              clearSchedule('Cadastre médicos do ambulatório para esta especialidade.');
+              return;
+            }
+            const results = await Promise.all(medIds.map((id) => fetchAgendaCached(id, especId).catch(() => ({ ok: false }))));
+            const pools = results
+              .filter((result) => result && result.ok)
+              .map((result) => (result.datas_agenda && result.datas_agenda.length ? result.datas_agenda : (result.datas_disponiveis || [])));
+            const combined = Array.from(new Set([].concat(...pools))).sort();
+            setAllowedDates(dateInput, combined);
+            if (!dateInput.value && combined.length && !fromUser) {
+              dateInput.value = combined[0];
+              if (dateSelect) dateSelect.value = dateInput.value;
+            }
+            hintText = combined.length
+              ? 'Selecione um médico para ver as vagas disponíveis.'
+              : 'Nenhuma data disponível na agenda dos profissionais.';
+          }
+
+          setHints(hints, hintText);
+        } catch (error) {
+          clearSchedule('');
+        }
+      }
+
+      if (medSelect && !medSelect.dataset.boundUpdate) {
+        medSelect.addEventListener('change', () => update(false));
+        medSelect.dataset.boundUpdate = '1';
+      }
+
+      dateInput.addEventListener('change', () => {
+        if (dateSelect) dateSelect.value = dateInput.value || '';
+        update(false);
+      });
+
+      if (dateSelect && !dateSelect.dataset.boundRow) {
+        dateSelect.addEventListener('change', () => {
+          dateInput.value = dateSelect.value || '';
+          update(true);
+          const autorizarBtn = row.querySelector('button.action-btn[data-action="autorizar"]');
+          if (autorizarBtn) autorizarBtn.click();
+        });
+        dateSelect.dataset.boundRow = '1';
+      }
+
+      update(false);
+    });
+  });
+
+  [$nome, $prot, $status, $sdi, $sdf, $adi, $adf, $pend].forEach((el) => {
+    if (el) el.addEventListener('input', applyFilters);
+    if (el && (el.tagName === 'SELECT' || el.type === 'date')) el.addEventListener('change', applyFilters);
+  });
+  if (clearBtn) clearBtn.addEventListener('click', function(){
+    [$nome, $prot, $status, $sdi, $sdf, $adi, $adf, $pend].forEach((el)=>{ if (el) el.value = ''; });
+    applyFilters();
+  });
+
+  document.querySelectorAll('textarea[name$="-motivo_decisao"], textarea[name$="-pendencia_motivo"]').forEach((ta) => {
+    const max = parseInt(ta.getAttribute('maxlength') || '500', 10);
+    ta.setAttribute('maxlength', String(max));
+    const counter = document.createElement('small');
+    counter.className = 'text-muted d-block text-end counter';
+    function update(){ counter.textContent = `${ta.value.length}/${max}`; }
+    ta.parentNode.appendChild(counter);
+    ta.addEventListener('input', update);
+    update();
+  });
+
+  function autoSubmitSwitch(id){
+    const sw = document.getElementById(id);
+    if (!sw) return;
+    sw.addEventListener('change', function(){
+      const hash = window.location.hash;
+      const url = new URL(window.location.href);
+      if (!sw.checked) {
+        url.searchParams.delete('pend');
+        window.location.href = url.toString() + hash;
+      } else {
+        url.searchParams.set('pend','1');
+        window.location.href = url.toString() + hash;
+      }
+    });
+  }
+  autoSubmitSwitch('pendExSwitch');
+  autoSubmitSwitch('pendCoSwitch');
+
+  function collectRowState(row, kind){
+    const key = getRowKey(row, kind);
+    if (!key) return null;
+    const autorizar = row.querySelector(`input[type="checkbox"][name^="${kind}-"][name$="-autorizar"]`);
+    const negar = row.querySelector(`input[type="checkbox"][name^="${kind}-"][name$="-negar"]`);
+    const pendenciar = row.querySelector(`input[type="checkbox"][name^="${kind}-"][name$="-pendenciar"]`);
+    const data = row.querySelector(`input[name^="${kind}-"][name$="-data_agendada"]`);
+    const hora = row.querySelector(`input[name^="${kind}-"][name$="-hora_agendada"]`);
+    const medico = row.querySelector(`select[name^="${kind}-"][name$="-medico_atendente"]`);
+    const tipoSelect = row.querySelector(`select[name^="${kind}-"][name$="-local_tipo"]`);
+    const action = autorizar && autorizar.checked ? 'autorizar' : (negar && negar.checked ? 'negar' : (pendenciar && pendenciar.checked ? 'pendenciar' : ''));
+    return {
+      key,
+      action,
+      data: data ? data.value : '',
+      hora: hora ? hora.value : '',
+      medico: medico ? medico.value : undefined,
+      tipo: tipoSelect ? tipoSelect.value : undefined,
+    };
+  }
+  function saveAll(kind){
+    const st = loadState();
+    document.querySelectorAll('table tbody tr').forEach((row) => {
+      const rs = collectRowState(row, kind);
+      if (!rs) return;
+      st[rs.key] = st[rs.key] || {};
+      st[rs.key].action = rs.action;
+      st[rs.key].data = rs.data;
+      st[rs.key].hora = rs.hora;
+      if (rs.medico !== undefined) st[rs.key].medico = rs.medico;
+      if (rs.tipo !== undefined) st[rs.key].tipo = rs.tipo;
+    });
+    saveState(st);
+  }
+  function saveEverything(){ saveAll('ex'); saveAll('co'); }
+  window.addEventListener('beforeunload', saveEverything);
+  document.querySelectorAll('.pp-edit-obs, .pp-edit-motivo, .pp-edit-pendencia').forEach((a) => {
+    a.addEventListener('click', function(){ saveEverything(); });
+  });
+  document.querySelectorAll('form').forEach(f => {
+    f.addEventListener('submit', function(){
+      try { const url = new URL(window.location.href); const m = url.pathname.match(/paciente\/(\d+)\/pedido\//); const pid = m?m[1]:'na'; localStorage.removeItem(`pp_state_${pid}`); } catch {}
+    });
+  });
+
+  document.getElementById('confirmarNegar').addEventListener('click', function() {
+    const motivo = document.getElementById('motivoNegar').value.trim();
+    if (!motivo) {
+      alert('Por favor, digite o motivo da negativa.');
+      return;
+    }
+    if (window.currentRow) {
+      const motivoField = window.currentRow.querySelector(`textarea[name$="-motivo_decisao"]`);
+      if (motivoField) {
+        motivoField.value = motivo;
+      }
+      window.currentRow.applySelectFunction('negar');
+      salvarAcaoAjax(window.currentRow, 'negar', motivo);
+    }
+    bootstrap.Modal.getInstance(document.getElementById('negarModal')).hide();
+  });
+
+  document.getElementById('confirmarPendencia').addEventListener('click', function() {
+    const motivo = document.getElementById('motivoPendencia').value.trim();
+    if (!motivo) {
+      alert('Por favor, digite o motivo da pendência.');
+      return;
+    }
+    if (window.currentRow) {
+      const pendenciaField = window.currentRow.querySelector(`textarea[name$="-pendencia_motivo"]`);
+      if (pendenciaField) {
+        pendenciaField.value = motivo;
+      }
+      window.currentRow.applySelectFunction('pendenciar');
+      salvarAcaoAjax(window.currentRow, 'pendenciar', motivo);
+    }
+    bootstrap.Modal.getInstance(document.getElementById('pendenciarModal')).hide();
+  });
+
+  function salvarAcaoAjax(row, action, motivo, retryCount = 0) {
+    function waitAndRetry(delay = 1000) {
+      if (retryCount < 3) {
+        setTimeout(() => {
+          salvarAcaoAjax(row, action, motivo, retryCount + 1);
+        }, delay);
+      } else {
+        alert('Erro de conexão ao salvar a ação. Recarregue a página e tente novamente.');
+      }
+    }
+
+    if (document.readyState !== 'complete') {
+      waitAndRetry(500);
+      return;
+    }
+
+    const itemId = row.dataset.itemId;
+    const itemType = row.dataset.itemType;
+    if (!itemId || !itemType) {
+      waitAndRetry(500);
+      return;
+    }
+
+    function findCsrfToken() {
+      let csrfToken = document.querySelector('input[name=csrfmiddlewaretoken]');
+      if (csrfToken && csrfToken.value) return csrfToken.value;
+      const forms = document.querySelectorAll('form');
+      for (let i = 0; i < forms.length; i++) {
+        const formCsrf = forms[i].querySelector('input[name=csrfmiddlewaretoken]');
+        if (formCsrf && formCsrf.value) return formCsrf.value;
+      }
+      const metaCsrf = document.querySelector('meta[name=csrf-token]');
+      if (metaCsrf) {
+        const content = metaCsrf.getAttribute('content');
+        if (content) return content;
+      }
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+      if (cookieValue) {
+        return cookieValue.split('=')[1];
+      }
+      return null;
+    }
+
+    const csrfValue = findCsrfToken();
+    if (!csrfValue) {
+      waitAndRetry(1000);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('item_id', itemId);
+    formData.append('item_type', itemType);
+    formData.append('action', action);
+    formData.append('motivo', motivo);
+    formData.append('csrfmiddlewaretoken', csrfValue);
+
+    const url = '{% url "salvar-acao-ajax" %}';
+    fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+          <i class="bi bi-check-circle me-2"></i>
+          ${data.message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(alertDiv, container.firstChild);
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, 5000);
+      } else {
+        alert('Erro ao salvar: ' + (data.error || 'Erro desconhecido'));
+      }
+    })
+    .catch(() => {
+      if (retryCount === 0) {
+        waitAndRetry(1000);
+      } else {
+        alert('Erro de conexão ao salvar a ação.');
+      }
+    });
+  }
 });
 {% endif %}
 </script>
-{% endblock %}
+
+{% if not read_only %}
+<div class="modal fade" id="ppJustifModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Justificativa Clínica</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="white-space: pre-wrap; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="negarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Motivo da Negativa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="motivoNegar" class="form-label">Digite o motivo da negativa:</label>
+          <textarea class="form-control" id="motivoNegar" rows="4" maxlength="500" placeholder="Descreva o motivo da negativa..."></textarea>
+          <div class="form-text">Máximo 500 caracteres</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmarNegar">Confirmar Negativa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="pendenciarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Motivo da Pendência</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="motivoPendencia" class="form-label">Digite o motivo da pendência:</label>
+          <textarea class="form-control" id="motivoPendencia" rows="4" maxlength="500" placeholder="Descreva o motivo da pendência..."></textarea>
+          <div class="form-text">Máximo 500 caracteres</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning text-dark" id="confirmarPendencia">Confirmar Pendência</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.pp-preview-edit {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: .35rem;
+  min-height: 2.3rem;
+  padding: .4rem .5rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: .45rem;
+}
+.pp-preview-edit > div {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.pp-preview-edit .btn {
+  flex: 0 0 auto;
+  padding: .25rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-xs {
+  padding: .125rem .25rem;
+  font-size: .75rem;
+  line-height: 1.2;
+  border-radius: .2rem;
+}
+.table th, .table td {
+  padding: .4rem .3rem;
+  vertical-align: middle;
+}
+.table th:nth-child(1), .table td:nth-child(1) { width: 8%; min-width: 90px; }
+.table th:nth-child(2), .table td:nth-child(2) { width: 8%; min-width: 80px; }
+.table th:nth-child(3), .table td:nth-child(3) { width: 18%; min-width: 150px; }
+.table th:nth-child(4), .table td:nth-child(4) { width: 16%; min-width: 170px; }
+.table th:nth-child(5), .table td:nth-child(5) { width: 16%; min-width: 170px; }
+.table th:nth-child(6), .table td:nth-child(6) { width: 12%; min-width: 100px; }
+.table th:nth-child(7), .table td:nth-child(7) { width: 20%; min-width: 160px; }
+.table th:nth-child(8), .table td:nth-child(8) { width: 16%; min-width: 120px; }
+@media (max-width: 576px) {
+  .btn-group .btn.action-btn { padding: .25rem .4rem; font-size: .8rem; }
+  .pp-section-actions .btn { padding: .375rem .5rem; font-size: .9rem; }
+  .pp-preview-edit .btn { white-space: nowrap; min-width: 24px; padding: .1rem .15rem; font-size: .7rem; }
+  table.table td, table.table th { padding: .3rem .2rem; font-size: .85rem; }
+  .table th:nth-child(4), .table td:nth-child(4), .table th:nth-child(7), .table td:nth-child(7) { display: none; }
+}
+@media (max-width: 768px) {
+  .pp-preview-edit .btn { white-space: nowrap; min-width: 28px; padding: .125rem .2rem; }
+  .table th, .table td { padding: .35rem .25rem; }
+  .table th:nth-child(2), .table td:nth-child(2) { width: 10%; }
+  .table th:nth-child(3), .table td:nth-child(3) { width: 20%; }
+  .table th:nth-child(7), .table td:nth-child(7) { width: 22%; }
+}
+@media (max-width: 992px) {
+  .table-responsive { font-size: .9rem; }
+}
+.table-responsive .table { width: 100%; min-width: 1250px; table-layout: auto; margin-bottom: 0; }
+tr.table-success { --bs-table-bg: #9fe3ac !important; }
+tr.table-danger  { --bs-table-bg: #f19a9a !important; }
+tr.table-warning { --bs-table-bg: #ffd96a !important; }
+.input-group.disabled .input-group-text,
+.input-group.disabled select,
+.input-group.disabled input {
+  background-color: #f3f3f3 !important;
+}
+.sticky-bottom {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  padding: 1rem;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  max-width: 90%;
+  width: auto;
+}
+.pp-local-group,
+.pp-medico-wrap {
+  width: min(360px, 100%);
+}
+.ex-tipo-select,
+.co-tipo-select,
+.pp-medico {
+  min-width: 230px;
+  width: 100%;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.ex-tipo-select:focus,
+.co-tipo-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+.ex-tipo-select option:checked,
+.co-tipo-select option:checked {
+  background-color: #0d6efd;
+  color: #fff;
+  font-weight: 600;
+}
+.ex-tipo-select,
+.co-tipo-select {
+  color: #212529 !important;
+  background-color: #fff !important;
+}
+.ex-tipo-select option,
+.co-tipo-select option {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  color: #212529;
+}
+@media (max-width: 576px) {
+  .pp-local-group,
+  .pp-medico-wrap {
+    width: 100%;
+  }
+  .ex-tipo-select,
+  .co-tipo-select,
+  .pp-medico {
+    min-width: 100%;
+  }
+}
+</style>
+
+{% endblock content %}

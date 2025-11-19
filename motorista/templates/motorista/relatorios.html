@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios de Motoristas{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-graph-up"></i> Relatórios de Motoristas</h6>
+      <a href="{% url 'motorista-viagem-list' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-list-ul"></i> Viagens</a>
+    </div>
+    <div class="card-body">
+      <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+          <label class="form-label">Início</label>
+          <input type="date" class="form-control" name="inicio" value="{{ inicio }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Fim</label>
+          <input type="date" class="form-control" name="fim" value="{{ fim }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-primary"><i class="bi bi-search"></i> Filtrar</button>
+        </div>
+      </form>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-3">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="text-muted small">Gasto com diárias</div>
+                  <div class="fs-5" id="gasto-diarias">0</div>
+                </div>
+                <i class="bi bi-cash fs-1 text-success"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="text-muted small">Gasto com horas extras</div>
+                  <div class="fs-5" id="gasto-horas-extras">0</div>
+                </div>
+                <i class="bi bi-clock-history fs-1 text-info"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="text-muted small">Quantidade de diárias de todos motoristas</div>
+                  <div class="fs-5" id="qtd-diarias">0</div>
+                </div>
+                <i class="bi bi-123 fs-1 text-primary"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="text-muted small">Total de horas extras de todos motoristas</div>
+                  <div class="fs-5" id="qtd-horas-extras">0</div>
+                </div>
+                <i class="bi bi-stopwatch fs-1 text-warning"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-12">
+          <div class="card h-100">
+            <div class="card-header bg-light">Total de viagens por motorista</div>
+            <div class="card-body p-0">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr><th>Motorista</th><th class="text-end">Viagens</th></tr>
+                </thead>
+                <tbody>
+                  {% for item in total_por_motorista %}
+                  <tr>
+                    <td>{{ item.motorista__nome_completo }}</td>
+                    <td class="text-end">{{ item.total }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="2" class="text-center text-muted">Sem dados</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+    function parseNumberBR(raw){
+      let s = (raw || '').toString().trim();
+      // Remove símbolo e espaços
+      s = s.replace(/[R$\s]/g, '');
+      // Se vier com milhares e decimal, mantém apenas o separador decimal como ponto
+      const hasComma = s.includes(',');
+      const hasDot = s.includes('.');
+      if (hasComma && hasDot) {
+        const lastComma = s.lastIndexOf(',');
+        const lastDot = s.lastIndexOf('.');
+        if (lastComma > lastDot) {
+          s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+          s = s.replace(/,/g, '');
+        }
+      } else if (hasComma) {
+        s = s.replace(',', '.');
+      }
+      s = s.replace(/[^\d.]/g, '');
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    }
+    const diarias = parseNumberBR('{{ gastos_diarias|default_if_none:"0" }}');
+    const horas = parseNumberBR('{{ gastos_horas_extras|default_if_none:"0" }}');
+    document.getElementById('gasto-diarias').textContent = fmt.format(diarias);
+    document.getElementById('gasto-horas-extras').textContent = fmt.format(horas);
+    const qtdDiarias = parseFloat('{{ total_qtd_diarias|default:0 }}') || 0;
+    const qtdHoras = parseFloat('{{ total_qtd_horas_extras|default:0 }}') || 0;
+    document.getElementById('qtd-diarias').textContent = qtdDiarias.toLocaleString('pt-BR');
+    document.getElementById('qtd-horas-extras').textContent = qtdHoras.toLocaleString('pt-BR');
+  });
+</script>
+{% endblock %}

@@ -3,84 +3,285 @@
 {% block title %}Entrar · Secretaria de Saúde{% endblock %}
 
 {% block content %}
-<div class="container-fluid d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 140px);">
-    <div class="row w-100 g-0 shadow rounded overflow-hidden" style="max-width: 980px;">
-        <!-- Branding / Hero -->
-        <div class="col-lg-6 d-none d-lg-block bg-primary text-white position-relative">
-            <div class="p-4 p-xl-5 h-100 d-flex flex-column">
-                <div class="mb-4">
-                    <span class="badge bg-light text-primary mb-2">Sistema Municipal</span>
-                    <h2 class="fw-bold">Secretaria Municipal de Saúde</h2>
-                    <p class="text-white-50 mb-0">Acesse para gerenciar solicitações, agenda e pacientes com segurança.</p>
-                </div>
-                <div class="mt-auto small text-white-50">
-                    <i class="bi bi-shield-lock me-1"></i> Seus dados estão protegidos.
+<style>
+    .login-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+        background-image: 
+            url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23003d7a' fill-opacity='0.08'%3E%3Cpath d='M40 40L20 20h40v40L40 40zm0-40L20 20V0h40L40 0zM0 40l20-20v40H0V40zm40 40l20-20H20v20h40z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+            radial-gradient(ellipse at top left, rgba(0, 61, 122, 0.12), transparent 50%), 
+            radial-gradient(ellipse at bottom right, rgba(34, 139, 34, 0.12), transparent 50%);
+        background-attachment: fixed;
+    }
+    
+    .login-card {
+        border-radius: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(50, 50, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
+        transform: translateY(0);
+        transition: all 0.5s ease;
+        max-width: 1000px;
+        width: 95%;
+    }
+    
+    .login-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(50, 50, 93, 0.15), 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .hero-side {
+        background-image: linear-gradient(135deg, #003d7a 0%, #002a5c 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-side::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+        transform: rotate(30deg);
+    }
+    
+    .hero-side::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 10L90 90H10z' fill='%23ffffff' fill-opacity='0.05'/%3E%3C/svg%3E");
+        background-size: contain;
+        background-repeat: no-repeat;
+    }
+    
+    .hero-badge {
+        background-color: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: white;
+        font-weight: 700;
+        padding: 0.6rem 1.2rem;
+        border-radius: 1.2rem;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        animation: fadeIn 1s ease-out forwards;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    
+    .login-form-container {
+        background: white;
+        border-radius: 0 1.5rem 1.5rem 0;
+    }
+    
+    .login-icon {
+        font-size: 3.5rem;
+        background: linear-gradient(135deg, #003d7a 0%, #002a5c 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.2rem;
+        filter: drop-shadow(0 2px 4px rgba(0, 61, 122, 0.3));
+    }
+    
+    .form-floating {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-floating .form-control {
+        border-radius: 0.75rem;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 1rem 1rem 1rem 3rem;
+        height: calc(3.5rem + 2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        transition: all 0.3s ease;
+    }
+    
+    .form-control {
+        border-radius: 0.75rem;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 1rem 1rem 1rem 3rem;
+        height: calc(3.5rem + 2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        transition: all 0.3s ease;
+    }
+    
+    .form-floating .form-control:focus,
+    .form-control:focus {
+        border-color: #003d7a;
+        box-shadow: 0 0 0 0.25rem rgba(0, 61, 122, 0.25);
+    }
+    
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #003d7a;
+        z-index: 5;
+        pointer-events: none;
+        font-size: 1.1rem;
+    }
+    
+    .btn-login {
+        border-radius: 0.75rem;
+        padding: 1rem 2rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        background-image: linear-gradient(135deg, #003d7a 0%, #002a5c 100%);
+        border: none;
+        box-shadow: 0 6px 20px rgba(0, 61, 122, 0.4);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        font-size: 0.95rem;
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 61, 122, 0.5);
+        background-image: linear-gradient(135deg, #004a94 0%, #003366 100%);
+    }
+    
+    .toggle-password {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 5;
+        background: none;
+        border: none;
+        color: #003d7a;
+        cursor: pointer;
+        padding: 0.25rem;
+        font-size: 1.1rem;
+    }
+    
+    .info-text {
+        color: #003d7a;
+        font-size: 0.9rem;
+        border-top: 1px solid rgba(0, 61, 122, 0.15);
+        padding-top: 1.5rem;
+        margin-top: 2rem;
+        font-weight: 500;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-delay-1 { animation: fadeIn 0.5s ease-out 0.1s both; }
+    .animate-delay-2 { animation: fadeIn 0.5s ease-out 0.2s both; }
+    .animate-delay-3 { animation: fadeIn 0.5s ease-out 0.3s both; }
+    .animate-delay-4 { animation: fadeIn 0.5s ease-out 0.4s both; }
+    
+    @media (max-width: 991.98px) {
+        .login-card {
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .login-form-container {
+            border-radius: 1.5rem;
+        }
+    }
+</style>
+
+<div class="container-fluid d-flex align-items-center justify-content-center login-container">
+    <div class="login-card">
+        <div class="row g-0">
+            <!-- Lado Hero -->
+            <div class="col-lg-6 d-none d-lg-block hero-side">
+                <div class="p-5 h-100 d-flex flex-column">
+                    <div class="mb-4 animate-delay-1">
+                        <span class="hero-badge mb-3 d-inline-block">
+                            <i class="bi bi-building-fill me-2"></i>Governo Municipal
+                        </span>
+                        <h1 class="fw-bold lh-sm text-white mb-3">Prefeitura Municipal de Iturama</h1>
+                        <h2 class="fw-bold lh-sm text-white mb-3">Secretaria de Saúde</h2>
+                        <p class="text-white-50 mb-0 fs-5">Sistema integrado para gestão de saúde pública municipal com segurança e transparência.</p>
+                    </div>
+                    <div class="mt-auto text-white-50 animate-delay-2">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-shield-lock fs-4 me-2"></i>
+                            <div>
+                                <div class="fw-bold text-white">Segurança Garantida</div>
+                                <div>Seus dados estão protegidos com criptografia avançada</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Login Card -->
-        <div class="col-lg-6 bg-white">
-            <div class="p-4 p-xl-5">
-                <!-- Mensagens -->
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <!-- Formulário de Login -->
+            <div class="col-lg-6 login-form-container">
+                <div class="p-4 p-lg-5">
+                    <!-- Mensagens -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm rounded-3" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="text-center mb-4 animate-delay-1">
+                        <div class="login-icon">
+                            <i class="bi bi-shield-check"></i>
                         </div>
-                    {% endfor %}
-                {% endif %}
+                        <h2 class="fw-bold mb-1">Acesso Seguro</h2>
+                        <div class="text-muted">Entre com suas credenciais oficiais</div>
+                    </div>
 
-                <div class="text-center mb-4">
-                    <div class="display-6 mb-1"><i class="bi bi-hospital"></i></div>
-                    <h3 class="fw-semibold mb-1">Bem-vindo</h3>
-                    <div class="text-muted">Use suas credenciais para entrar</div>
-                </div>
-
-                {% if form.errors %}
-                    <div class="alert alert-danger">
-                        {% for field in form %}
-                            {% for error in field.errors %}
+                    {% if form.errors %}
+                        <div class="alert alert-danger rounded-3 shadow-sm animate-delay-1">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <div><i class="bi bi-exclamation-triangle"></i> {{ error }}</div>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
                                 <div><i class="bi bi-exclamation-triangle"></i> {{ error }}</div>
                             {% endfor %}
-                        {% endfor %}
-                        {% for error in form.non_field_errors %}
-                            <div><i class="bi bi-exclamation-triangle"></i> {{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <form method="post" class="needs-validation" novalidate>
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label">Usuário</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            <input type="text" name="username" class="form-control" id="id_username" placeholder="seu.usuario" required autofocus>
-                            <div class="invalid-feedback">Informe o usuário.</div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="id_password" class="form-label">Senha</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" name="password" class="form-control" id="id_password" placeholder="••••••••" required>
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1">
+                    {% endif %}
+
+                    <form method="post" class="needs-validation animate-delay-2" novalidate>
+                        {% csrf_token %}
+                        <div class="position-relative mb-4">
+                            <i class="bi bi-person input-icon"></i>
+                            <input type="text" name="username" class="form-control form-control-lg" id="id_username" 
+                                   placeholder="Nome de usuário" required autofocus>
+                            <label for="id_username" class="visually-hidden">Usuário</label>
+                            <div class="invalid-feedback">Por favor, informe seu nome de usuário.</div>
+                        </div>
+                        
+                        <div class="position-relative mb-4">
+                            <i class="bi bi-lock input-icon"></i>
+                            <input type="password" name="password" class="form-control form-control-lg" id="id_password" 
+                                   placeholder="Senha" required>
+                            <button type="button" class="toggle-password" id="togglePassword" tabindex="-1">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <div class="invalid-feedback">Informe a senha.</div>
+                            <label for="id_password" class="visually-hidden">Senha</label>
+                            <div class="invalid-feedback">Por favor, informe sua senha.</div>
                         </div>
-                    </div>
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-box-arrow-in-right"></i> Entrar
-                        </button>
-                    </div>
-                </form>
+                        
+                        <div class="d-grid gap-2 animate-delay-3">
+                            <button type="submit" class="btn btn-primary btn-lg btn-login">
+                                <i class="bi bi-shield-lock me-2"></i>Acessar Sistema
+                            </button>
+                        </div>
+                    </form>
 
-                <div class="mt-4 small text-muted">
-                    <i class="bi bi-info-circle"></i> Precisa de acesso? Procure o administrador do sistema.
+                    <div class="text-center info-text animate-delay-4">
+                        <i class="bi bi-telephone me-2"></i>
+                
+                        Suporte técnico: Entre em contato com a TI da Secretaria Municipal de Saúde para obter acesso ao sistema.
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,6 +302,7 @@
         }, false);
     });
 })();
+
 // Mostrar/ocultar senha
 document.getElementById('togglePassword')?.addEventListener('click', function(){
     const input = document.getElementById('id_password');

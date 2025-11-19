@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Responder Pendência — {{ tipo|title }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Responder Pendência — {{ tipo|title }}</h4>
+    {% if back_url %}
+      <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Voltar para o pedido
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <div class="text-muted small">Paciente</div>
+          <div class="fw-semibold">{{ obj.paciente.nome }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted small">Protocolo</div>
+          <div class="fw-semibold">#{{ obj.numero_protocolo }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted small">Status</div>
+          <span class="badge {{ obj.get_status_badge_class }}">{{ obj.get_status_display }}</span>
+        </div>
+      </div>
+      {% if obj.status == 'pendente' %}
+      <div class="mt-3">
+        <div class="alert alert-warning d-flex align-items-center gap-2 mb-0">
+          <i class="bi bi-chat-dots"></i>
+          <div>Pendência em andamento — Você pode enviar novas mensagens a qualquer momento.</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-warning text-dark"><strong>Motivo da Pendência</strong></div>
+    <div class="card-body">
+      <p class="mb-1">{{ obj.pendencia_motivo|default:'—' }}</p>
+      {% if obj.pendencia_aberta_em %}
+      <div class="text-muted small">Aberta em {{ obj.pendencia_aberta_em|date:'d/m/Y H:i' }}</div>
+      {% endif %}
+      {% if mensagens %}
+        <hr>
+        <div class="mb-2"><strong>Histórico da conversa</strong></div>
+        <div class="list-group">
+          {% for m in mensagens %}
+            <div class="list-group-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="badge {% if m.lado == 'ubs' %}text-bg-secondary{% else %}text-bg-primary{% endif %}">
+                    {{ m.get_lado_display }}
+                  </span>
+                  <span class="text-muted small ms-2">
+                    {% if m.autor %}
+                      {% firstof m.autor.get_full_name m.autor.username %}
+                    {% else %}
+                      Sistema
+                    {% endif %}
+                  </span>
+                  {% if m.tipo == 'abertura' %}
+                    <span class="badge text-bg-warning text-dark ms-1">Abertura</span>
+                  {% endif %}
+                </div>
+                <div class="text-muted small">{{ m.criado_em|date:'d/m/Y H:i' }}</div>
+              </div>
+              <div class="mt-2">{{ m.texto }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      <form method="post" class="mt-3">
+        {% csrf_token %}
+        <div class="mb-2">
+          <label class="form-label">Sua resposta</label>
+          <textarea name="pendencia_resposta" class="form-control" rows="4" required></textarea>
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+          <a class="btn btn-outline-secondary" href="{{ back_url }}">Voltar</a>
+          <button class="btn btn-primary">Enviar resposta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

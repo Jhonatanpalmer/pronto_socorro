@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Locais de Manutenção{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card pp-card">
+    <div class="pp-header">
+      <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-geo-alt"></i> Locais de Manutenção</h6>
+      <a href="{% url 'local-manutencao-create' %}" class="btn btn-light btn-sm text-success fw-semibold"><i class="bi bi-plus-circle"></i> Novo local</a>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Nome</th>
+              <th>Cidade</th>
+              <th>Responsável</th>
+              <th>Telefone</th>
+              <th>Observações</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for local in locais %}
+            <tr>
+              <td>{{ local.nome }}</td>
+              <td>{{ local.cidade }}</td>
+              <td>{{ local.responsavel|default:'—' }}</td>
+              <td>{{ local.telefone|default:'—' }}</td>
+              <td>{{ local.observacoes|default:'—' }}</td>
+              <td class="text-end">
+                <div class="btn-group" role="group">
+                  <a href="{% url 'local-manutencao-update' local.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                  <a href="{% url 'local-manutencao-delete' local.id %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center py-3 text-muted">Nenhum local cadastrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

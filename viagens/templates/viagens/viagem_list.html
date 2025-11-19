@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load widget_tweaks %}
 
 {% block title %}Lista de Viagens{% endblock %}
 
@@ -6,45 +7,67 @@
 <style>
 /* Estilos específicos para impressão */
 @media print {
-    body * {
-        visibility: hidden;
-    }
-    .print-area, .print-area * {
-        visibility: visible;
-    }
-    .print-area {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
-    /* Deixar a tabela mais limpa para impressão */
-    table {
-        border-collapse: collapse !important;
-        width: 100%;
-        font-size: 12px;
-    }
-    th, td {
-        border: 1px solid #000 !important;
-        padding: 4px;
-        text-align: center;
-    }
-    th {
-        background: #f2f2f2 !important;
-    }
-    /* Cabeçalho do relatório */
-    .report-header {
-        text-align: center;
-        margin-bottom: 15px;
-    }
-    .report-header h2 {
-        margin: 0;
-        font-size: 18px;
-    }
-    .report-header small {
-        font-size: 12px;
-        color: #555;
-    }
+  @page {
+      margin: 12mm;
+  }
+  body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+  }
+  .no-print,
+  .navbar,
+  .sidebar,
+  .btn,
+  .modal,
+  .modal-backdrop {
+      display: none !important;
+  }
+  .container {
+      max-width: 100% !important;
+  }
+  .print-area {
+      box-shadow: none !important;
+      border-radius: 0;
+  }
+  .table-responsive {
+      overflow: visible !important;
+  }
+  table {
+      border-collapse: collapse !important;
+      width: 100%;
+      font-size: 12px;
+      table-layout: fixed;
+  }
+  th, td {
+      border: 1px solid #000 !important;
+      padding: 4px;
+      text-align: center;
+  }
+  thead th {
+      background: #0d6efd !important;
+      color: #fff !important;
+      font-weight: 700;
+      white-space: nowrap;
+  }
+  tbody td {
+      font-weight: 700;
+      word-break: break-word;
+  }
+  .report-header {
+      text-align: center;
+      margin-bottom: 15px;
+  }
+  .report-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+  }
+  .report-header small {
+      font-size: 12px;
+      color: #555;
+      font-weight: 700;
+  }
 }
 </style>
 
@@ -57,8 +80,17 @@
                 <h2 class="fw-bold mb-1">Viagens</h2>
                 <div class="text-white-50">Acompanhe as viagens registradas</div>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
                 <a href="{% url 'viagem-create' %}" class="btn btn-light text-primary"><i class="bi bi-plus-lg"></i> Nova Viagem</a>
+                <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalTipoAtendimento">
+                    <i class="bi bi-journal-plus"></i> Tipo de Atendimento
+                </button>
+                <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalHospital">
+                    <i class="bi bi-hospital"></i> Hospital de Atendimento
+                </button>
+                <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalDestino">
+                    <i class="bi bi-geo-alt"></i> Cidade de Destino
+                </button>
                 <a href="{% url 'viagem-list' %}" class="btn btn-outline-light">Atualizar</a>
                 <a href="javascript:window.print()" class="btn btn-outline-light"><i class="bi bi-printer-fill"></i> Imprimir</a>
             </div>
@@ -73,10 +105,6 @@
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-sm-6 col-md-3">
-                    <label class="form-label small">Data (única)</label>
-                    <input class="form-control form-control-sm" type="date" name="data" value="{{ filter_data }}">
-                </div>
-                <div class="col-sm-6 col-md-3">
                     <label class="form-label small">De</label>
                     <input class="form-control form-control-sm" type="date" name="start" value="{{ filter_start }}">
                 </div>
@@ -84,12 +112,12 @@
                     <label class="form-label small">Até</label>
                     <input class="form-control form-control-sm" type="date" name="end" value="{{ filter_end }}">
                 </div>
-                <div class="col-sm-6 col-md-3">
-                    <label class="form-label small">Cidade</label>
-                    <select class="form-select form-select-sm" name="cidade">
-                        <option value="">Todas</option>
-                        {% for cidade in cidades %}
-                            <option value="{{ cidade }}" {% if cidade == filter_cidade %}selected{% endif %}>{{ cidade }}</option>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <label class="form-label small">Destino</label>
+                    <select class="form-select form-select-sm" name="destino">
+                        <option value="">Todos</option>
+                        {% for destino in destinos_disponiveis %}
+                            <option value="{{ destino }}" {% if destino == filter_destino %}selected{% endif %}>{{ destino }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -109,40 +137,54 @@
                 <small>Emitido em: {{ today|date:"d/m/Y" }}</small>
             </div>
 
-            <div class="table-responsive shadow-sm rounded-3 overflow-hidden">
+            <div class="table-responsive shadow-sm rounded-3">
                 <table class="table table-hover align-middle mb-0">
+                    <colgroup>
+                        <col style="width: 7%">
+                        <col style="width: 9%">
+                        <col style="width: 10%">
+                        <col style="width: 6%">
+                        <col style="width: 11%">
+                        <col style="width: 11%">
+                        <col style="width: 9%">
+                        <col style="width: 9%">
+                        <col style="width: 7%">
+                        <col style="width: 8%">
+                        <col style="width: 8%">
+                        <col style="width: 8%">
+                    </colgroup>
                     <thead class="table-light">
-                        <tr class="text-center small text-uppercase">
-                            <th>Data</th>
-                            <th>Veículo</th>
-                            <th>Motorista</th>
-                            <th>Horário</th>
-                            <th>Nome do Paciente</th>
-                            <th>Endereço</th>
-                            <th>Destino</th>
-                            <th>Acompanhante</th>
-                            <th>CPF</th>
-                            <th>Telefone</th>
-                            <th>Tipo de Atendimento</th>
-                            <th>Hospital</th>
+                        <tr class="text-center text-uppercase">
+                            <th class="fw-bold">Data</th>
+                            <th class="fw-bold">Veículo</th>
+                            <th class="fw-bold">Motorista</th>
+                            <th class="fw-bold">Horário</th>
+                            <th class="fw-bold">Nome do Paciente</th>
+                            <th class="fw-bold">Endereço</th>
+                            <th class="fw-bold">Destino</th>
+                            <th class="fw-bold">Acompanhante</th>
+                            <th class="fw-bold">CPF</th>
+                            <th class="fw-bold">Telefone</th>
+                            <th class="fw-bold">Tipo</th>
+                            <th class="fw-bold">Hospital</th>
                             <th class="no-print">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for viagem in viagens %}
                             <tr>
-                                <td class="text-center">{{ viagem.data_viagem|date:"d/m/Y" }}</td>
-                                <td class="text-center">{{ viagem.veiculo }}</td>
-                                <td class="text-center">{{ viagem.motorista }}</td>
-                                <td class="text-center">{{ viagem.hora_saida|time:"H:i" }}</td>
-                                <td>{{ viagem.paciente.nome }}</td>
-                                <td class="text-start">{{ viagem.endereco_paciente }}</td>
-                                <td class="text-start">{{ viagem.destino }}</td>
-                                <td>{{ viagem.acompanhante }}</td>
-                                <td class="text-center">{{ viagem.paciente.cpf }}</td>
-                                <td class="text-center">{{ viagem.paciente.telefone }}</td>
-                                <td>{{ viagem.tipo_atendimento }}</td>
-                                <td>{{ viagem.hospital }}</td>
+                                <td class="text-center fw-bold">{{ viagem.data_viagem|date:"d/m/Y" }}</td>
+                                <td class="text-center fw-bold">{{ viagem.veiculo }}</td>
+                                <td class="text-center fw-bold">{{ viagem.motorista_nome }}</td>
+                                <td class="text-center fw-bold">{{ viagem.hora_saida|time:"H:i" }}</td>
+                                <td class="fw-bold">{{ viagem.paciente.nome }}</td>
+                                <td class="text-start fw-bold">{{ viagem.endereco_paciente }}</td>
+                                <td class="text-start fw-bold">{{ viagem.destino }}</td>
+                                <td class="fw-bold">{{ viagem.acompanhante }}</td>
+                                <td class="text-center fw-bold">{{ viagem.paciente.cpf }}</td>
+                                <td class="text-center fw-bold">{{ viagem.paciente.telefone }}</td>
+                                <td class="fw-bold">{{ viagem.tipo_atendimento }}</td>
+                                <td class="fw-bold">{{ viagem.hospital }}</td>
                                 <td class="no-print text-center">
                                     <a href="{% url 'viagem-edit' viagem.pk %}" class="btn btn-sm btn-primary">Editar</a>
                                     <form method="post" action="{% url 'viagem-delete' viagem.pk %}" style="display:inline" onsubmit="return confirm('Tem certeza que deseja excluir a viagem de {{ viagem.paciente.nome|escapejs }} para {{ viagem.destino|escapejs }} em {{ viagem.data_viagem|date:"d/m/Y" }}?')">
@@ -162,4 +204,227 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Modal: Tipo de Atendimento -->
+<div class="modal fade" id="modalTipoAtendimento" tabindex="-1" aria-labelledby="modalTipoAtendimentoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTipoAtendimentoLabel"><i class="bi bi-journal-plus me-2"></i>Cadastro de Tipo de Atendimento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="_action" value="tipo-atendimento">
+                    {% if tipo_atendimento_form.non_field_errors %}
+                        <div class="alert alert-danger small mb-3">{{ tipo_atendimento_form.non_field_errors|join:', ' }}</div>
+                    {% endif %}
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small text-muted">Nome *</label>
+                            {{ tipo_atendimento_form.nome|add_class:"form-control" }}
+                            {% if tipo_atendimento_form.nome.errors %}
+                                <div class="text-danger small mt-1">{{ tipo_atendimento_form.nome.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small text-muted">Descrição</label>
+                            {{ tipo_atendimento_form.descricao|add_class:"form-control" }}
+                            {% if tipo_atendimento_form.descricao.errors %}
+                                <div class="text-danger small mt-1">{{ tipo_atendimento_form.descricao.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center">
+                            <div class="form-check form-switch">
+                                {{ tipo_atendimento_form.ativo|add_class:"form-check-input" }}
+                                <label class="form-check-label" for="{{ tipo_atendimento_form.ativo.id_for_label }}">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Salvar tipo</button>
+                    </div>
+                </form>
+
+                <h6 class="small text-uppercase text-muted mb-2">Tipos cadastrados</h6>
+                <div class="border rounded overflow-hidden">
+                    <ul class="list-group list-group-flush">
+                        {% for tipo in tipos_atendimento %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ tipo.nome }}</span>
+                                {% if not tipo.ativo %}
+                                    <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted fst-italic">Nenhum tipo cadastrado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Hospital de Atendimento -->
+<div class="modal fade" id="modalHospital" tabindex="-1" aria-labelledby="modalHospitalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalHospitalLabel"><i class="bi bi-hospital me-2"></i>Cadastro de Hospital de Atendimento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="_action" value="hospital-atendimento">
+                    {% if hospital_atendimento_form.non_field_errors %}
+                        <div class="alert alert-danger small mb-3">{{ hospital_atendimento_form.non_field_errors|join:', ' }}</div>
+                    {% endif %}
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small text-muted">Nome *</label>
+                            {{ hospital_atendimento_form.nome|add_class:"form-control" }}
+                            {% if hospital_atendimento_form.nome.errors %}
+                                <div class="text-danger small mt-1">{{ hospital_atendimento_form.nome.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small text-muted">Descrição</label>
+                            {{ hospital_atendimento_form.descricao|add_class:"form-control" }}
+                            {% if hospital_atendimento_form.descricao.errors %}
+                                <div class="text-danger small mt-1">{{ hospital_atendimento_form.descricao.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center">
+                            <div class="form-check form-switch">
+                                {{ hospital_atendimento_form.ativo|add_class:"form-check-input" }}
+                                <label class="form-check-label" for="{{ hospital_atendimento_form.ativo.id_for_label }}">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Salvar hospital</button>
+                    </div>
+                </form>
+
+                <h6 class="small text-uppercase text-muted mb-2">Hospitais cadastrados</h6>
+                <div class="border rounded overflow-hidden">
+                    <ul class="list-group list-group-flush">
+                        {% for hospital_opcao in hospitais_atendimento %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ hospital_opcao.nome }}</span>
+                                {% if not hospital_opcao.ativo %}
+                                    <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted fst-italic">Nenhum hospital cadastrado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Cidade de Destino -->
+<div class="modal fade" id="modalDestino" tabindex="-1" aria-labelledby="modalDestinoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDestinoLabel"><i class="bi bi-geo-alt me-2"></i>Cadastro de Cidade de Destino</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="_action" value="destino">
+                    {% if destino_form.non_field_errors %}
+                        <div class="alert alert-danger small mb-3">{{ destino_form.non_field_errors|join:', ' }}</div>
+                    {% endif %}
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small text-muted">Cidade *</label>
+                            {{ destino_form.nome_cidade|add_class:"form-control" }}
+                            {% if destino_form.nome_cidade.errors %}
+                                <div class="text-danger small mt-1">{{ destino_form.nome_cidade.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">UF *</label>
+                            {{ destino_form.uf|add_class:"form-control text-uppercase" }}
+                            {% if destino_form.uf.errors %}
+                                <div class="text-danger small mt-1">{{ destino_form.uf.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center">
+                            <div class="form-check form-switch">
+                                {{ destino_form.ativo|add_class:"form-check-input" }}
+                                <label class="form-check-label" for="{{ destino_form.ativo.id_for_label }}">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Salvar cidade</button>
+                    </div>
+                </form>
+
+                <h6 class="small text-uppercase text-muted mb-2">Cidades cadastradas</h6>
+                <div class="border rounded overflow-hidden" style="max-height: 300px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush">
+                        {% for destino in destinos_viagem %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ destino.nome_cidade }}/{{ destino.uf }}</span>
+                                {% if not destino.ativo %}
+                                    <span class="badge bg-secondary">Inativa</span>
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted fst-italic">Nenhuma cidade cadastrada.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if tipo_atendimento_form.errors %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalElement = document.getElementById('modalTipoAtendimento');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+    });
+</script>
+{% endif %}
+{% if hospital_atendimento_form.errors %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalElement = document.getElementById('modalHospital');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+    });
+</script>
+{% endif %}
+{% if destino_form.errors %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalElement = document.getElementById('modalDestino');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}

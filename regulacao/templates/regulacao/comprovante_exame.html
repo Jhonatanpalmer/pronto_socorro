@@ -34,6 +34,10 @@
         </div>
       </div>
       <hr/>
+      {% if reg.observacoes_regulacao %}
+      <div class="mb-2"><strong>Obs. Regulação:</strong> {{ reg.observacoes_regulacao }}</div>
+      {% endif %}
+      
       <div class="small text-muted">Emitido em {{ now|default:reg.atualizado_em|date:'d/m/Y H:i' }}</div>
       <div class="d-print-none mt-3">
         <a href="{% url 'regulacao-agenda' %}" class="btn btn-outline-primary">Voltar à Agenda</a>

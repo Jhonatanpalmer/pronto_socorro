@@ -126,10 +126,23 @@ class GroupForm(forms.ModelForm):
     can_tfd = forms.BooleanField(label='TFD', required=False)
     can_regulacao = forms.BooleanField(label='Regulação', required=False)
     can_users_admin = forms.BooleanField(label='Administração de Usuários/Grupos', required=False)
+    can_motorista = forms.BooleanField(label='Motoristas', required=False)
+    can_rh = forms.BooleanField(label='RH', required=False)
+    can_veiculos = forms.BooleanField(label='Veículos / Abastecimentos', required=False)
 
     class Meta:
         model = Group
-        fields = ['name', 'can_pacientes', 'can_viagens', 'can_tfd', 'can_regulacao', 'can_users_admin']
+        fields = [
+            'name',
+            'can_pacientes',
+            'can_viagens',
+            'can_tfd',
+            'can_regulacao',
+            'can_users_admin',
+            'can_motorista',
+            'can_rh',
+            'can_veiculos',
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -137,7 +150,7 @@ class GroupForm(forms.ModelForm):
         if 'name' in self.fields:
             self.fields['name'].widget.attrs.setdefault('class', 'form-control')
             self.fields['name'].widget.attrs.setdefault('placeholder', 'Nome do grupo')
-        for name in ['can_pacientes','can_viagens','can_tfd','can_regulacao','can_users_admin']:
+        for name in ['can_pacientes','can_viagens','can_tfd','can_regulacao','can_users_admin','can_motorista','can_rh','can_veiculos']:
             if name in self.fields:
                 self.fields[name].widget.attrs.setdefault('class', 'form-check-input')
         instance: Group = kwargs.get('instance')
@@ -148,6 +161,9 @@ class GroupForm(forms.ModelForm):
             self.fields['can_tfd'].initial = access.can_tfd
             self.fields['can_regulacao'].initial = access.can_regulacao
             self.fields['can_users_admin'].initial = access.can_users_admin
+            self.fields['can_motorista'].initial = access.can_motorista
+            self.fields['can_rh'].initial = access.can_rh
+            self.fields['can_veiculos'].initial = access.can_veiculos
 
     def save(self, commit=True):
         group: Group = super().save(commit=commit)
@@ -157,5 +173,8 @@ class GroupForm(forms.ModelForm):
         access.can_tfd = self.cleaned_data.get('can_tfd', False)
         access.can_regulacao = self.cleaned_data.get('can_regulacao', False)
         access.can_users_admin = self.cleaned_data.get('can_users_admin', False)
+        access.can_motorista = self.cleaned_data.get('can_motorista', False)
+        access.can_rh = self.cleaned_data.get('can_rh', False)
+        access.can_veiculos = self.cleaned_data.get('can_veiculos', False)
         access.save()
         return group

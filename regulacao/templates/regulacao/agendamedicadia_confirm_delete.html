@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h3>Excluir Agenda (por dia)</h3>
+  <p>Tem certeza que deseja excluir a agenda do dia <strong>{{ object.data|date:'d/m/Y' }}</strong> do médico <strong>{{ object.medico.nome }}</strong> ({{ object.especialidade.nome }})?</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="d-flex gap-2">
+      <button class="btn btn-danger">Confirmar exclusão</button>
+      <a href="{% url 'agendadia-list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
